@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from './firebase';
 import {
-  doc, collection, onSnapshot, setDoc, updateDoc, getDoc, deleteDoc
+  doc, collection, onSnapshot, setDoc, updateDoc, getDoc, deleteDoc, increment
 } from 'firebase/firestore';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -150,9 +150,9 @@ const CSS = `
 `;
 
 // ── Shared components ─────────────────────────────────────────────────────────
-const ALL_TABS = ["squad","stats","table","fixtures","halloffame","predictor"];
+const ALL_TABS = ["squad","report","stats","table","fixtures","halloffame","predictor"];
 const matchdayScreens = ["setup","spin","pitch"];
-const TAB_LABELS = {squad:"⚽ Squad",stats:"Stats",table:"Table",fixtures:"Fixtures",halloffame:"🏆 Hall",predictor:"Predictor"};
+const TAB_LABELS = {squad:"⚽ Squad",report:"Report",stats:"Stats",table:"Table",fixtures:"Fixtures",halloffame:"🏆 Hall",predictor:"Predictor"};
 
 function Header({ screen, setScreen, isAdmin, onAdminClick }) {
   const activeTab = matchdayScreens.includes(screen) ? null : screen;
@@ -267,6 +267,10 @@ export default function App() {
   // Published matchday squad (synced with Firestore)
   const [matchdaySquad, setMatchdaySquad] = useState(null);
 
+  // Match report (synced with Firestore + local draft state)
+  const [matchReport,  setMatchReport]  = useState(null);
+  const [reportDraft,  setReportDraft]  = useState(null);
+
   // Stats (synced with Firestore)
   const [stats,        setStats]        = useState(initStats());
   const [sortStat,     setSortStat]     = useState("apps");
@@ -347,6 +351,11 @@ export default function App() {
       setMatchdaySquad(snap.exists() && snap.data().published ? snap.data() : null);
     }));
 
+    // Match report
+    unsubs.push(onSnapshot(doc(db, "matchday", "report"), snap => {
+      setMatchReport(snap.exists() ? snap.data() : null);
+    }));
+
     return () => unsubs.forEach(u => u());
   }, []);
 
@@ -423,6 +432,72 @@ export default function App() {
 
   const clearSquad = async () => {
     await setDoc(doc(db, "matchday", "squad"), { published: false });
+  };
+
+  // ── Match Report helpers ───────────────────────────────────────────────────
+  const blankReportPlayer = (name, pos) => ({
+    name, pos, played: true,
+    goals: 0, assists: 0, yellows: 0, reds: 0,
+    cleanSheet: false, motm: false, rating: "",
+  });
+
+  const startReportFromSquad = () => {
+    if (!matchdaySquad) return;
+    const players = [
+      ...matchdaySquad.sTeam.map(p => blankReportPlayer(p.name, p.pos)),
+      ...(matchdaySquad.benchTeam || []).map(n => blankReportPlayer(n, "SUB")),
+    ];
+    const draft = {
+      opponent: matchdaySquad.oppName || "",
+      date: new Date().toLocaleDateString("en-GB", {weekday:"short",day:"numeric",month:"short",year:"numeric"}),
+      sfcScore: "", oppScore: "", reportText: "", players, applied: false,
+    };
+    setReportDraft(draft);
+    setDoc(doc(db, "matchday", "report"), draft);
+  };
+
+  const updateReportPlayer = (i, field, value) => {
+    setReportDraft(d => {
+      const players = [...d.players];
+      // MOTM is exclusive — clear others first
+      if (field === "motm" && value) players.forEach((p,j) => { if (j!==i) players[j]={...p,motm:false}; });
+      players[i] = { ...players[i], [field]: value };
+      return { ...d, players };
+    });
+  };
+
+  const saveReportDraft = async () => {
+    if (!reportDraft) return;
+    await setDoc(doc(db, "matchday", "report"), { ...reportDraft, applied: false });
+  };
+
+  const applyReport = async () => {
+    if (!reportDraft || reportDraft.applied) return;
+    for (const p of reportDraft.players) {
+      if (!p.played) continue;
+      const upd = {
+        apps:        increment(1),
+        goals:       increment(parseInt(p.goals)  || 0),
+        assists:     increment(parseInt(p.assists) || 0),
+        yellows:     increment(parseInt(p.yellows) || 0),
+        reds:        increment(parseInt(p.reds)    || 0),
+        cleanSheets: increment(p.cleanSheet ? 1 : 0),
+        motm:        increment(p.motm        ? 1 : 0),
+      };
+      await setDoc(doc(db, "stats",        p.name), upd, { merge: true });
+      await setDoc(doc(db, "allTimeStats", p.name), upd, { merge: true });
+      // Add rating to player form (keep last 5)
+      const formSnap = await getDoc(doc(db, "playerForm", p.name));
+      const existing = formSnap.exists() ? (formSnap.data().games || []) : [];
+      const r = parseFloat(p.rating);
+      if (!isNaN(r)) {
+        const newGames = [...existing, { rating: r, opp: reportDraft.opponent, date: reportDraft.date }].slice(-5);
+        await setDoc(doc(db, "playerForm", p.name), { games: newGames });
+      }
+    }
+    const final = { ...reportDraft, sfcScore: parseInt(reportDraft.sfcScore)||0, oppScore: parseInt(reportDraft.oppScore)||0, applied: true, publishedAt: Date.now() };
+    await setDoc(doc(db, "matchday", "report"), final);
+    setReportDraft(final);
   };
 
   const updateAllTimeStat = async (player, key, val) => {
@@ -1148,6 +1223,246 @@ export default function App() {
             <button className="btn btn-o" onClick={() => setScreen("spin")} style={{flex:1}}>← CHANGE</button>
             <button className="btn btn-ghost" onClick={() => { clearSquad(); setScreen("setup"); setOIn(""); setDone(false); setSpinning(false); closeSwaps(); setBenchTeam([]); }} style={{flex:1}}>NEW MATCHDAY</button>
           </div>
+        </main>
+        {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // MATCH REPORT SCREEN
+  // ══════════════════════════════════════════════════════════════════════════
+  if (screen === "report") {
+    // Determine which data to show in editing form
+    const draft = reportDraft || (matchReport && !matchReport.applied ? matchReport : null);
+    const published = matchReport?.applied ? matchReport : null;
+
+    // ── Shared: small number input ─────────────────────────────────────────
+    const NumInput = ({ val, onChange, w=44 }) => (
+      <input type="number" min="0" max="99" value={val}
+        onChange={e => onChange(parseInt(e.target.value)||0)}
+        style={{width:w,padding:"5px 3px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#fff",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem",textAlign:"center",outline:"none"}}
+      />
+    );
+
+    // ── Rating pill with colour coding ─────────────────────────────────────
+    const RatingInput = ({ val, onChange }) => {
+      const r = parseFloat(val);
+      const c = (!val && val!==0) ? "#ffffff22" : getRatingColor(r);
+      return (
+        <div style={{position:"relative",display:"inline-flex",alignItems:"center"}}>
+          <input type="number" min="0" max="10" step="0.1" value={val}
+            onChange={e => onChange(e.target.value)}
+            placeholder="–"
+            style={{width:52,padding:"5px 4px",background:(!val&&val!==0)?"#0f0f14":`${c}22`,border:`1.5px solid ${c}`,color:c,fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".85rem",textAlign:"center",outline:"none",borderRadius:4}}
+          />
+        </div>
+      );
+    };
+
+    // ── Public (applied) report view ───────────────────────────────────────
+    const PublishedView = ({ r }) => (
+      <div style={{animation:"fadeUp .4s ease"}}>
+        {/* Match result header */}
+        <div style={{background:"#ffffff06",border:"1px solid #ffffff12",padding:"18px 16px",marginBottom:18,textAlign:"center"}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#ffffff44",marginBottom:8}}>{r.date}</div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,flexWrap:"wrap"}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(1.1rem,4vw,1.6rem)",color:"#e8ff00"}}>SECTION FC</div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:900,fontSize:"clamp(2rem,7vw,3rem)",color:"#fff",minWidth:36,textAlign:"center"}}>{r.sfcScore}</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:400,fontSize:"1.2rem",color:"#ffffff30"}}>–</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:900,fontSize:"clamp(2rem,7vw,3rem)",color:"#ff6644",minWidth:36,textAlign:"center"}}>{r.oppScore}</div>
+            </div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(1.1rem,4vw,1.6rem)",color:"#ff6644"}}>{r.opponent}</div>
+          </div>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:2,color:r.sfcScore>r.oppScore?"#44dd88":r.sfcScore<r.oppScore?"#ff5544":"#ffffff55",marginTop:8}}>
+            {r.sfcScore>r.oppScore?"✓ WIN":r.sfcScore<r.oppScore?"✗ LOSS":"= DRAW"}
+          </div>
+        </div>
+
+        {/* Player ratings & stats */}
+        <div style={{marginBottom:20}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#ffffff38",marginBottom:10}}>PLAYER RATINGS & STATS</div>
+          {r.players.filter(p=>p.played).map((p,i) => {
+            const rc = p.rating!==undefined&&p.rating!=="" ? getRatingColor(parseFloat(p.rating)) : "#ffffff22";
+            return (
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:i%2===0?"transparent":"#ffffff04",borderBottom:"1px solid #ffffff07",flexWrap:"wrap"}}>
+                <Avatar name={p.name} size={34} />
+                <div style={{minWidth:130,flex:1}}>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".88rem"}}>{p.name}</div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,color:"#ffffff40"}}>{p.pos}</div>
+                </div>
+                {/* Rating */}
+                {p.rating!==""&&p.rating!==undefined && (
+                  <div style={{width:40,height:40,borderRadius:5,background:`${rc}22`,border:`2px solid ${rc}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".88rem",color:rc}}>{parseFloat(p.rating).toFixed(1)}</span>
+                  </div>
+                )}
+                {/* Stats */}
+                <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                  {p.goals>0     && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffffcc"}}>⚽ {p.goals}</div>}
+                  {p.assists>0   && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffffcc"}}>🅰 {p.assists}</div>}
+                  {p.yellows>0   && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#f5c518"}}>🟨 {p.yellows}</div>}
+                  {p.reds>0      && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ff4444"}}>🟥 {p.reds}</div>}
+                  {p.cleanSheet  && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#44dd88"}}>🧤 CS</div>}
+                  {p.motm        && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#e8ff00",fontWeight:700}}>★ MOTM</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Written report */}
+        {r.reportText && (
+          <div style={{background:"#ffffff05",border:"1px solid #ffffff0e",padding:"16px 18px",marginBottom:16}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#e8ff00",marginBottom:10}}>◆ MATCH REPORT</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"1rem",lineHeight:1.6,color:"#ffffffcc",whiteSpace:"pre-wrap"}}>{r.reportText}</div>
+          </div>
+        )}
+
+        {isAdmin && (
+          <button className="btn btn-ghost" onClick={() => { setReportDraft({...r, applied:false}); }}
+            style={{width:"100%",fontSize:".62rem",color:"#ff555588",borderColor:"#ff555533"}}>
+            ✕ REOPEN FOR EDITING (will NOT reverse stat changes)
+          </button>
+        )}
+      </div>
+    );
+
+    // ── Admin editing form ─────────────────────────────────────────────────
+    const EditForm = ({ d }) => (
+      <div>
+        {/* Score row */}
+        <div style={{background:"#ffffff06",border:"1px solid #ffffff12",padding:"14px 16px",marginBottom:18}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#ffffff44",marginBottom:10}}>MATCH RESULT</div>
+          <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+            <input value={d.opponent} onChange={e=>setReportDraft(x=>({...x,opponent:e.target.value}))}
+              placeholder="Opponent name…"
+              style={{flex:1,minWidth:130,padding:"9px 12px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#ff6644",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".9rem",letterSpacing:1}} />
+            <input value={d.date} onChange={e=>setReportDraft(x=>({...x,date:e.target.value}))}
+              placeholder="Date…"
+              style={{width:130,padding:"9px 12px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#ffffffaa",fontFamily:"'Oswald',sans-serif",fontSize:".82rem"}} />
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <input type="number" min="0" value={d.sfcScore} onChange={e=>setReportDraft(x=>({...x,sfcScore:e.target.value}))} placeholder="SFC"
+                style={{width:56,padding:"9px 6px",background:"#0f0f14",border:"1px solid #e8ff0044",color:"#e8ff00",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1.3rem",textAlign:"center",outline:"none"}} />
+              <span style={{fontFamily:"'Oswald',sans-serif",color:"#ffffff30",fontWeight:400}}>–</span>
+              <input type="number" min="0" value={d.oppScore} onChange={e=>setReportDraft(x=>({...x,oppScore:e.target.value}))} placeholder="OPP"
+                style={{width:56,padding:"9px 6px",background:"#0f0f14",border:"1px solid #ff664444",color:"#ff6644",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1.3rem",textAlign:"center",outline:"none"}} />
+            </div>
+          </div>
+        </div>
+
+        {/* Player stats table */}
+        <div style={{marginBottom:18}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#ffffff38",marginBottom:8}}>PLAYER RATINGS & STATS</div>
+          {/* Column headers */}
+          <div style={{display:"flex",alignItems:"center",gap:6,padding:"5px 12px",borderBottom:"1px solid #ffffff0e",marginBottom:4}}>
+            <div style={{minWidth:140,flex:1}} />
+            <div style={{width:52,fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:1.5,color:"#ffffff35",textAlign:"center"}}>RATING</div>
+            {["G","A","Y","R"].map(h=><div key={h} style={{width:44,fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:1.5,color:"#ffffff35",textAlign:"center"}}>{h}</div>)}
+            <div style={{width:34,fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:1.5,color:"#ffffff35",textAlign:"center"}}>CS</div>
+            <div style={{width:40,fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:1.5,color:"#e8ff0055",textAlign:"center"}}>MOTM</div>
+            <div style={{width:30,fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:1,color:"#ffffff25",textAlign:"center"}}>PLAY</div>
+          </div>
+          {d.players.map((p,i) => (
+            <div key={i} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 12px",background:i%2===0?"transparent":"#ffffff03",borderBottom:"1px solid #ffffff06",opacity:p.played?1:.45}}>
+              <div style={{minWidth:140,flex:1,display:"flex",alignItems:"center",gap:8}}>
+                <Avatar name={p.name} size={30} />
+                <div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".82rem"}}>{p.name}</div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".52rem",color:"#ffffff40",letterSpacing:1}}>{p.pos}</div>
+                </div>
+              </div>
+              <RatingInput val={p.rating} onChange={v=>updateReportPlayer(i,"rating",v)} />
+              <NumInput val={p.goals}   onChange={v=>updateReportPlayer(i,"goals",v)} />
+              <NumInput val={p.assists} onChange={v=>updateReportPlayer(i,"assists",v)} />
+              <NumInput val={p.yellows} onChange={v=>updateReportPlayer(i,"yellows",v)} />
+              <NumInput val={p.reds}    onChange={v=>updateReportPlayer(i,"reds",v)} />
+              {/* Clean Sheet */}
+              <button onClick={()=>updateReportPlayer(i,"cleanSheet",!p.cleanSheet)}
+                style={{width:34,height:32,background:p.cleanSheet?"#44dd8822":"transparent",border:`1px solid ${p.cleanSheet?"#44dd88":"#ffffff1e"}`,color:p.cleanSheet?"#44dd88":"#ffffff30",cursor:"pointer",fontSize:".75rem",borderRadius:2}}>
+                {p.cleanSheet?"✓":"–"}
+              </button>
+              {/* MOTM */}
+              <button onClick={()=>updateReportPlayer(i,"motm",!p.motm)}
+                style={{width:40,height:32,background:p.motm?"#e8ff0022":"transparent",border:`1px solid ${p.motm?"#e8ff00":"#ffffff1e"}`,color:p.motm?"#e8ff00":"#ffffff30",cursor:"pointer",fontSize:".8rem",fontFamily:"'Oswald',sans-serif",fontWeight:700,borderRadius:2}}>
+                {p.motm?"★":"☆"}
+              </button>
+              {/* Played toggle */}
+              <button onClick={()=>updateReportPlayer(i,"played",!p.played)}
+                style={{width:30,height:32,background:p.played?"#ffffff0a":"transparent",border:`1px solid ${p.played?"#ffffff22":"#ffffff0e"}`,color:p.played?"#ffffffaa":"#ffffff25",cursor:"pointer",fontSize:".6rem",fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:1,borderRadius:2}}>
+                {p.played?"✓":"✗"}
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Report text */}
+        <div style={{marginBottom:18}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#ffffff38",marginBottom:8}}>WRITTEN MATCH REPORT</div>
+          <textarea value={d.reportText} onChange={e=>setReportDraft(x=>({...x,reportText:e.target.value}))}
+            placeholder="Write the match report here… (optional)"
+            rows={6}
+            style={{width:"100%",padding:"12px 14px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#ffffffcc",fontFamily:"'Barlow Condensed',sans-serif",fontSize:"1rem",lineHeight:1.5,resize:"vertical",outline:"none"}}
+          />
+        </div>
+
+        {/* Action buttons */}
+        <button className="btn btn-y" onClick={applyReport}
+          style={{width:"100%",padding:"14px",fontSize:".95rem",marginBottom:9,background:"#00cc55",color:"#0a0a0f",letterSpacing:3}}>
+          ✓ CONFIRM &amp; ADD TO STATS
+        </button>
+        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:2,color:"#ff5555aa",textAlign:"center",marginBottom:12}}>
+          ⚠ This permanently adds stats to Season, All Time &amp; Player Form — only press once
+        </div>
+        <button className="btn btn-ghost" onClick={saveReportDraft} style={{width:"100%",marginBottom:6,fontSize:".72rem"}}>
+          SAVE DRAFT (does not update stats)
+        </button>
+      </div>
+    );
+
+    return (
+      <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+        <style>{CSS}</style>
+        <Header {...sharedProps} />
+        <main style={{padding:"22px 14px",maxWidth:860,margin:"0 auto"}}>
+          <div style={{marginBottom:16}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ POST MATCH</div>
+            <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>MATCH REPORT</h1>
+          </div>
+
+          {/* Published report – read-only */}
+          {published && <PublishedView r={published} />}
+
+          {/* Admin editing form */}
+          {!published && isAdmin && draft && <EditForm d={draft} />}
+
+          {/* Admin: no draft yet, but squad is available */}
+          {!published && isAdmin && !draft && matchdaySquad && (
+            <div style={{textAlign:"center",padding:"30px 20px"}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".75rem",color:"#ffffff44",letterSpacing:3,marginBottom:16}}>SQUAD FOR: {matchdaySquad.oppName}</div>
+              <button className="btn btn-y" onClick={startReportFromSquad} style={{padding:"14px 32px",fontSize:".95rem",letterSpacing:3}}>
+                📋 START MATCH REPORT
+              </button>
+            </div>
+          )}
+
+          {/* Admin: no draft, no squad */}
+          {!published && isAdmin && !draft && !matchdaySquad && (
+            <div style={{padding:"40px 20px",textAlign:"center",background:"#ffffff04",border:"1px solid #ffffff0a"}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".8rem",color:"#ffffff30",letterSpacing:2,marginBottom:8}}>NO MATCHDAY SQUAD FOUND</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".68rem",color:"#ffffff20",letterSpacing:1}}>Post a squad via the Matchday → Pitch screen first</div>
+            </div>
+          )}
+
+          {/* Non-admin: no report */}
+          {!published && !isAdmin && (
+            <div style={{padding:"50px 20px",textAlign:"center",background:"#ffffff04",border:"1px solid #ffffff0a"}}>
+              <div style={{fontSize:"2.5rem",marginBottom:14,opacity:.35}}>📋</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1rem",color:"#ffffff40",letterSpacing:3,marginBottom:8}}>NO MATCH REPORT YET</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffff25",letterSpacing:1}}>The manager will post a report after each game</div>
+            </div>
+          )}
         </main>
         {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
       </div>
