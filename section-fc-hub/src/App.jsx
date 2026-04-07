@@ -150,9 +150,9 @@ const CSS = `
 `;
 
 // ── Shared components ─────────────────────────────────────────────────────────
-const ALL_TABS = ["stats","table","fixtures","halloffame","predictor"];
+const ALL_TABS = ["squad","stats","table","fixtures","halloffame","predictor"];
 const matchdayScreens = ["setup","spin","pitch"];
-const TAB_LABELS = {stats:"Stats",table:"Table",fixtures:"Fixtures",halloffame:"🏆 Hall",predictor:"Predictor"};
+const TAB_LABELS = {squad:"⚽ Squad",stats:"Stats",table:"Table",fixtures:"Fixtures",halloffame:"🏆 Hall",predictor:"Predictor"};
 
 function Header({ screen, setScreen, isAdmin, onAdminClick }) {
   const activeTab = matchdayScreens.includes(screen) ? null : screen;
@@ -264,6 +264,9 @@ export default function App() {
   const [swapSlot,     setSwapSlot]     = useState(-1);
   const [swapBench,    setSwapBench]    = useState(-1);
 
+  // Published matchday squad (synced with Firestore)
+  const [matchdaySquad, setMatchdaySquad] = useState(null);
+
   // Stats (synced with Firestore)
   const [stats,        setStats]        = useState(initStats());
   const [sortStat,     setSortStat]     = useState("apps");
@@ -339,6 +342,11 @@ export default function App() {
       setPlayerFormData(data);
     }));
 
+    // Published matchday squad
+    unsubs.push(onSnapshot(doc(db, "matchday", "squad"), snap => {
+      setMatchdaySquad(snap.exists() && snap.data().published ? snap.data() : null);
+    }));
+
     return () => unsubs.forEach(u => u());
   }, []);
 
@@ -399,6 +407,22 @@ export default function App() {
     const n = Math.max(0, parseInt(val) || 0);
     setStats(prev => ({ ...prev, [player]: { ...prev[player], [key]: n } }));
     await setDoc(doc(db, "stats", player), { ...stats[player], [key]: n });
+  };
+
+  const publishSquad = async () => {
+    const data = {
+      published: true,
+      oppName,
+      sTeam,
+      oTeam,
+      benchTeam,
+      publishedAt: Date.now(),
+    };
+    await setDoc(doc(db, "matchday", "squad"), data);
+  };
+
+  const clearSquad = async () => {
+    await setDoc(doc(db, "matchday", "squad"), { published: false });
   };
 
   const updateAllTimeStat = async (player, key, val) => {
@@ -1116,10 +1140,131 @@ export default function App() {
             {[["#9eb400","#e8ff00","SECTION FC · 1-2-2"],["#aa1e00","#ff6644",`${oppName} · 1-1-2-1`],...(benchTeam.length>0?[["#1a3a22","#e8ff0055","BENCH"]]:[])]
               .map(([bg,bo,label],i) => <div key={i} style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:10,height:10,borderRadius:"50%",background:bg,border:`2px solid ${bo}`}}/><span style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:1.5,color:"#ffffffaa"}}>{label}</span></div>)}
           </div>
+          <button className="btn btn-y" onClick={async () => { await publishSquad(); setScreen("squad"); }}
+            style={{width:"100%",padding:"14px",fontSize:"1rem",marginBottom:9,background:"#00cc55",color:"#0a0a0f",letterSpacing:3}}>
+            ✓ PUBLISH OFFICIAL SQUAD
+          </button>
           <div style={{display:"flex",gap:9}}>
             <button className="btn btn-o" onClick={() => setScreen("spin")} style={{flex:1}}>← CHANGE</button>
-            <button className="btn btn-y" onClick={() => { setScreen("setup"); setOIn(""); setDone(false); setSpinning(false); closeSwaps(); setBenchTeam([]); }} style={{flex:1}}>NEW MATCHDAY</button>
+            <button className="btn btn-ghost" onClick={() => { clearSquad(); setScreen("setup"); setOIn(""); setDone(false); setSpinning(false); closeSwaps(); setBenchTeam([]); }} style={{flex:1}}>NEW MATCHDAY</button>
           </div>
+        </main>
+        {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SQUAD SCREEN (public – shows the published matchday squad)
+  // ══════════════════════════════════════════════════════════════════════════
+  if (screen === "squad") {
+    const renderPitch = (sq) => {
+      const sfcP = sq.sTeam.map((p,i) => ({...p, x:SFC_XY[i][0], y:SFC_XY[i][1], img:avatar(p.name)}));
+      const oppP = sq.oTeam.map((p,i) => ({...p, x:OPP_XY[i][0], y:OPP_XY[i][1]}));
+      const bench = sq.benchTeam || [];
+      const vbW = bench.length > 0 ? PW+68 : PW;
+      const published = new Date(sq.publishedAt).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+      return (
+        <div style={{animation:"fadeUp .4s ease"}}>
+          <div style={{textAlign:"center",marginBottom:14}}>
+            <div style={{display:"inline-flex",alignItems:"center",gap:8,background:"#00cc5518",border:"1px solid #00cc5544",padding:"5px 14px",borderRadius:3,marginBottom:10}}>
+              <div style={{width:7,height:7,borderRadius:"50%",background:"#00cc55",boxShadow:"0 0 6px #00cc55"}} />
+              <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#00cc55"}}>OFFICIAL SQUAD POSTED</span>
+            </div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(1.2rem,4vw,2rem)",lineHeight:1.1}}>
+              <span style={{color:"#e8ff00"}}>SECTION FC</span>
+              <span style={{color:"#ffffff28",margin:"0 10px",fontWeight:400}}>vs</span>
+              <span style={{color:"#ff6644"}}>{sq.oppName}</span>
+            </div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",color:"#ffffff35",letterSpacing:2,marginTop:6}}>POSTED {published.toUpperCase()}</div>
+          </div>
+          <div className="pitch-in" style={{width:"100%",maxWidth:520,margin:"0 auto 12px"}}>
+            <svg viewBox={`0 0 ${vbW} ${PH}`} style={{width:"100%",display:"block",borderRadius:6}}>
+              <defs>
+                {sfcP.map((_,i) => <clipPath key={i} id={`ps${i}`}><circle cx={ptX(sfcP[i].x)} cy={ptY(sfcP[i].y)} r={17}/></clipPath>)}
+                {bench.map((_,i) => <clipPath key={i} id={`pb${i}`}><circle cx={BX} cy={benchY(i,bench.length)} r={14}/></clipPath>)}
+              </defs>
+              {Array.from({length:16}).map((_,i) => <rect key={i} x={0} y={i*(PH/16)} width={PW} height={PH/16} fill={i%2===0?"#1b6627":"#1e6e2a"}/>)}
+              <rect x={10} y={10} width={PW-20} height={PH-20} fill="none" stroke="rgba(255,255,255,.62)" strokeWidth={2}/>
+              <line x1={10} y1={PH/2} x2={PW-10} y2={PH/2} stroke="rgba(255,255,255,.5)" strokeWidth={1.5}/>
+              <circle cx={PW/2} cy={PH/2} r={36} fill="none" stroke="rgba(255,255,255,.5)" strokeWidth={1.5}/>
+              <circle cx={PW/2} cy={PH/2} r={3} fill="rgba(255,255,255,.65)"/>
+              <rect x={PW/2-50} y={10} width={100} height={58} fill="none" stroke="rgba(255,255,255,.44)" strokeWidth={1.5}/>
+              <rect x={PW/2-25} y={10} width={50} height={26} fill="none" stroke="rgba(255,255,255,.34)" strokeWidth={1}/>
+              <circle cx={PW/2} cy={46} r={2.5} fill="rgba(255,255,255,.55)"/>
+              <rect x={PW/2-50} y={PH-68} width={100} height={58} fill="none" stroke="rgba(255,255,255,.44)" strokeWidth={1.5}/>
+              <rect x={PW/2-25} y={PH-36} width={50} height={26} fill="none" stroke="rgba(255,255,255,.34)" strokeWidth={1}/>
+              <circle cx={PW/2} cy={PH-46} r={2.5} fill="rgba(255,255,255,.55)"/>
+              <rect x={PW/2-19} y={3} width={38} height={7} fill="none" stroke="rgba(255,255,255,.7)" strokeWidth={2}/>
+              <rect x={PW/2-19} y={PH-10} width={38} height={7} fill="none" stroke="rgba(255,255,255,.7)" strokeWidth={2}/>
+              <text x={PW-12} y={PH/2-8}  textAnchor="end" fill="rgba(255,100,68,.4)"  fontSize={6.5} fontFamily="sans-serif" fontWeight="bold">1-1-2-1</text>
+              <text x={PW-12} y={PH/2+15} textAnchor="end" fill="rgba(232,255,0,.4)"  fontSize={6.5} fontFamily="sans-serif" fontWeight="bold">1-2-2</text>
+              {oppP.map((p,i) => { const cx=ptX(p.x),cy=ptY(p.y); return (<g key={`o${i}`}><circle cx={cx} cy={cy} r={17} fill="#aa1e00" stroke="#ff6644" strokeWidth={2.5}/><text x={cx} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={8} fontWeight="bold" fontFamily="sans-serif">{p.pos}</text><rect x={cx-27} y={cy+19} width={54} height={13} rx={2} fill="rgba(0,0,0,.62)"/><text x={cx} y={cy+26} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={7} fontFamily="sans-serif">{lastWord(p.name)}</text></g>); })}
+              {sfcP.map((p,i) => { const cx=ptX(p.x),cy=ptY(p.y); return (<g key={`s${i}`}><circle cx={cx} cy={cy} r={17} fill="#9eb400" stroke="#e8ff00" strokeWidth={2.5}/>{p.img?<image href={p.img} x={cx-17} y={cy-17} width={34} height={34} clipPath={`url(#ps${i})`} preserveAspectRatio="xMidYMid slice"/>:<text x={cx} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="#0a0a0f" fontSize={8} fontWeight="bold" fontFamily="sans-serif">{p.pos}</text>}<rect x={cx-27} y={cy+19} width={54} height={13} rx={2} fill="rgba(0,0,0,.72)"/><text x={cx} y={cy+26} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={7} fontFamily="sans-serif">{firstWord(p.name)}</text></g>); })}
+              {bench.length>0 && <>
+                <line x1={PW+8} y1={20} x2={PW+8} y2={PH-20} stroke="rgba(255,255,255,.12)" strokeWidth={1} strokeDasharray="4 4"/>
+                <text transform={`rotate(-90,${BX},${PH/2})`} x={BX} y={PH/2} textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,.18)" fontSize={7} fontFamily="sans-serif" fontWeight="bold" letterSpacing={3}>BENCH</text>
+                {bench.map((name,i) => { const cy=benchY(i,bench.length),img=avatar(name); return (<g key={`b${i}`}><circle cx={BX} cy={cy} r={14} fill="#1a3a22" stroke="#e8ff0055" strokeWidth={1.5} strokeDasharray="3 2"/>{img?<image href={img} x={BX-14} y={cy-14} width={28} height={28} clipPath={`url(#pb${i})`} preserveAspectRatio="xMidYMid slice"/>:<text x={BX} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="#e8ff0099" fontSize={7} fontWeight="bold" fontFamily="sans-serif">SUB</text>}<rect x={BX-24} y={cy+16} width={48} height={12} rx={2} fill="rgba(0,0,0,.6)"/><text x={BX} y={cy+22} textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,.8)" fontSize={6.5} fontFamily="sans-serif">{firstWord(name)}</text></g>); })}
+              </>}
+            </svg>
+          </div>
+          <div style={{display:"flex",justifyContent:"center",flexWrap:"wrap",gap:14,marginBottom:16}}>
+            {[["#9eb400","#e8ff00","SECTION FC · 1-2-2"],["#aa1e00","#ff6644",`${sq.oppName} · 1-1-2-1`],...(bench.length>0?[["#1a3a22","#e8ff0055","BENCH"]]:[])]
+              .map(([bg,bo,label],i) => <div key={i} style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:10,height:10,borderRadius:"50%",background:bg,border:`2px solid ${bo}`}}/><span style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:1.5,color:"#ffffffaa"}}>{label}</span></div>)}
+          </div>
+          {/* Starters list */}
+          <div style={{marginBottom:12}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#ffffff38",marginBottom:8}}>STARTING FIVE</div>
+            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+              {sq.sTeam.map((p,i) => (
+                <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"#e8ff0008",border:"1px solid #e8ff0018"}}>
+                  <Avatar name={p.name} size={32} border="#e8ff0066" />
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".9rem",flex:1}}>{p.name}</div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".62rem",letterSpacing:2,color:"#e8ff00",padding:"2px 8px",background:"#e8ff0018",border:"1px solid #e8ff0033"}}>{p.pos}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Bench list */}
+          {bench.length > 0 && (
+            <div style={{marginBottom:16}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#ffffff38",marginBottom:8}}>BENCH</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {bench.map((name,i) => (
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",background:"#ffffff06",border:"1px solid #ffffff12"}}>
+                    <Avatar name={name} size={28} border="#ffffff33" />
+                    <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".85rem",color:"#ffffffaa"}}>{name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {isAdmin && (
+            <button className="btn btn-ghost" onClick={async () => { await clearSquad(); }}
+              style={{width:"100%",marginTop:4,color:"#ff555588",borderColor:"#ff555533",fontSize:".62rem"}}>
+              ✕ CLEAR PUBLISHED SQUAD
+            </button>
+          )}
+        </div>
+      );
+    };
+
+    return (
+      <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+        <style>{CSS}</style>
+        <Header {...sharedProps} />
+        <main style={{padding:"22px 14px",maxWidth:560,margin:"0 auto"}}>
+          <div style={{marginBottom:16}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ MATCHDAY</div>
+            <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>MATCHDAY SQUAD</h1>
+          </div>
+          {matchdaySquad ? renderPitch(matchdaySquad) : (
+            <div style={{padding:"50px 20px",textAlign:"center",background:"#ffffff04",border:"1px solid #ffffff0a"}}>
+              <div style={{fontSize:"2.5rem",marginBottom:14,opacity:.4}}>⚽</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1rem",color:"#ffffff40",letterSpacing:3,marginBottom:8}}>NO SQUAD POSTED YET</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffff25",letterSpacing:1}}>The manager will post the official squad before matchday</div>
+            </div>
+          )}
         </main>
         {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
       </div>
