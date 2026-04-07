@@ -1,0 +1,1130 @@
+import { useState, useEffect, useCallback } from 'react';
+import { db } from './firebase';
+import {
+  doc, collection, onSnapshot, setDoc, updateDoc, getDoc, deleteDoc
+} from 'firebase/firestore';
+
+// ── Constants ────────────────────────────────────────────────────────────────
+const ADMIN_PIN = 'sfc2024'; // Change this to your own PIN
+
+const PLAYER_IMGS = {
+  "Matt Lampitt":    "/players/matt-lampitt.jpg",
+  "Rohan Naal":      "/players/rohan-naal.jpg",
+  "Tom Goldsby":     "/players/tom-goldsby.jpg",
+  "Josh Treharne":   "/players/josh-treharne.jpg",
+  "Ben Higgs":       "/players/ben-higgs.jpg",
+  "Alf Little":      "/players/alf-little.jpg",
+  "Jeven Dhillon":   "/players/jeven-dhillon.jpg",
+  "George Mcnulty":  "/players/george-mcnulty.jpg",
+  "Dani Griffiths":  "/players/dani-griffiths.jpg",
+  "Hugo Hansen":     "/players/hugo-hansen.jpg",
+  "Hayden Hunter":   "/players/hayden-hunter.jpg",
+  "Lewis Fowler":    "/players/lewis-fowler.jpg",
+  "Guy Horton":      "/players/guy-horton.jpg",
+};
+
+const LEAGUE_TABLE = [
+  { pos:1, team:"SECTION FC",           pl:10, w:7, d:1, l:2, gf:68, ga:32, gd:36,  pts:22 },
+  { pos:2, team:"SUICIDER TENDENCIES",  pl:10, w:7, d:1, l:2, gf:41, ga:42, gd:-1,  pts:22 },
+  { pos:3, team:"Kariustoglory",         pl:10, w:6, d:1, l:3, gf:55, ga:26, gd:29,  pts:19 },
+  { pos:4, team:"WSOPC FC",             pl:10, w:6, d:0, l:4, gf:33, ga:43, gd:-10, pts:18 },
+  { pos:5, team:"Seymour Dodgers",      pl:10, w:4, d:1, l:5, gf:25, ga:30, gd:-5,  pts:13 },
+  { pos:6, team:"High Prestbury FC",    pl:10, w:4, d:0, l:6, gf:32, ga:28, gd:4,   pts:12 },
+  { pos:7, team:"Unfit 5",              pl:10, w:2, d:2, l:6, gf:37, ga:55, gd:-18, pts:8  },
+  { pos:8, team:"Rio Franz Ferdinand",  pl:10, w:1, d:0, l:9, gf:25, ga:63, gd:-38, pts:3  },
+];
+
+const FIXTURES = [
+  { date:"Mon 6 Apr 2026", matches:[
+    { time:"6:30 PM",  home:"Unfit 5",            away:"Rio Franz Ferdinand",  pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"Seymour Dodgers",    away:"SECTION FC",           pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"WSOPC FC",           away:"High Prestbury FC",    pitch:"Pitch 2" },
+    { time:"8:30 PM",  home:"VACANCY",            away:"SUICIDER TENDENCIES",  pitch:"Pitch 2" },
+  ]},
+  { date:"Mon 13 Apr 2026", matches:[
+    { time:"6:30 PM",  home:"High Prestbury FC",  away:"Seymour Dodgers",      pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"Rio Franz Ferdinand",away:"SUICIDER TENDENCIES",  pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"WSOPC FC",           away:"Unfit 5",              pitch:"Pitch 2" },
+    { time:"8:30 PM",  home:"SECTION FC",         away:"VACANCY",              pitch:"Pitch 2" },
+  ]},
+  { date:"Mon 20 Apr 2026", matches:[
+    { time:"6:30 PM",  home:"VACANCY",            away:"Rio Franz Ferdinand",  pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"SECTION FC",         away:"High Prestbury FC",    pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"Seymour Dodgers",    away:"Unfit 5",              pitch:"Pitch 2" },
+    { time:"8:30 PM",  home:"SUICIDER TENDENCIES",away:"WSOPC FC",             pitch:"Pitch 2" },
+  ]},
+  { date:"Mon 27 Apr 2026", matches:[
+    { time:"6:30 PM",  home:"Unfit 5",            away:"SECTION FC",           pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"WSOPC FC",           away:"Rio Franz Ferdinand",  pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"Seymour Dodgers",    away:"SUICIDER TENDENCIES",  pitch:"Pitch 2" },
+    { time:"8:30 PM",  home:"High Prestbury FC",  away:"VACANCY",              pitch:"Pitch 2" },
+  ]},
+];
+
+const AWARDS = [
+  { id:"golden_boot", name:"Golden Boot",  icon:"⚽", color:"#FFD700", glow:"#FFD70055", desc:"Top Scorer of the Season"       },
+  { id:"assist_king", name:"Assist King",  icon:"👑", color:"#e8ff00", glow:"#e8ff0044", desc:"Most Assists of the Season"     },
+  { id:"mr_reliable", name:"Mr. Reliable", icon:"🛡️", color:"#60cfff", glow:"#60cfff44", desc:"Most Appearances"               },
+  { id:"danger_man",  name:"Danger Man",   icon:"🟨", color:"#ff5544", glow:"#ff554444", desc:"Most Cards — Living Dangerously" },
+  { id:"safe_hands",  name:"Safe Hands",   icon:"🧤", color:"#44dd88", glow:"#44dd8844", desc:"Most Clean Sheets"              },
+];
+
+const OPP_POOL = {
+  GK:  ["Buffon","Schmeichel","Casillas","Neuer","Yashin","Kahn","Banks","Barthez","Zoff"],
+  DEF: ["Maldini","Beckenbauer","Ramos","Terry","Ferdinand","Puyol","Baresi","Cannavaro","Moore","Van Dijk","Cafu","Lahm","Thuram"],
+  MID: ["Zidane","Pirlo","Gerrard","Lampard","Vieira","Scholes","Keane","Modric","De Bruyne","Kroos","Xavi","Iniesta","Platini","Alonso"],
+  ATT: ["Pelé","Maradona","R. Nazário","Messi","Henry","Ronaldinho","Ibrahimović","Rooney","Drogba","Van Basten","Müller","Eusébio","Neymar","Salah","C. Ronaldo","Lewandowski"],
+};
+const SFC_POS  = ["GK","DEF","DEF","ATT","ATT"];
+const OPP_POS  = ["GK","DEF","MID","MID","ATT"];
+const SFC_XY   = [[50,87],[25,74],[75,74],[25,60],[75,60]];
+const OPP_XY   = [[50,11],[50,25],[28,38],[72,38],[50,49]];
+const KNOWN_PLAYERS = Object.keys(PLAYER_IMGS);
+const STAT_KEYS   = ["apps","goals","assists","yellows","reds","cleanSheets","motm"];
+const STAT_LABELS = {apps:"Apps",goals:"Goals",assists:"Assists",yellows:"Yellows",reds:"Reds",cleanSheets:"Clean Sheets",motm:"MOTM"};
+const initStats   = () => Object.fromEntries(KNOWN_PLAYERS.map(p => [p, {apps:0,goals:0,assists:0,yellows:0,reds:0,cleanSheets:0,motm:0}]));
+const getRatingColor = r => r>=9.9?'#00d4ff':r>=8.8?'#22aa44':r>=7.6?'#55dd66':r>=6.6?'#cc8800':r>=5.6?'#e8d060':r>=4.6?'#ff8800':'#ff3333';
+const PW=300, PH=460, BX=338;
+const ptX = p => (p/100)*PW;
+const ptY = p => (p/100)*PH;
+const benchY = (i,t) => (PH/2)+(i-(t-1)/2)*82;
+const pickRand = (arr,ex=[]) => { const p=arr.filter(x=>!ex.includes(x)); return (p.length?p:arr)[~~(Math.random()*(p.length||arr.length))]; };
+const buildOpp = () => { const u=[]; return OPP_POS.map(pos=>{ const n=pickRand(OPP_POOL[pos],u); u.push(n); return {name:n,pos}; }); };
+const lastWord  = n => n.split(" ").pop();
+const firstWord = n => n.split(" ")[0];
+const avatar    = n => PLAYER_IMGS[n] || null;
+const isSFC     = t => t === "SECTION FC";
+const scorePredict = (pred, res) => {
+  if (pred.sfcG===res.sfcG && pred.oppG===res.oppG) return {pts:3, label:"Exact! ⚽"};
+  const pR = pred.sfcG>pred.oppG?"W":pred.sfcG<pred.oppG?"L":"D";
+  const rR = res.sfcG>res.oppG?"W":res.sfcG<res.oppG?"L":"D";
+  if (pR===rR) return {pts:1, label:"Correct result ✓"};
+  return {pts:0, label:"No points"};
+};
+
+// ── CSS ───────────────────────────────────────────────────────────────────────
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Oswald:wght@400;500;600;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0a0a0f; color: #fff; font-family: 'Barlow Condensed', sans-serif; }
+  @keyframes fadeUp    { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes glow      { 0%,100%{box-shadow:0 0 0 0 #e8ff0000} 50%{box-shadow:0 0 22px 5px #e8ff0055} }
+  @keyframes pitchIn   { from{opacity:0;transform:scale(.95) translateY(12px)} to{opacity:1;transform:scale(1) translateY(0)} }
+  @keyframes shake     { 0%,100%{transform:translateX(0)} 30%{transform:translateX(-3px)} 70%{transform:translateX(3px)} }
+  @keyframes lockDrop  { 0%{opacity:.3;transform:translateY(-8px)} 100%{opacity:1;transform:translateY(0)} }
+  @keyframes awardIn   { 0%{opacity:0;transform:scale(.88) translateY(20px)} 60%{transform:scale(1.03)} 100%{opacity:1;transform:scale(1) translateY(0)} }
+  @keyframes trophySpin{ 0%{transform:rotateY(0)} 100%{transform:rotateY(360deg)} }
+  @keyframes spin      { to{transform:rotate(360deg)} }
+  @keyframes modalIn   { from{opacity:0;transform:scale(.92)} to{opacity:1;transform:scale(1)} }
+  .slot-spin  { animation: shake .1s infinite; }
+  .slot-lock  { animation: lockDrop .3s ease; }
+  .pitch-in   { animation: pitchIn .8s cubic-bezier(.22,1,.36,1) both; }
+  .award-card { animation: awardIn .6s cubic-bezier(.22,1,.36,1) both; }
+  .trophy     { display:inline-block; animation: trophySpin 3s ease-in-out infinite; }
+  .loader     { width:36px;height:36px;border:3px solid #ffffff15;border-top-color:#e8ff00;border-radius:50%;animation:spin .8s linear infinite; }
+  .btn { border:none;cursor:pointer;font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:2px;text-transform:uppercase;transition:all .18s; }
+  .btn-y { background:#e8ff00;color:#0a0a0f;padding:14px 32px;font-size:.95rem; }
+  .btn-y:hover { background:#fff;transform:translateY(-2px); }
+  .btn-y:disabled { background:#2a2a2a;color:#555;cursor:not-allowed;transform:none; }
+  .btn-o { background:transparent;border:1px solid #e8ff00;color:#e8ff00;padding:11px 22px;font-size:.82rem; }
+  .btn-o:hover { background:#e8ff0012; }
+  .btn-ghost { background:transparent;border:1px solid #ffffff22;color:#ffffff88;padding:7px 14px;font-size:.68rem; }
+  .btn-ghost:hover { background:#ffffff0a; }
+  .btn-sm { padding:7px 14px;font-size:.72rem; }
+  .tab-btn { background:transparent;border:none;cursor:pointer;font-family:'Oswald',sans-serif;font-weight:600;font-size:.68rem;letter-spacing:2px;text-transform:uppercase;padding:8px 12px;color:#ffffff55;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap; }
+  .tab-btn.active { color:#e8ff00;border-bottom-color:#e8ff00; }
+  .tab-btn:hover { color:#ffffffcc; }
+  .swap-opt { background:#ffffff0c;border:1px solid #ffffff1a;color:#ffffffcc;padding:6px 12px;cursor:pointer;font-family:'Oswald',sans-serif;font-weight:600;font-size:.8rem;letter-spacing:1px;transition:all .15s;display:flex;align-items:center;gap:6px; }
+  .swap-opt:hover { background:#e8ff0018;border-color:#e8ff0055;color:#e8ff00; }
+  .stat-cell { background:transparent;border:none;color:#ffffffcc;font-family:'Oswald',sans-serif;font-weight:600;font-size:.9rem;text-align:center;width:100%;padding:6px 4px; }
+  .stat-cell.editable { cursor:pointer; }
+  .stat-cell.editable:hover { background:#e8ff0015;color:#e8ff00; }
+  .stat-input { background:#1a1a22;border:1px solid #e8ff00;color:#e8ff00;font-family:'Oswald',sans-serif;font-weight:700;font-size:.9rem;text-align:center;width:100%;padding:5px 2px;outline:none; }
+  .pred-row:hover { background:#ffffff08!important; }
+  .admin-badge { background:#e8ff00;color:#0a0a0f;font-family:'Oswald',sans-serif;font-size:.55rem;font-weight:800;letter-spacing:2px;padding:2px 7px;border-radius:2px; }
+  input:focus,select:focus { outline:2px solid #e8ff0055;outline-offset:-1px; }
+  select { background:#0f0f14;border:1px solid #ffffff22;color:#fff;font-family:'Oswald',sans-serif;font-size:.85rem;padding:8px 12px;cursor:pointer; }
+  ::-webkit-scrollbar { width:4px;height:4px; }
+  ::-webkit-scrollbar-track { background:#0a0a0f; }
+  ::-webkit-scrollbar-thumb { background:#ffffff22;border-radius:2px; }
+`;
+
+// ── Shared components ─────────────────────────────────────────────────────────
+const ALL_TABS = ["stats","table","fixtures","halloffame","predictor"];
+const matchdayScreens = ["setup","spin","pitch"];
+const TAB_LABELS = {stats:"Stats",table:"Table",fixtures:"Fixtures",halloffame:"🏆 Hall",predictor:"Predictor"};
+
+function Header({ screen, setScreen, isAdmin, onAdminClick }) {
+  const activeTab = matchdayScreens.includes(screen) ? null : screen;
+  return (
+    <div style={{background:"#0a0a0f",borderBottom:"1px solid #ffffff14",position:"sticky",top:0,zIndex:20}}>
+      <div style={{height:50,padding:"0 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div onClick={() => setScreen(isAdmin ? "setup" : "stats")} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:32,height:32,background:"#e8ff00",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,color:"#0a0a0f",fontSize:".8rem",letterSpacing:1}}>SFC</div>
+          <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:600,letterSpacing:3,fontSize:".8rem",color:"#ffffffcc"}}>SECTION FC</span>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          {isAdmin && <span className="admin-badge">ADMIN</span>}
+          <button className="btn btn-ghost btn-sm" onClick={onAdminClick} style={{borderColor:isAdmin?"#e8ff0055":"#ffffff22",color:isAdmin?"#e8ff00":"#ffffff55"}}>
+            {isAdmin ? "⚙ ADMIN" : "🔒 LOGIN"}
+          </button>
+        </div>
+      </div>
+      <div style={{display:"flex",borderTop:"1px solid #ffffff08",overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+        {isAdmin && (
+          <button className={`tab-btn${matchdayScreens.includes(screen)?" active":""}`} onClick={() => setScreen("setup")} style={{flexShrink:0}}>
+            Matchday
+          </button>
+        )}
+        {ALL_TABS.map(t => (
+          <button key={t} className={`tab-btn${activeTab===t?" active":""}`} onClick={() => setScreen(t)} style={{flexShrink:0}}>
+            {TAB_LABELS[t]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Avatar({ name, size=38, border="#e8ff0055" }) {
+  const src = avatar(name);
+  if (!src) return (
+    <div style={{width:size,height:size,borderRadius:"50%",background:"#ffffff15",border:"1px solid #ffffff20",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:size>30?".75rem":".55rem",color:"#ffffff55",flexShrink:0}}>
+      {firstWord(name)[0]}
+    </div>
+  );
+  return <img src={src} alt={name} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",border:`2px solid ${border}`,flexShrink:0}} />;
+}
+
+// ── Admin PIN Modal ───────────────────────────────────────────────────────────
+function AdminModal({ isAdmin, onClose, onLogin, onLogout }) {
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState("");
+
+  const tryLogin = () => {
+    if (pin === ADMIN_PIN) { onLogin(); onClose(); }
+    else { setError("Wrong PIN — try again"); setPin(""); }
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999,padding:20}}>
+      <div style={{background:"#111116",border:"1px solid #ffffff18",padding:"28px 24px",maxWidth:340,width:"100%",animation:"modalIn .25s ease"}}>
+        {isAdmin ? (
+          <>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1.2rem",marginBottom:8}}>Admin Mode Active</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".75rem",color:"#ffffff55",letterSpacing:1,marginBottom:20}}>You have full edit access</div>
+            <button className="btn btn-o" onClick={() => { onLogout(); onClose(); }} style={{width:"100%",marginBottom:10}}>LOG OUT OF ADMIN</button>
+            <button className="btn btn-ghost" onClick={onClose} style={{width:"100%"}}>CANCEL</button>
+          </>
+        ) : (
+          <>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1.2rem",marginBottom:4}}>Admin Login</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".72rem",color:"#ffffff44",letterSpacing:1,marginBottom:20}}>Enter PIN to access admin features</div>
+            <input
+              type="password"
+              value={pin}
+              onChange={e => { setPin(e.target.value); setError(""); }}
+              onKeyDown={e => e.key === "Enter" && tryLogin()}
+              placeholder="Enter PIN…"
+              autoFocus
+              style={{width:"100%",padding:"13px 14px",background:"#ffffff0d",border:"1px solid #ffffff1e",color:"#fff",fontFamily:"'Oswald',sans-serif",fontSize:"1.1rem",letterSpacing:4,marginBottom:8,textAlign:"center"}}
+            />
+            {error && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".72rem",color:"#ff5555",letterSpacing:1,marginBottom:8,textAlign:"center"}}>{error}</div>}
+            <button className="btn btn-y" onClick={tryLogin} style={{width:"100%",padding:"13px",marginBottom:8}}>LOGIN</button>
+            <button className="btn btn-ghost" onClick={onClose} style={{width:"100%"}}>CANCEL</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main App ──────────────────────────────────────────────────────────────────
+export default function App() {
+  // Auth
+  const [isAdmin,      setIsAdmin]      = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+
+  // Navigation
+  const [screen, setScreen] = useState("stats");
+  const [loading, setLoading] = useState(true);
+
+  // Squad / Matchday (admin only)
+  const [squad,        setSquad]        = useState([...KNOWN_PLAYERS]);
+  const [pIn,          setPIn]          = useState("");
+  const [oIn,          setOIn]          = useState("");
+  const [oppName,      setOppName]      = useState("");
+  const [sTeam,        setSTeam]        = useState([]);
+  const [oTeam,        setOTeam]        = useState([]);
+  const [benchTeam,    setBenchTeam]    = useState([]);
+  const [displays,     setDisplays]     = useState(["?","?","?","?","?"]);
+  const [locked,       setLocked]       = useState([false,false,false,false,false]);
+  const [spinning,     setSpinning]     = useState(false);
+  const [done,         setDone]         = useState(false);
+  const [swapSlot,     setSwapSlot]     = useState(-1);
+  const [swapBench,    setSwapBench]    = useState(-1);
+
+  // Stats (synced with Firestore)
+  const [stats,        setStats]        = useState(initStats());
+  const [sortStat,     setSortStat]     = useState("apps");
+  const [editCell,     setEditCell]     = useState(null);
+  const [statsTab,     setStatsTab]     = useState("season"); // "season"|"alltime"|"form"
+  const [allTimeStats, setAllTimeStats] = useState(initStats());
+  const [playerFormData, setPlayerFormData] = useState({});
+  const [editFormCell, setEditFormCell] = useState(null);
+  const [addingFormGame, setAddingFormGame] = useState(null);
+  const [newGameInput,   setNewGameInput]   = useState({rating:"",opp:"",date:""});
+
+  // Hall of Fame (synced with Firestore)
+  const [awardWinners,  setAwardWinners]  = useState({});
+  const [editingAwards, setEditingAwards] = useState(false);
+  const [activeAward,   setActiveAward]   = useState(0);
+
+  // Predictor (synced with Firestore)
+  const [predSetup,     setPredSetup]     = useState(false);
+  const [predMatch,     setPredMatch]     = useState({opp:"",date:"",home:"",away:""});
+  const [predictions,   setPredictions]   = useState([]);
+  const [predResult,    setPredResult]    = useState(null);
+  const [seasonPreds,   setSeasonPreds]   = useState([]);
+  const [predName,      setPredName]      = useState("");
+  const [predSFC,       setPredSFC]       = useState("");
+  const [predOpp,       setPredOpp]       = useState("");
+  const [resultSFC,     setResultSFC]     = useState("");
+  const [resultOpp,     setResultOpp]     = useState("");
+
+  // ── Firebase listeners ─────────────────────────────────────────────────────
+  useEffect(() => {
+    const unsubs = [];
+
+    // Stats
+    unsubs.push(onSnapshot(collection(db, "stats"), snap => {
+      const data = initStats();
+      snap.forEach(d => { if (data[d.id]) data[d.id] = { ...data[d.id], ...d.data() }; });
+      setStats(data);
+      setLoading(false);
+    }));
+
+    // Awards
+    unsubs.push(onSnapshot(doc(db, "awards", "current"), snap => {
+      if (snap.exists()) setAwardWinners(snap.data());
+    }));
+
+    // Predictor
+    unsubs.push(onSnapshot(doc(db, "predictor", "current"), snap => {
+      if (snap.exists()) {
+        const d = snap.data();
+        setPredSetup(d.active || false);
+        setPredMatch({ opp: d.opp||"", date: d.date||"", home: d.home||"", away: d.away||"" });
+        setPredictions(d.predictions || []);
+        setPredResult(d.result || null);
+      }
+    }));
+
+    // Season leaderboard
+    unsubs.push(onSnapshot(doc(db, "season", "leaderboard"), snap => {
+      if (snap.exists()) setSeasonPreds(snap.data().entries || []);
+    }));
+
+    // All Time Stats
+    unsubs.push(onSnapshot(collection(db, "allTimeStats"), snap => {
+      const data = initStats();
+      snap.forEach(d => { if (data[d.id]) data[d.id] = { ...data[d.id], ...d.data() }; });
+      setAllTimeStats(data);
+    }));
+
+    // Player Form
+    unsubs.push(onSnapshot(collection(db, "playerForm"), snap => {
+      const data = {};
+      snap.forEach(d => { data[d.id] = d.data(); });
+      setPlayerFormData(data);
+    }));
+
+    return () => unsubs.forEach(u => u());
+  }, []);
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  const closeSwaps = () => { setSwapSlot(-1); setSwapBench(-1); };
+
+  const addPlayer = () => {
+    const n = pIn.trim();
+    if (!n || squad.includes(n) || squad.length >= 20) return;
+    setSquad(s => [...s, n]);
+    setPIn("");
+  };
+
+  const goSpin = () => {
+    if (squad.length < 5 || !oIn.trim()) return;
+    setOppName(oIn.trim().toUpperCase());
+    setOTeam(buildOpp());
+    setDisplays(["?","?","?","?","?"]);
+    setLocked([false,false,false,false,false]);
+    setDone(false); setSpinning(false); setSTeam([]); setBenchTeam([]); closeSwaps();
+    setScreen("spin");
+  };
+
+  const spin = useCallback(() => {
+    if (spinning || squad.length < 5) return;
+    setSpinning(true); setDone(false); closeSwaps();
+    setLocked([false,false,false,false,false]);
+    setDisplays(["?","?","?","?","?"]);
+    const sh = [...squad].sort(() => Math.random() - .5);
+    const picks = sh.slice(0, 5);
+    const team = picks.map((name, i) => ({ name, pos: SFC_POS[i] }));
+    picks.forEach((fn, idx) => {
+      setTimeout(() => {
+        const iv = setInterval(() => setDisplays(p => { const a=[...p]; a[idx]=squad[~~(Math.random()*squad.length)]; return a; }), 65);
+        setTimeout(() => {
+          clearInterval(iv);
+          setDisplays(p => { const a=[...p]; a[idx]=fn; return a; });
+          setLocked(p => { const a=[...p]; a[idx]=true; return a; });
+          if (idx === 4) { setSTeam(team); setBenchTeam(sh.slice(5,8)); setTimeout(() => { setDone(true); setSpinning(false); }, 350); }
+        }, 1000);
+      }, idx * 750);
+    });
+  }, [squad, spinning]);
+
+  const doStarterSwap = (si, nn) => {
+    const old = sTeam[si].name, bi = benchTeam.indexOf(nn);
+    setSTeam(p => { const a=[...p]; a[si]={...a[si],name:nn}; return a; });
+    setDisplays(p => { const a=[...p]; a[si]=nn; return a; });
+    if (bi !== -1) setBenchTeam(p => { const a=[...p]; a[bi]=old; return a; });
+    closeSwaps();
+  };
+  const doBenchSwap = (bi, nn) => { setBenchTeam(p => { const a=[...p]; a[bi]=nn; return a; }); closeSwaps(); };
+  const starterOpts = si => squad.filter(p => !sTeam.some((t,i) => i!==si && t.name===p));
+  const benchOpts   = bi => squad.filter(p => !sTeam.map(t=>t.name).includes(p) && !benchTeam.some((b,i) => i!==bi && b===p));
+
+  // ── Firestore writes (admin only) ──────────────────────────────────────────
+  const updateStat = async (player, key, val) => {
+    const n = Math.max(0, parseInt(val) || 0);
+    setStats(prev => ({ ...prev, [player]: { ...prev[player], [key]: n } }));
+    await setDoc(doc(db, "stats", player), { ...stats[player], [key]: n });
+  };
+
+  const updateAllTimeStat = async (player, key, val) => {
+    const n = Math.max(0, parseInt(val) || 0);
+    setAllTimeStats(prev => ({ ...prev, [player]: { ...prev[player], [key]: n } }));
+    await setDoc(doc(db, "allTimeStats", player), { ...allTimeStats[player], [key]: n });
+  };
+
+  const updateFormRating = async (player, idx, field, value) => {
+    const current = playerFormData[player]?.games || [];
+    const updated = [...current];
+    if (!updated[idx]) updated[idx] = { rating: 0, opp: "", date: "" };
+    updated[idx] = { ...updated[idx], [field]: field === "rating" ? Math.min(10, Math.max(0, parseFloat(value) || 0)) : value };
+    setPlayerFormData(prev => ({ ...prev, [player]: { games: updated } }));
+    await setDoc(doc(db, "playerForm", player), { games: updated });
+  };
+
+  const addFormGame = async (player, rating, opp, date) => {
+    const r = Math.min(10, Math.max(0, parseFloat(rating) || 0));
+    if (!rating.toString().trim()) return;
+    const current = playerFormData[player]?.games || [];
+    const newGame = { rating: r, opp: opp.trim(), date: date.trim() };
+    const updated = [...current, newGame].slice(-5);
+    setPlayerFormData(prev => ({ ...prev, [player]: { games: updated } }));
+    await setDoc(doc(db, "playerForm", player), { games: updated });
+    setAddingFormGame(null);
+    setNewGameInput({ rating: "", opp: "", date: "" });
+  };
+
+  const saveAward = async (awardId, winner) => {
+    const next = { ...awardWinners, [awardId]: winner || null };
+    setAwardWinners(next);
+    await setDoc(doc(db, "awards", "current"), next);
+  };
+
+  const setupPredMatch = async (m) => {
+    const data = { active: true, opp: m.opp, date: m.date, home: m.home, away: m.away, predictions: [], result: null };
+    await setDoc(doc(db, "predictor", "current"), data);
+  };
+
+  const submitPrediction = async () => {
+    if (!predName.trim() || predSFC === "" || predOpp === "") return;
+    const pred = { player: predName.trim(), sfcG: parseInt(predSFC), oppG: parseInt(predOpp), submitted: Date.now() };
+    const newPreds = [...predictions.filter(p => p.player !== pred.player), pred];
+    await updateDoc(doc(db, "predictor", "current"), { predictions: newPreds });
+    setPredName(""); setPredSFC(""); setPredOpp("");
+  };
+
+  const revealResult = async () => {
+    const r = { sfcG: parseInt(resultSFC), oppG: parseInt(resultOpp) };
+    const map = {};
+    predictions.forEach(pred => {
+      const { pts } = scorePredict(pred, r);
+      if (!map[pred.player]) map[pred.player] = { pts: 0, games: 0 };
+      map[pred.player].pts += pts;
+      map[pred.player].games += 1;
+    });
+    seasonPreds.forEach(p => {
+      if (!map[p.player]) map[p.player] = { pts: p.pts, games: p.games };
+      else { map[p.player].pts += p.pts; map[p.player].games += p.games; }
+    });
+    const newSeason = Object.entries(map).map(([player, d]) => ({ player, ...d })).sort((a,b) => b.pts - a.pts);
+    await updateDoc(doc(db, "predictor", "current"), { result: r });
+    await setDoc(doc(db, "season", "leaderboard"), { entries: newSeason });
+    setResultSFC(""); setResultOpp("");
+  };
+
+  const resetPredictor = async () => {
+    await setDoc(doc(db, "predictor", "current"), { active: false, opp: "", date: "", home: "", away: "", predictions: [], result: null });
+  };
+
+  // ── Derived ─────────────────────────────────────────────────────────────────
+  const allStatPlayers = [...new Set([...KNOWN_PLAYERS, ...squad])].filter(p => stats[p]);
+  const sortedStats = [...allStatPlayers].sort((a,b) => (stats[b][sortStat]||0) - (stats[a][sortStat]||0));
+  const sfcFixtures = FIXTURES.flatMap(gw => gw.matches.filter(m => isSFC(m.home)||isSFC(m.away)).map(m => ({...m, date:gw.date})));
+
+  // ── Loading ──────────────────────────────────────────────────────────────────
+  if (loading) return (
+    <div style={{minHeight:"100vh",background:"#0a0a0f",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
+      <style>{CSS}</style>
+      <div className="loader" />
+      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".75rem",color:"#ffffff40",letterSpacing:3}}>LOADING SECTION FC HUB</div>
+    </div>
+  );
+
+  const sharedProps = { screen, setScreen, isAdmin, onAdminClick: () => setShowPinModal(true) };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // STATS SCREEN
+  // ══════════════════════════════════════════════════════════════════════════
+  if (screen === "stats") {
+    const StatCell = ({ player, statKey, data, updateFn }) => {
+      const isEdit = isAdmin && editCell?.player === player && editCell?.stat === statKey;
+      const val = data[player]?.[statKey] ?? 0;
+      const color = statKey==="yellows"&&val>0?"#f5c518":statKey==="reds"&&val>0?"#ff4444":statKey==="motm"&&val>0?"#e8ff00":"inherit";
+      if (isEdit) return (
+        <td style={{textAlign:"center",padding:"3px 2px"}}>
+          <input className="stat-input" type="number" min="0" defaultValue={val} autoFocus
+            onBlur={e => { updateFn(player, statKey, e.target.value); setEditCell(null); }}
+            onKeyDown={e => { if (e.key==="Enter"||e.key==="Escape") { updateFn(player, statKey, e.target.value); setEditCell(null); } }}
+          />
+        </td>
+      );
+      return (
+        <td style={{textAlign:"center",padding:"3px 2px"}}>
+          <button className={`stat-cell${isAdmin?" editable":""}`} onClick={() => isAdmin && setEditCell({player, stat:statKey})}>
+            <span style={{color}}>{val}</span>
+          </button>
+        </td>
+      );
+    };
+
+    const StatsTable = ({ data, updateFn }) => {
+      const allP = [...new Set([...KNOWN_PLAYERS, ...squad])].filter(p => data[p]);
+      const sorted = [...allP].sort((a,b) => (data[b][sortStat]||0) - (data[a][sortStat]||0));
+      return (
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",minWidth:580}}>
+            <thead>
+              <tr style={{borderBottom:"2px solid #e8ff00"}}>
+                <th style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:2,color:"#ffffff55",fontWeight:600,padding:"9px 10px",textAlign:"left",width:150}}>PLAYER</th>
+                {STAT_KEYS.map(k => (
+                  <th key={k} onClick={() => setSortStat(k)} style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:1.5,color:sortStat===k?"#e8ff00":"#ffffff55",fontWeight:700,padding:"9px 5px",textAlign:"center",cursor:"pointer",transition:"color .15s",whiteSpace:"nowrap"}}>
+                    {STAT_LABELS[k]}{sortStat===k?" ↓":""}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((player, ri) => (
+                <tr key={player} style={{borderBottom:"1px solid #ffffff08",background:ri%2===0?"transparent":"#ffffff03"}}>
+                  <td style={{padding:"9px 10px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:9}}>
+                      <Avatar name={player} size={32} />
+                      <div>
+                        <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".88rem"}}>{player}</div>
+                        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",color:"#ffffff38",letterSpacing:1}}>#{ri+1}</div>
+                      </div>
+                    </div>
+                  </td>
+                  {STAT_KEYS.map(k => <StatCell key={k} player={player} statKey={k} data={data} updateFn={updateFn} />)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    };
+
+    const PlayerFormView = () => {
+      const playersWithForm = KNOWN_PLAYERS.filter(p => isAdmin || (playerFormData[p]?.games?.length > 0));
+      return (
+        <div>
+          {isAdmin && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".56rem",letterSpacing:3,color:"#ffffff35",marginBottom:12}}>CLICK + TO ADD GAME · CLICK RATING TO EDIT</div>}
+          <div style={{display:"flex",flexDirection:"column",gap:2}}>
+            {playersWithForm.map((player, pi) => {
+              const games = playerFormData[player]?.games || [];
+              const isAdding = addingFormGame === player;
+              return (
+                <div key={player} style={{background:pi%2===0?"transparent":"#ffffff03",borderBottom:"1px solid #ffffff08",padding:"10px 8px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:9,minWidth:155,flexShrink:0}}>
+                      <Avatar name={player} size={36} />
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".88rem"}}>{player}</div>
+                    </div>
+                    <div style={{display:"flex",gap:5,flexWrap:"wrap",flex:1,alignItems:"center"}}>
+                      {Array.from({length:5}).map((_,gi) => {
+                        const game = games[gi];
+                        const isEditingThis = editFormCell?.player===player && editFormCell?.idx===gi;
+                        if (isEditingThis) return (
+                          <input key={gi} type="number" min="0" max="10" step="0.1" autoFocus
+                            defaultValue={game?.rating ?? ""}
+                            style={{width:44,height:44,background:"#1a1a22",border:"1px solid #e8ff00",color:"#e8ff00",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem",textAlign:"center",borderRadius:6,padding:0,outline:"none"}}
+                            onBlur={e => { updateFormRating(player, gi, "rating", e.target.value); setEditFormCell(null); }}
+                            onKeyDown={e => { if(e.key==="Enter"||e.key==="Escape"){ updateFormRating(player, gi, "rating", e.target.value); setEditFormCell(null); } }}
+                          />
+                        );
+                        if (!game) return (
+                          <div key={gi} style={{width:44,height:44,borderRadius:6,background:"#ffffff05",border:"1px dashed #ffffff15",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                            <span style={{color:"#ffffff15",fontSize:".7rem"}}>–</span>
+                          </div>
+                        );
+                        const c = getRatingColor(game.rating);
+                        return (
+                          <div key={gi} onClick={() => isAdmin && setEditFormCell({player,idx:gi})}
+                            style={{width:44,height:44,borderRadius:6,background:`${c}22`,border:`2px solid ${c}`,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",cursor:isAdmin?"pointer":"default",transition:"opacity .15s"}}>
+                            <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".88rem",color:c,lineHeight:1}}>{parseFloat(game.rating).toFixed(1)}</span>
+                            {game.opp && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".38rem",color:"#ffffffaa",lineHeight:1.3,maxWidth:40,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{game.opp}</span>}
+                          </div>
+                        );
+                      })}
+                      {isAdmin && games.length < 5 && !isAdding && (
+                        <button onClick={() => { setAddingFormGame(player); setNewGameInput({rating:"",opp:"",date:""}); }}
+                          style={{width:44,height:44,borderRadius:6,background:"#e8ff0010",border:"1px dashed #e8ff0044",color:"#e8ff0088",fontSize:"1.4rem",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:300,flexShrink:0,lineHeight:1}}>+</button>
+                      )}
+                    </div>
+                  </div>
+                  {isAdmin && isAdding && (
+                    <div style={{marginTop:8,padding:"10px 12px",background:"#ffffff08",border:"1px solid #e8ff0033",borderRadius:4}}>
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:3,color:"#e8ff0077",marginBottom:8}}>ADD GAME FOR {player.split(" ")[0].toUpperCase()}</div>
+                      <div style={{display:"flex",gap:7,flexWrap:"wrap",alignItems:"center"}}>
+                        <input type="number" min="0" max="10" step="0.1" placeholder="Rating" value={newGameInput.rating} onChange={e=>setNewGameInput(p=>({...p,rating:e.target.value}))}
+                          style={{width:68,padding:"7px 6px",background:"#0f0f14",border:"1px solid #e8ff0044",color:"#e8ff00",fontFamily:"'Oswald',sans-serif",fontSize:".9rem",textAlign:"center"}} />
+                        <input type="text" placeholder="Opponent (opt)" value={newGameInput.opp} onChange={e=>setNewGameInput(p=>({...p,opp:e.target.value}))}
+                          style={{flex:1,minWidth:100,padding:"7px 10px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#fff",fontFamily:"'Oswald',sans-serif",fontSize:".82rem"}} />
+                        <input type="text" placeholder="Date (opt)" value={newGameInput.date} onChange={e=>setNewGameInput(p=>({...p,date:e.target.value}))}
+                          style={{width:80,padding:"7px 8px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#fff",fontFamily:"'Oswald',sans-serif",fontSize:".82rem"}} />
+                        <button className="btn btn-y btn-sm" onClick={() => addFormGame(player, newGameInput.rating, newGameInput.opp, newGameInput.date)}>ADD</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => { setAddingFormGame(null); setNewGameInput({rating:"",opp:"",date:""}); }}>✕</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {playersWithForm.length === 0 && (
+              <div style={{padding:"36px",textAlign:"center",color:"#ffffff30",fontFamily:"'Oswald',sans-serif",fontSize:".8rem",letterSpacing:2}}>NO FORM DATA YET</div>
+            )}
+          </div>
+          <div style={{marginTop:18,padding:"12px 14px",background:"#ffffff05",border:"1px solid #ffffff0e"}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:3,color:"#ffffff44",marginBottom:9}}>RATING SCALE</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+              {[["1.0–4.5","#ff3333"],["4.6–5.5","#ff8800"],["5.6–6.5","#e8d060"],["6.6–7.5","#cc8800"],["7.6–8.7","#55dd66"],["8.8–9.8","#22aa44"],["9.9–10","#00d4ff"]].map(([label,color]) => (
+                <div key={label} style={{display:"flex",alignItems:"center",gap:5}}>
+                  <div style={{width:10,height:10,borderRadius:2,background:color,flexShrink:0}} />
+                  <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#ffffffaa"}}>{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+        <style>{CSS}</style>
+        <Header {...sharedProps} />
+        <main style={{padding:"22px 14px",maxWidth:900,margin:"0 auto"}}>
+          <div style={{marginBottom:16}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ PLAYER STATISTICS</div>
+            <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>SECTION FC STATS</h1>
+          </div>
+          {/* Sub-tabs */}
+          <div style={{display:"flex",borderBottom:"1px solid #ffffff14",marginBottom:18}}>
+            {[["season","Season Stats"],["alltime","All Time Stats"],["form","Player Form"]].map(([key,label]) => (
+              <button key={key} onClick={() => { setStatsTab(key); setEditCell(null); setEditFormCell(null); setAddingFormGame(null); }}
+                style={{background:"transparent",border:"none",borderBottom:`2px solid ${statsTab===key?"#e8ff00":"transparent"}`,
+                  color:statsTab===key?"#e8ff00":"#ffffff55",padding:"10px 16px",cursor:"pointer",marginBottom:-1,
+                  fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".68rem",letterSpacing:2,
+                  textTransform:"uppercase",transition:"all .15s",whiteSpace:"nowrap"}}
+              >{label}</button>
+            ))}
+          </div>
+          {statsTab === "season" && (
+            <>
+              {isAdmin && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".56rem",letterSpacing:3,color:"#ffffff35",marginBottom:9}}>CLICK ANY STAT TO EDIT · CLICK HEADER TO SORT</div>}
+              <StatsTable data={stats} updateFn={updateStat} />
+            </>
+          )}
+          {statsTab === "alltime" && (
+            <>
+              {isAdmin && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".56rem",letterSpacing:3,color:"#ffffff35",marginBottom:9}}>CLICK ANY STAT TO EDIT · CLICK HEADER TO SORT</div>}
+              <StatsTable data={allTimeStats} updateFn={updateAllTimeStat} />
+            </>
+          )}
+          {statsTab === "form" && <PlayerFormView />}
+        </main>
+        {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // TABLE SCREEN
+  // ══════════════════════════════════════════════════════════════════════════
+  if (screen === "table") return (
+    <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+      <style>{CSS}</style>
+      <Header {...sharedProps} />
+      <main style={{padding:"22px 14px",maxWidth:700,margin:"0 auto"}}>
+        <div style={{marginBottom:18}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ LEAGUE STANDINGS</div>
+          <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>POWERLEAGUE TABLE</h1>
+        </div>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",minWidth:420}}>
+            <thead>
+              <tr style={{borderBottom:"2px solid #ffffff20"}}>
+                {["#","TEAM","PL","W","D","L","GF","GA","GD","PTS"].map((h,i) => (
+                  <th key={i} style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:2,color:"#ffffff44",fontWeight:600,padding:"9px 6px",textAlign:i<2?"left":"center",whiteSpace:"nowrap"}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {LEAGUE_TABLE.map((row, i) => {
+                const sfc = isSFC(row.team);
+                return (
+                  <tr key={i} style={{borderBottom:`1px solid ${sfc?"#e8ff0025":"#ffffff08"}`,background:sfc?"#e8ff0008":i%2===0?"transparent":"#ffffff02"}}>
+                    <td style={{padding:"11px 6px",textAlign:"center"}}>
+                      <div style={{width:22,height:22,borderRadius:2,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",background:row.pos<=2?"#e8ff00":"transparent",color:row.pos<=2?"#0a0a0f":"#ffffffcc"}}>{row.pos}</div>
+                    </td>
+                    <td style={{padding:"11px 6px",fontFamily:"'Oswald',sans-serif",fontWeight:sfc?700:500,fontSize:".9rem",color:sfc?"#e8ff00":"#ffffffcc",whiteSpace:"nowrap"}}>
+                      {sfc && <span style={{marginRight:5}}>★</span>}{row.team}
+                    </td>
+                    {[row.pl,row.w,row.d,row.l,row.gf,row.ga].map((v,j) => (
+                      <td key={j} style={{padding:"11px 5px",textAlign:"center",fontFamily:"'Oswald',sans-serif",fontWeight:500,fontSize:".88rem",color:"#ffffffaa"}}>{v}</td>
+                    ))}
+                    <td style={{padding:"11px 5px",textAlign:"center",fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".88rem",color:row.gd>0?"#44dd88":row.gd<0?"#ff6644":"#ffffffaa"}}>{row.gd>0?"+":""}{row.gd}</td>
+                    <td style={{padding:"11px 5px",textAlign:"center",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".95rem",color:sfc?"#e8ff00":"#fff"}}>{row.pts}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </main>
+      {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+    </div>
+  );
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // FIXTURES SCREEN
+  // ══════════════════════════════════════════════════════════════════════════
+  if (screen === "fixtures") return (
+    <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+      <style>{CSS}</style>
+      <Header {...sharedProps} />
+      <main style={{padding:"22px 14px",maxWidth:680,margin:"0 auto"}}>
+        <div style={{marginBottom:20}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ UPCOMING FIXTURES</div>
+          <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>FIXTURES</h1>
+        </div>
+        {FIXTURES.map((gw, gi) => (
+          <div key={gi} style={{marginBottom:24,animation:"fadeUp .4s ease both",animationDelay:`${gi*.08}s`}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",letterSpacing:3,color:"#e8ff00",marginBottom:10,paddingBottom:8,borderBottom:"1px solid #e8ff0033"}}>{gw.date}</div>
+            {gw.matches.map((m, mi) => {
+              const sfcGame = isSFC(m.home) || isSFC(m.away);
+              return (
+                <div key={mi} style={{display:"flex",alignItems:"center",background:sfcGame?"#e8ff0008":"#ffffff05",border:`1px solid ${sfcGame?"#e8ff0030":"#ffffff0e"}`,padding:"10px 12px",marginBottom:5}}>
+                  <div style={{width:56,fontFamily:"'Oswald',sans-serif",fontSize:".7rem",fontWeight:600,color:sfcGame?"#e8ff00":"#ffffff44",letterSpacing:1,flexShrink:0}}>{m.time}</div>
+                  <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                    <div style={{flex:1,textAlign:"right",fontFamily:"'Oswald',sans-serif",fontWeight:isSFC(m.home)?700:500,fontSize:".9rem",color:isSFC(m.home)?"#e8ff00":"#ffffffbb"}}>{m.home==="VACANCY"?"TBD":m.home}</div>
+                    <div style={{padding:"3px 8px",background:"#ffffff10",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".68rem",color:"#ffffff44",flexShrink:0}}>VS</div>
+                    <div style={{flex:1,fontFamily:"'Oswald',sans-serif",fontWeight:isSFC(m.away)?700:500,fontSize:".9rem",color:isSFC(m.away)?"#e8ff00":"#ffffffbb"}}>{m.away==="VACANCY"?"TBD":m.away}</div>
+                  </div>
+                  <div style={{width:52,textAlign:"right",fontFamily:"'Oswald',sans-serif",fontSize:".58rem",color:"#ffffff25",flexShrink:0}}>{m.pitch}</div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </main>
+      {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+    </div>
+  );
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // HALL OF FAME SCREEN
+  // ══════════════════════════════════════════════════════════════════════════
+  if (screen === "halloffame") {
+    const aw = AWARDS[activeAward];
+    const winner = awardWinners[aw.id];
+    const winnerImg = winner ? avatar(winner) : null;
+    const allForSelect = [...new Set([...KNOWN_PLAYERS, ...squad])];
+    return (
+      <div style={{minHeight:"100vh",background:"#060608",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+        <style>{CSS}</style>
+        <Header {...sharedProps} />
+        <div style={{textAlign:"center",padding:"22px 14px 0"}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:5,marginBottom:4}}>◆ SECTION FC</div>
+          <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(2rem,7vw,3.5rem)",fontWeight:700,letterSpacing:-1,lineHeight:1,marginBottom:18}}>HALL OF FAME</h1>
+          <div style={{display:"flex",justifyContent:"center",gap:8,marginBottom:20}}>
+            {AWARDS.map((a,i) => (
+              <button key={i} onClick={() => { setActiveAward(i); setEditingAwards(false); }} style={{width:i===activeAward?28:8,height:8,borderRadius:4,background:i===activeAward?AWARDS[activeAward].color:"#ffffff22",border:"none",cursor:"pointer",transition:"all .3s"}} />
+            ))}
+          </div>
+        </div>
+        <div key={activeAward} className="award-card" style={{maxWidth:400,margin:"0 auto",padding:"0 20px 30px"}}>
+          <div style={{position:"relative",background:`radial-gradient(ellipse at 50% 40%, ${aw.glow}, transparent 70%)`,borderRadius:12,border:`1px solid ${aw.color}33`,padding:"28px 20px 22px",textAlign:"center"}}>
+            <div style={{fontSize:"3.2rem",marginBottom:8,lineHeight:1}} className="trophy">{aw.icon}</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1.5rem,5vw,2.3rem)",letterSpacing:-1,color:aw.color,marginBottom:3,textTransform:"uppercase"}}>{aw.name}</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".68rem",letterSpacing:3,color:"#ffffff44",marginBottom:22}}>{aw.desc}</div>
+            {winner ? (
+              <div style={{animation:"fadeUp .5s ease"}}>
+                {winnerImg
+                  ? <img src={winnerImg} alt={winner} style={{width:100,height:100,borderRadius:"50%",objectFit:"cover",border:`4px solid ${aw.color}`,boxShadow:`0 0 30px ${aw.glow}`,marginBottom:12}} />
+                  : <div style={{width:100,height:100,borderRadius:"50%",background:"#ffffff15",border:`4px solid ${aw.color}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",fontSize:"2rem",color:aw.color,fontFamily:"'Oswald',sans-serif"}}>{firstWord(winner)[0]}</div>
+                }
+                <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1.3rem,5vw,1.9rem)",letterSpacing:1,color:"#fff",textTransform:"uppercase"}}>{winner}</div>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:aw.color,marginTop:4}}>🏆 WINNER</div>
+              </div>
+            ) : (
+              <div style={{padding:"28px 0",color:"#ffffff30",fontFamily:"'Oswald',sans-serif",fontSize:".8rem",letterSpacing:2}}>AWARD NOT YET ASSIGNED</div>
+            )}
+            {isAdmin && (
+              editingAwards ? (
+                <div style={{marginTop:16}}>
+                  <select value={winner||""} onChange={e => saveAward(aw.id, e.target.value)} style={{width:"100%",marginBottom:10}}>
+                    <option value="">— Remove winner —</option>
+                    {allForSelect.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                  <button className="btn btn-y" onClick={() => setEditingAwards(false)} style={{width:"100%",padding:"10px"}}>DONE ✓</button>
+                </div>
+              ) : (
+                <button className="btn btn-ghost" onClick={() => setEditingAwards(true)} style={{marginTop:14}}>✏️ ASSIGN WINNER</button>
+              )
+            )}
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",marginTop:12}}>
+            <button className="btn btn-ghost" onClick={() => { setActiveAward(i => (i-1+AWARDS.length)%AWARDS.length); setEditingAwards(false); }}>← PREV</button>
+            <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#ffffff30",letterSpacing:2,alignSelf:"center"}}>{activeAward+1} / {AWARDS.length}</span>
+            <button className="btn btn-ghost" onClick={() => { setActiveAward(i => (i+1)%AWARDS.length); setEditingAwards(false); }}>NEXT →</button>
+          </div>
+        </div>
+        {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // PREDICTOR SCREEN
+  // ══════════════════════════════════════════════════════════════════════════
+  if (screen === "predictor") return (
+    <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+      <style>{CSS}</style>
+      <Header {...sharedProps} />
+      <main style={{padding:"22px 14px",maxWidth:560,margin:"0 auto"}}>
+        <div style={{marginBottom:18}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ SCORE PREDICTOR</div>
+          <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.6rem)",fontWeight:700,lineHeight:1}}>PREDICT THE SCORE</h1>
+        </div>
+
+        {/* Admin: set up match */}
+        {isAdmin && !predSetup && (
+          <div style={{marginBottom:20}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:3,color:"#ffffff44",marginBottom:10}}>SELECT MATCH TO OPEN FOR PREDICTIONS</div>
+            {sfcFixtures.map((m, i) => {
+              const opp = isSFC(m.home) ? m.away : m.home;
+              return (
+                <button key={i} onClick={() => setupPredMatch({opp, date:m.date, home:m.home, away:m.away})} style={{display:"block",width:"100%",background:"#ffffff08",border:"1px solid #ffffff14",padding:"12px 16px",cursor:"pointer",textAlign:"left",marginBottom:6,transition:"all .15s"}} className="pred-row">
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".95rem",color:"#e8ff00"}}>SECTION FC vs {opp==="VACANCY"?"TBD":opp}</div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#ffffff44",letterSpacing:2,marginTop:2}}>{m.date} · {m.time}</div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Non-admin, no active match */}
+        {!isAdmin && !predSetup && (
+          <div style={{padding:"40px 20px",textAlign:"center",background:"#ffffff05",border:"1px solid #ffffff0e"}}>
+            <div style={{fontSize:"2rem",marginBottom:12}}>⏳</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1rem",color:"#ffffff55",letterSpacing:2}}>NO ACTIVE PREDICTION</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffff30",letterSpacing:1,marginTop:8}}>The manager will open predictions before matchday</div>
+          </div>
+        )}
+
+        {predSetup && (
+          <>
+            {/* Active match banner */}
+            <div style={{background:"#e8ff0010",border:"1px solid #e8ff0033",padding:"14px 16px",marginBottom:18}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#e8ff0088",marginBottom:5}}>PREDICT THIS MATCH</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1.1rem,4vw,1.6rem)"}}>
+                SECTION FC <span style={{color:"#ffffff40",fontSize:".8em"}}>vs</span> {predMatch.opp==="VACANCY"?"TBD":predMatch.opp}
+              </div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#ffffff44",letterSpacing:2,marginTop:3}}>{predMatch.date}</div>
+              {isAdmin && !predResult && <button className="btn btn-ghost" onClick={resetPredictor} style={{marginTop:10,fontSize:".6rem"}}>✕ CLOSE PREDICTIONS</button>}
+            </div>
+
+            {/* Prediction form (visible until result revealed) */}
+            {!predResult && (
+              <div style={{marginBottom:18}}>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:3,color:"#ffffff44",marginBottom:10}}>YOUR PREDICTION</div>
+                <select value={predName} onChange={e => setPredName(e.target.value)} style={{width:"100%",marginBottom:10}}>
+                  <option value="">Select your name…</option>
+                  {[...new Set([...KNOWN_PLAYERS,...squad])].map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+                <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
+                  <div style={{flex:1,textAlign:"center"}}>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",color:"#e8ff00",letterSpacing:2,marginBottom:5}}>SECTION FC</div>
+                    <input type="number" min="0" max="20" value={predSFC} onChange={e => setPredSFC(e.target.value)} placeholder="0" style={{width:"100%",padding:"14px",background:"#ffffff0d",border:"1px solid #e8ff0044",color:"#fff",fontFamily:"'Oswald',sans-serif",fontSize:"1.8rem",fontWeight:700,textAlign:"center"}} />
+                  </div>
+                  <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1.2rem",color:"#ffffff30",marginTop:22}}>-</span>
+                  <div style={{flex:1,textAlign:"center"}}>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",color:"#ff7755",letterSpacing:2,marginBottom:5}}>{predMatch.opp ? predMatch.opp.split(" ")[0].toUpperCase() : "OPP"}</div>
+                    <input type="number" min="0" max="20" value={predOpp} onChange={e => setPredOpp(e.target.value)} placeholder="0" style={{width:"100%",padding:"14px",background:"#ffffff0d",border:"1px solid #ff775544",color:"#fff",fontFamily:"'Oswald',sans-serif",fontSize:"1.8rem",fontWeight:700,textAlign:"center"}} />
+                  </div>
+                </div>
+                <button className="btn btn-y" onClick={submitPrediction} disabled={!predName||predSFC===""|predOpp===""} style={{width:"100%",padding:"12px"}}>
+                  {predictions.find(p => p.player===predName) ? "UPDATE PREDICTION" : "SUBMIT PREDICTION"}
+                </button>
+              </div>
+            )}
+
+            {/* Predictions list */}
+            {predictions.length > 0 && (
+              <div style={{marginBottom:18}}>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:3,color:"#ffffff44",marginBottom:10}}>PREDICTIONS ({predictions.length})</div>
+                {predictions.map((p, i) => {
+                  const result = predResult ? scorePredict(p, predResult) : null;
+                  return (
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:result?.pts===3?"#e8ff0012":result?.pts===1?"#ffffff0a":"#ffffff06",border:`1px solid ${result?.pts===3?"#e8ff0044":result?.pts===1?"#ffffff18":"#ffffff0d"}`,marginBottom:4}}>
+                      <Avatar name={p.player} size={28} />
+                      <div style={{flex:1,fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".88rem"}}>{p.player}</div>
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1rem",letterSpacing:1}}>{p.sfcG} – {p.oppG}</div>
+                      {result && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:result.pts===3?"#e8ff00":result.pts===1?"#88ccff":"#ffffff44",letterSpacing:1,textAlign:"right",minWidth:65}}>{result.label}<br /><span style={{color:result.pts>0?"#e8ff00":"#ffffff30"}}>+{result.pts}pts</span></div>}
+                    </div>
+                  );
+                })}
+
+                {/* Admin: reveal result */}
+                {isAdmin && !predResult && (
+                  <div style={{marginTop:14,padding:"14px",background:"#ffffff05",border:"1px solid #ffffff0e"}}>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:3,color:"#ffffff44",marginBottom:10}}>ENTER ACTUAL RESULT</div>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                      <input type="number" min="0" max="20" value={resultSFC} onChange={e => setResultSFC(e.target.value)} placeholder="SFC" style={{flex:1,padding:"12px",background:"#ffffff0d",border:"1px solid #e8ff0044",color:"#fff",fontFamily:"'Oswald',sans-serif",fontSize:"1.4rem",fontWeight:700,textAlign:"center"}} />
+                      <span style={{color:"#ffffff30",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1.2rem"}}>–</span>
+                      <input type="number" min="0" max="20" value={resultOpp} onChange={e => setResultOpp(e.target.value)} placeholder="OPP" style={{flex:1,padding:"12px",background:"#ffffff0d",border:"1px solid #ff775544",color:"#fff",fontFamily:"'Oswald',sans-serif",fontSize:"1.4rem",fontWeight:700,textAlign:"center"}} />
+                      <button className="btn btn-y" onClick={revealResult} disabled={resultSFC===""||resultOpp===""} style={{padding:"12px 16px",fontSize:".8rem"}}>REVEAL</button>
+                    </div>
+                  </div>
+                )}
+
+                {predResult && (
+                  <div style={{textAlign:"center",padding:"12px",background:"#ffffff08",border:"1px solid #ffffff14",marginTop:8}}>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",color:"#e8ff00",letterSpacing:3,marginBottom:4}}>FINAL RESULT</div>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"2rem",letterSpacing:2}}>SFC {predResult.sfcG} – {predResult.oppG} {predMatch.opp}</div>
+                    {isAdmin && <button className="btn btn-ghost" onClick={resetPredictor} style={{marginTop:10,fontSize:".62rem"}}>START NEW PREDICTION</button>}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Season Leaderboard */}
+        {seasonPreds.length > 0 && (
+          <div style={{marginTop:8}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:3,color:"#e8ff00",marginBottom:10,paddingTop:14,borderTop:"1px solid #ffffff0e"}}>🏆 SEASON LEADERBOARD</div>
+            {seasonPreds.map((p, i) => (
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:i===0?"#e8ff0010":"#ffffff05",border:`1px solid ${i===0?"#e8ff0033":"#ffffff0a"}`,marginBottom:4}}>
+                <div style={{width:22,fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1rem",color:i===0?"#e8ff00":i===1?"#aaa":i===2?"#cd7f32":"#ffffff44",textAlign:"center"}}>{i+1}</div>
+                <Avatar name={p.player} size={28} />
+                <div style={{flex:1,fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".9rem"}}>{p.player}</div>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#ffffff44",letterSpacing:1}}>{p.games}g</div>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1.1rem",color:i===0?"#e8ff00":"#fff",minWidth:40,textAlign:"right"}}>{p.pts}pts</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
+      {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+    </div>
+  );
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ADMIN ONLY: SETUP / SPIN / PITCH
+  // ══════════════════════════════════════════════════════════════════════════
+  if (!isAdmin) { setScreen("stats"); return null; }
+
+  if (screen === "setup") return (
+    <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+      <style>{CSS}</style>
+      <Header {...sharedProps} />
+      <main style={{maxWidth:580,margin:"0 auto",padding:"28px 16px"}}>
+        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:6}}>◆ MATCHDAY SETUP</div>
+        <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(2rem,8vw,3.5rem)",fontWeight:700,lineHeight:1,marginBottom:26}}>BUILD YOUR<br/>SQUAD</h1>
+        <section style={{marginBottom:26}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:3,color:"#fff6",marginBottom:9}}>SQUAD <span style={{color:squad.length>=5?"#e8ff00":"#ff5555"}}>({squad.length} · min 5)</span></div>
+          <div style={{display:"flex",marginBottom:10}}>
+            <input value={pIn} onChange={e => setPIn(e.target.value)} onKeyDown={e => e.key==="Enter"&&addPlayer()} placeholder="Add player…" style={{flex:1,padding:"12px 14px",background:"#ffffff0d",border:"1px solid #ffffff1e",borderRight:"none",color:"#fff",fontFamily:"'Oswald',sans-serif",fontSize:".9rem",letterSpacing:1}} />
+            <button className="btn btn-y" style={{padding:"12px 20px",fontSize:".82rem"}} onClick={addPlayer}>+ ADD</button>
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+            {squad.map((p,i) => (
+              <div key={i} style={{background:"#ffffff0d",border:"1px solid #ffffff1e",padding:"5px 10px 5px 6px",display:"flex",alignItems:"center",gap:7,animation:"fadeUp .2s ease both",animationDelay:`${i*.02}s`}}>
+                <Avatar name={p} size={26} />
+                <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".85rem"}}>{p}</span>
+                <button onClick={() => setSquad(s => s.filter(x => x!==p))} style={{background:"none",border:"none",color:"#ff5555",cursor:"pointer",fontSize:".75rem",padding:0}}>✕</button>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section style={{marginBottom:28}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:3,color:"#fff6",marginBottom:9}}>THIS WEEK'S OPPONENT</div>
+          <input value={oIn} onChange={e => setOIn(e.target.value)} onKeyDown={e => e.key==="Enter"&&goSpin()} placeholder="Opponent team name…" style={{width:"100%",padding:"12px 14px",background:"#ffffff0d",border:"1px solid #ffffff1e",color:"#fff",fontFamily:"'Oswald',sans-serif",fontSize:".9rem",letterSpacing:1}} />
+        </section>
+        <button className="btn btn-y" onClick={goSpin} disabled={squad.length<5||!oIn.trim()} style={{width:"100%",padding:"14px",fontSize:"1rem"}}>CONTINUE TO RANDOMISER →</button>
+      </main>
+      {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+    </div>
+  );
+
+  if (screen === "spin") return (
+    <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+      <style>{CSS}</style>
+      <Header {...sharedProps} />
+      <main style={{maxWidth:520,margin:"0 auto",padding:"24px 16px"}}>
+        <div style={{textAlign:"center",marginBottom:18}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:6}}>◆ TEAM PICKER</div>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(1.1rem,4vw,1.7rem)"}}>
+            <span style={{color:"#e8ff00"}}>SECTION FC</span><span style={{color:"#ffffff28",margin:"0 10px"}}>vs</span><span style={{color:"#ff7755"}}>{oppName}</span>
+          </div>
+        </div>
+        {done && benchTeam.length > 0 && (
+          <div style={{marginBottom:12,animation:"fadeUp .3s ease"}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#ffffff38",marginBottom:7}}>BENCH</div>
+            {benchTeam.map((name, bi) => {
+              const isOpen = swapBench===bi;
+              return (
+                <div key={bi}>
+                  <div style={{display:"flex",alignItems:"center",background:isOpen?"#e8ff0010":"#ffffff06",border:`1px solid ${isOpen?"#e8ff0044":"#ffffff0d"}`,padding:"8px 12px",gap:9,marginBottom:4,transition:"all .2s"}}>
+                    <Avatar name={name} size={30} />
+                    <div style={{width:36,fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".6rem",letterSpacing:2,color:"#e8ff0055"}}>SUB</div>
+                    <div style={{flex:1,fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".95rem",color:"#ffffffaa"}}>{name}</div>
+                    <button onClick={() => isOpen ? closeSwaps() : setSwapBench(bi)} style={{background:isOpen?"#e8ff00":"transparent",border:`1px solid ${isOpen?"#e8ff00":"#ffffff25"}`,color:isOpen?"#0a0a0f":"#ffffff88",padding:"4px 9px",cursor:"pointer",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".6rem",letterSpacing:1.5,transition:"all .15s"}}>{isOpen?"✕":"⇄"}</button>
+                  </div>
+                  {isOpen && (
+                    <div style={{background:"#0f0f14",border:"1px solid #e8ff0028",borderTop:"none",padding:"10px 12px",marginBottom:4}}>
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".56rem",letterSpacing:3,color:"#e8ff0077",marginBottom:7}}>REPLACE BENCH SLOT</div>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:5}}>{benchOpts(bi).map(n => <button key={n} className="swap-opt" onClick={() => doBenchSwap(bi, n)}><Avatar name={n} size={18}/>{n}</button>)}</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:20}}>
+          {SFC_POS.map((pos, i) => {
+            const isOpen = swapSlot===i, lkd = locked[i], dn = displays[i];
+            return (
+              <div key={i}>
+                <div className={!lkd&&spinning?"slot-spin":lkd&&!isOpen?"slot-lock":""} style={{display:"flex",alignItems:"center",background:isOpen?"#e8ff0018":lkd?"#e8ff0010":"#ffffff07",border:`1px solid ${isOpen?"#e8ff00":lkd?"#e8ff0066":"#ffffff13"}`,padding:"11px 12px",gap:9,transition:"all .2s"}}>
+                  {lkd ? <Avatar name={dn} size={34} /> : <div style={{width:34,height:34,borderRadius:"50%",background:"#ffffff0a",border:"1px dashed #ffffff18",flexShrink:0}} />}
+                  <div style={{width:42,fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".68rem",letterSpacing:2,color:lkd?"#e8ff00":"#ffffff40"}}>{pos}</div>
+                  <div style={{flex:1,fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(.9rem,3.5vw,1.3rem)",color:lkd?"#fff":spinning?"#ffffff55":"#ffffff22",transition:"color .2s"}}>{dn}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+                    {lkd && !isOpen && <span style={{color:"#e8ff00"}}>✓</span>}
+                    {done && <button onClick={() => isOpen ? closeSwaps() : setSwapSlot(i)} style={{background:isOpen?"#e8ff00":"transparent",border:`1px solid ${isOpen?"#e8ff00":"#ffffff30"}`,color:isOpen?"#0a0a0f":"#ffffffaa",padding:"4px 9px",cursor:"pointer",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".62rem",letterSpacing:1.5,transition:"all .15s"}}>{isOpen?"✕":"⇄"}</button>}
+                  </div>
+                </div>
+                {isOpen && (
+                  <div style={{background:"#0f0f14",border:"1px solid #e8ff0033",borderTop:"none",padding:"10px 12px"}}>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".56rem",letterSpacing:3,color:"#e8ff0088",marginBottom:7}}>SWAP {pos}</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:5}}>{starterOpts(i).map(n => <button key={n} className="swap-opt" onClick={() => doStarterSwap(i, n)}><Avatar name={n} size={18}/>{n}{benchTeam.includes(n)?" ↑":""}</button>)}</div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:9}}>
+          {done ? (
+            <>
+              <button className="btn btn-y" onClick={() => setScreen("pitch")} style={{width:"100%",padding:"13px",fontSize:"1rem",animation:"glow 1.8s infinite"}}>VIEW ON PITCH →</button>
+              <button className="btn btn-o" onClick={spin} style={{width:"100%"}}>↺ FULL RESPIN</button>
+            </>
+          ) : (
+            <button className="btn btn-y" onClick={spin} disabled={spinning} style={{width:"100%",padding:"13px",fontSize:"1rem"}}>{spinning?"PICKING…":sTeam.length>0?"↺ RESPIN":"🎲 PICK TEAM"}</button>
+          )}
+        </div>
+      </main>
+      {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+    </div>
+  );
+
+  if (screen === "pitch") {
+    const sfcP = sTeam.map((p,i) => ({...p, x:SFC_XY[i][0], y:SFC_XY[i][1], img:avatar(p.name)}));
+    const oppP = oTeam.map((p,i) => ({...p, x:OPP_XY[i][0], y:OPP_XY[i][1]}));
+    const vbW = benchTeam.length > 0 ? PW+68 : PW;
+    return (
+      <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+        <style>{CSS}</style>
+        <Header {...sharedProps} />
+        <main style={{padding:"18px 14px",maxWidth:560,margin:"0 auto"}}>
+          <div style={{textAlign:"center",marginBottom:10,animation:"fadeUp .4s ease"}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",color:"#e8ff00",letterSpacing:4,marginBottom:4}}>◆ MATCHDAY LINEUP</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(1rem,4vw,1.6rem)"}}>
+              <span style={{color:"#e8ff00"}}>SECTION FC</span><span style={{color:"#ffffff28",margin:"0 8px"}}>vs</span><span style={{color:"#ff6644"}}>{oppName}</span>
+            </div>
+          </div>
+          <div className="pitch-in" style={{width:"100%",maxWidth:520,margin:"0 auto 12px"}}>
+            <svg viewBox={`0 0 ${vbW} ${PH}`} style={{width:"100%",display:"block",borderRadius:6}}>
+              <defs>
+                {sfcP.map((_,i) => <clipPath key={i} id={`cs${i}`}><circle cx={ptX(sfcP[i].x)} cy={ptY(sfcP[i].y)} r={17}/></clipPath>)}
+                {benchTeam.map((_,i) => <clipPath key={i} id={`cb${i}`}><circle cx={BX} cy={benchY(i,benchTeam.length)} r={14}/></clipPath>)}
+              </defs>
+              {Array.from({length:16}).map((_,i) => <rect key={i} x={0} y={i*(PH/16)} width={PW} height={PH/16} fill={i%2===0?"#1b6627":"#1e6e2a"}/>)}
+              <rect x={10} y={10} width={PW-20} height={PH-20} fill="none" stroke="rgba(255,255,255,.62)" strokeWidth={2}/>
+              <line x1={10} y1={PH/2} x2={PW-10} y2={PH/2} stroke="rgba(255,255,255,.5)" strokeWidth={1.5}/>
+              <circle cx={PW/2} cy={PH/2} r={36} fill="none" stroke="rgba(255,255,255,.5)" strokeWidth={1.5}/>
+              <circle cx={PW/2} cy={PH/2} r={3} fill="rgba(255,255,255,.65)"/>
+              <rect x={PW/2-50} y={10} width={100} height={58} fill="none" stroke="rgba(255,255,255,.44)" strokeWidth={1.5}/>
+              <rect x={PW/2-25} y={10} width={50} height={26} fill="none" stroke="rgba(255,255,255,.34)" strokeWidth={1}/>
+              <circle cx={PW/2} cy={46} r={2.5} fill="rgba(255,255,255,.55)"/>
+              <rect x={PW/2-50} y={PH-68} width={100} height={58} fill="none" stroke="rgba(255,255,255,.44)" strokeWidth={1.5}/>
+              <rect x={PW/2-25} y={PH-36} width={50} height={26} fill="none" stroke="rgba(255,255,255,.34)" strokeWidth={1}/>
+              <circle cx={PW/2} cy={PH-46} r={2.5} fill="rgba(255,255,255,.55)"/>
+              <rect x={PW/2-19} y={3} width={38} height={7} fill="none" stroke="rgba(255,255,255,.7)" strokeWidth={2}/>
+              <rect x={PW/2-19} y={PH-10} width={38} height={7} fill="none" stroke="rgba(255,255,255,.7)" strokeWidth={2}/>
+              <text x={PW-12} y={PH/2-8}  textAnchor="end" fill="rgba(255,100,68,.4)"  fontSize={6.5} fontFamily="sans-serif" fontWeight="bold">1-1-2-1</text>
+              <text x={PW-12} y={PH/2+15} textAnchor="end" fill="rgba(232,255,0,.4)"  fontSize={6.5} fontFamily="sans-serif" fontWeight="bold">1-2-2</text>
+              {oppP.map((p,i) => { const cx=ptX(p.x),cy=ptY(p.y); return (<g key={`o${i}`}><circle cx={cx} cy={cy} r={17} fill="#aa1e00" stroke="#ff6644" strokeWidth={2.5}/><text x={cx} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={8} fontWeight="bold" fontFamily="sans-serif">{p.pos}</text><rect x={cx-27} y={cy+19} width={54} height={13} rx={2} fill="rgba(0,0,0,.62)"/><text x={cx} y={cy+26} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={7} fontFamily="sans-serif">{lastWord(p.name)}</text></g>); })}
+              {sfcP.map((p,i) => { const cx=ptX(p.x),cy=ptY(p.y); return (<g key={`s${i}`}><circle cx={cx} cy={cy} r={17} fill="#9eb400" stroke="#e8ff00" strokeWidth={2.5}/>{p.img?<image href={p.img} x={cx-17} y={cy-17} width={34} height={34} clipPath={`url(#cs${i})`} preserveAspectRatio="xMidYMid slice"/>:<text x={cx} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="#0a0a0f" fontSize={8} fontWeight="bold" fontFamily="sans-serif">{p.pos}</text>}<rect x={cx-27} y={cy+19} width={54} height={13} rx={2} fill="rgba(0,0,0,.72)"/><text x={cx} y={cy+26} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={7} fontFamily="sans-serif">{firstWord(p.name)}</text></g>); })}
+              {benchTeam.length>0 && <>
+                <line x1={PW+8} y1={20} x2={PW+8} y2={PH-20} stroke="rgba(255,255,255,.12)" strokeWidth={1} strokeDasharray="4 4"/>
+                <text transform={`rotate(-90,${BX},${PH/2})`} x={BX} y={PH/2} textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,.18)" fontSize={7} fontFamily="sans-serif" fontWeight="bold" letterSpacing={3}>BENCH</text>
+                {benchTeam.map((name,i) => { const cy=benchY(i,benchTeam.length),img=avatar(name); return (<g key={`b${i}`}><circle cx={BX} cy={cy} r={14} fill="#1a3a22" stroke="#e8ff0055" strokeWidth={1.5} strokeDasharray="3 2"/>{img?<image href={img} x={BX-14} y={cy-14} width={28} height={28} clipPath={`url(#cb${i})`} preserveAspectRatio="xMidYMid slice"/>:<text x={BX} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="#e8ff0099" fontSize={7} fontWeight="bold" fontFamily="sans-serif">SUB</text>}<rect x={BX-24} y={cy+16} width={48} height={12} rx={2} fill="rgba(0,0,0,.6)"/><text x={BX} y={cy+22} textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,.8)" fontSize={6.5} fontFamily="sans-serif">{firstWord(name)}</text></g>); })}
+              </>}
+            </svg>
+          </div>
+          <div style={{display:"flex",justifyContent:"center",flexWrap:"wrap",gap:14,marginBottom:12}}>
+            {[["#9eb400","#e8ff00","SECTION FC · 1-2-2"],["#aa1e00","#ff6644",`${oppName} · 1-1-2-1`],...(benchTeam.length>0?[["#1a3a22","#e8ff0055","BENCH"]]:[])]
+              .map(([bg,bo,label],i) => <div key={i} style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:10,height:10,borderRadius:"50%",background:bg,border:`2px solid ${bo}`}}/><span style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:1.5,color:"#ffffffaa"}}>{label}</span></div>)}
+          </div>
+          <div style={{display:"flex",gap:9}}>
+            <button className="btn btn-o" onClick={() => setScreen("spin")} style={{flex:1}}>← CHANGE</button>
+            <button className="btn btn-y" onClick={() => { setScreen("setup"); setOIn(""); setDone(false); setSpinning(false); closeSwaps(); setBenchTeam([]); }} style={{flex:1}}>NEW MATCHDAY</button>
+          </div>
+        </main>
+        {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+      </div>
+    );
+  }
+
+  return null;
+}
