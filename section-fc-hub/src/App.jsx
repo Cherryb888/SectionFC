@@ -638,6 +638,13 @@ export default function App() {
     await setDoc(doc(db, "playerForm", player), { games: updated });
   };
 
+  const deleteFormGame = async (player, idx) => {
+    const current = playerFormData[player]?.games || [];
+    const updated = current.filter((_, i) => i !== idx);
+    setPlayerFormData(prev => ({ ...prev, [player]: { games: updated } }));
+    await setDoc(doc(db, "playerForm", player), { games: updated });
+  };
+
   const addFormGame = async (player, rating, opp, date) => {
     const r = Math.min(10, Math.max(0, parseFloat(rating) || 0));
     if (!rating.toString().trim()) return;
@@ -1149,10 +1156,14 @@ export default function App() {
                         );
                         const c = getRatingColor(game.rating);
                         return (
-                          <div key={gi} onClick={() => isAdmin && setEditFormCell({player,idx:gi})}
-                            style={{width:44,height:44,borderRadius:6,background:`${c}22`,border:`2px solid ${c}`,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",cursor:isAdmin?"pointer":"default",transition:"opacity .15s"}}>
-                            <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".88rem",color:c,lineHeight:1}}>{parseFloat(game.rating).toFixed(1)}</span>
-                            {game.opp && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".38rem",color:"#ffffffaa",lineHeight:1.3,maxWidth:40,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{game.opp}</span>}
+                          <div key={gi} style={{position:"relative",flexShrink:0}}>
+                            <div onClick={() => isAdmin && setEditFormCell({player,idx:gi})}
+                              style={{width:44,height:44,borderRadius:6,background:`${c}22`,border:`2px solid ${c}`,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",cursor:isAdmin?"pointer":"default",transition:"opacity .15s"}}>
+                              <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".88rem",color:c,lineHeight:1}}>{parseFloat(game.rating).toFixed(1)}</span>
+                              {game.opp && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".38rem",color:"#ffffffaa",lineHeight:1.3,maxWidth:40,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{game.opp}</span>}
+                            </div>
+                            {isAdmin && <button onClick={() => deleteFormGame(player, gi)}
+                              style={{position:"absolute",top:-5,right:-5,width:14,height:14,borderRadius:"50%",background:"#ff4444",border:"none",color:"#fff",fontSize:".45rem",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1}}>✕</button>}
                           </div>
                         );
                       })}
