@@ -366,6 +366,10 @@ export default function App() {
   const [teamForm,  setTeamForm]  = useState([]); // [{sfcScore,oppScore,opp,date}]
   const [clockTick, setClockTick] = useState(0);  // bumped every minute to refresh countdown
 
+  // Home screen admin seed form
+  const [showSeedForm, setShowSeedForm] = useState(false);
+  const [seedInput,    setSeedInput]    = useState('');
+
   // ── Firebase listeners ─────────────────────────────────────────────────────
   useEffect(() => {
     const unsubs = [];
@@ -741,8 +745,7 @@ export default function App() {
       await setDoc(doc(db, "team", "form"), { results: entries });
     };
 
-    const [showSeedForm, setShowSeedForm] = useState(false);
-    const [seedInput,    setSeedInput]    = useState('');
+
 
     return (
       <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
@@ -1499,7 +1502,7 @@ export default function App() {
   // ══════════════════════════════════════════════════════════════════════════
   // ADMIN ONLY: SETUP / SPIN / PITCH
   // ══════════════════════════════════════════════════════════════════════════
-  if (!isAdmin) { setScreen("stats"); return null; }
+  if (!isAdmin) return null;
 
   if (screen === "setup") return (
     <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
