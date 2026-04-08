@@ -1,0 +1,27 @@
+name: Deploy to Firebase
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: section-fc-hub
+        run: npm install
+
+      - name: Build
+        working-directory: section-fc-hub
+        run: npm run build
+
+      - name: Deploy to Firebase
+        working-directory: section-fc-hub
+        run: npm install -g firebase-tools && firebase deploy --token "${{ secrets.FIREBASE_TOKEN }}" --non-interactive
