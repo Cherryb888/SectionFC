@@ -699,13 +699,18 @@ export default function App() {
                     <div style={{marginTop:8,padding:"10px 12px",background:"#ffffff08",border:"1px solid #e8ff0033",borderRadius:4}}>
                       <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:3,color:"#e8ff0077",marginBottom:8}}>ADD GAME FOR {player.split(" ")[0].toUpperCase()}</div>
                       <div style={{display:"flex",gap:7,flexWrap:"wrap",alignItems:"center"}}>
-                        <input type="number" min="0" max="10" step="0.1" placeholder="Rating" value={newGameInput.rating} onChange={e=>setNewGameInput(p=>({...p,rating:e.target.value}))}
+                        <input id={`fg-r-${pi}`} type="number" min="0" max="10" step="0.1" placeholder="Rating" defaultValue={newGameInput.rating}
                           style={{width:68,padding:"7px 6px",background:"#0f0f14",border:"1px solid #e8ff0044",color:"#e8ff00",fontFamily:"'Oswald',sans-serif",fontSize:".9rem",textAlign:"center"}} />
-                        <input type="text" placeholder="Opponent (opt)" value={newGameInput.opp} onChange={e=>setNewGameInput(p=>({...p,opp:e.target.value}))}
+                        <input id={`fg-o-${pi}`} type="text" placeholder="Opponent (opt)" defaultValue={newGameInput.opp}
                           style={{flex:1,minWidth:100,padding:"7px 10px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#fff",fontFamily:"'Oswald',sans-serif",fontSize:".82rem"}} />
-                        <input type="text" placeholder="Date (opt)" value={newGameInput.date} onChange={e=>setNewGameInput(p=>({...p,date:e.target.value}))}
+                        <input id={`fg-d-${pi}`} type="text" placeholder="Date (opt)" defaultValue={newGameInput.date}
                           style={{width:80,padding:"7px 8px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#fff",fontFamily:"'Oswald',sans-serif",fontSize:".82rem"}} />
-                        <button className="btn btn-y btn-sm" onClick={() => addFormGame(player, newGameInput.rating, newGameInput.opp, newGameInput.date)}>ADD</button>
+                        <button className="btn btn-y btn-sm" onClick={() => {
+                          const r=document.getElementById(`fg-r-${pi}`)?.value;
+                          const o=document.getElementById(`fg-o-${pi}`)?.value||"";
+                          const dt=document.getElementById(`fg-d-${pi}`)?.value||"";
+                          addFormGame(player,r,o,dt);
+                        }}>ADD</button>
                         <button className="btn btn-ghost btn-sm" onClick={() => { setAddingFormGame(null); setNewGameInput({rating:"",opp:"",date:""}); }}>✕</button>
                       </div>
                     </div>
@@ -1239,8 +1244,8 @@ export default function App() {
 
     // ── Shared: small number input ─────────────────────────────────────────
     const NumInput = ({ val, onChange, w=44 }) => (
-      <input type="number" min="0" max="99" value={val}
-        onChange={e => onChange(parseInt(e.target.value)||0)}
+      <input type="number" min="0" max="99" defaultValue={val}
+        onBlur={e => onChange(parseInt(e.target.value)||0)}
         style={{width:w,padding:"5px 3px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#fff",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem",textAlign:"center",outline:"none"}}
       />
     );
@@ -1251,8 +1256,8 @@ export default function App() {
       const c = (!val && val!==0) ? "#ffffff22" : getRatingColor(r);
       return (
         <div style={{position:"relative",display:"inline-flex",alignItems:"center"}}>
-          <input type="number" min="0" max="10" step="0.1" value={val}
-            onChange={e => onChange(e.target.value)}
+          <input type="number" min="0" max="10" step="0.1" defaultValue={val}
+            onBlur={e => onChange(e.target.value)}
             placeholder="–"
             style={{width:52,padding:"5px 4px",background:(!val&&val!==0)?"#0f0f14":`${c}22`,border:`1.5px solid ${c}`,color:c,fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".85rem",textAlign:"center",outline:"none",borderRadius:4}}
           />
@@ -1336,17 +1341,17 @@ export default function App() {
         <div style={{background:"#ffffff06",border:"1px solid #ffffff12",padding:"14px 16px",marginBottom:18}}>
           <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#ffffff44",marginBottom:10}}>MATCH RESULT</div>
           <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-            <input value={d.opponent} onChange={e=>setReportDraft(x=>({...x,opponent:e.target.value}))}
+            <input defaultValue={d.opponent} onBlur={e=>setReportDraft(x=>({...x,opponent:e.target.value}))}
               placeholder="Opponent name…"
               style={{flex:1,minWidth:130,padding:"9px 12px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#ff6644",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".9rem",letterSpacing:1}} />
-            <input value={d.date} onChange={e=>setReportDraft(x=>({...x,date:e.target.value}))}
+            <input defaultValue={d.date} onBlur={e=>setReportDraft(x=>({...x,date:e.target.value}))}
               placeholder="Date…"
               style={{width:130,padding:"9px 12px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#ffffffaa",fontFamily:"'Oswald',sans-serif",fontSize:".82rem"}} />
             <div style={{display:"flex",alignItems:"center",gap:6}}>
-              <input type="number" min="0" value={d.sfcScore} onChange={e=>setReportDraft(x=>({...x,sfcScore:e.target.value}))} placeholder="SFC"
+              <input type="number" min="0" defaultValue={d.sfcScore} onBlur={e=>setReportDraft(x=>({...x,sfcScore:e.target.value}))} placeholder="SFC"
                 style={{width:56,padding:"9px 6px",background:"#0f0f14",border:"1px solid #e8ff0044",color:"#e8ff00",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1.3rem",textAlign:"center",outline:"none"}} />
               <span style={{fontFamily:"'Oswald',sans-serif",color:"#ffffff30",fontWeight:400}}>–</span>
-              <input type="number" min="0" value={d.oppScore} onChange={e=>setReportDraft(x=>({...x,oppScore:e.target.value}))} placeholder="OPP"
+              <input type="number" min="0" defaultValue={d.oppScore} onBlur={e=>setReportDraft(x=>({...x,oppScore:e.target.value}))} placeholder="OPP"
                 style={{width:56,padding:"9px 6px",background:"#0f0f14",border:"1px solid #ff664444",color:"#ff6644",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1.3rem",textAlign:"center",outline:"none"}} />
             </div>
           </div>
@@ -1400,7 +1405,7 @@ export default function App() {
         {/* Report text */}
         <div style={{marginBottom:18}}>
           <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#ffffff38",marginBottom:8}}>WRITTEN MATCH REPORT</div>
-          <textarea value={d.reportText} onChange={e=>setReportDraft(x=>({...x,reportText:e.target.value}))}
+          <textarea defaultValue={d.reportText} onBlur={e=>setReportDraft(x=>({...x,reportText:e.target.value}))}
             placeholder="Write the match report here… (optional)"
             rows={6}
             style={{width:"100%",padding:"12px 14px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#ffffffcc",fontFamily:"'Barlow Condensed',sans-serif",fontSize:"1rem",lineHeight:1.5,resize:"vertical",outline:"none"}}
