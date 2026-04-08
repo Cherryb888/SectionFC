@@ -146,7 +146,7 @@ const KNOWN_PLAYERS = Object.keys(PLAYER_IMGS);
 const STAT_KEYS   = ["apps","goals","assists","yellows","reds","cleanSheets","motm"];
 const STAT_LABELS = {apps:"Apps",goals:"Goals",assists:"Assists",yellows:"Yellows",reds:"Reds",cleanSheets:"Clean Sheets",motm:"MOTM"};
 const initStats   = () => Object.fromEntries(KNOWN_PLAYERS.map(p => [p, {apps:0,goals:0,assists:0,yellows:0,reds:0,cleanSheets:0,motm:0}]));
-const getRatingColor = r => r>=9.9?'#00d4ff':r>=8.8?'#22aa44':r>=7.6?'#55dd66':r>=6.6?'#cc8800':r>=5.6?'#e8d060':r>=4.6?'#ff8800':'#ff3333';
+const getRatingColor = r => r>=9.9?'#00d4ff':r>=8.8?'#22aa44':r>=7.6?'#55dd66':r>=6.6?'#e8d060':r>=5.6?'#cc8800':r>=4.6?'#ff8800':'#ff3333';
 const PW=300, PH=460, BX=338;
 const ptX = p => (p/100)*PW;
 const ptY = p => (p/100)*PH;
