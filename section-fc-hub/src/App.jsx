@@ -108,7 +108,7 @@ const FIXTURES = [
     { time:"6:30 PM",  home:"High Prestbury FC",  away:"Seymour Dodgers",      pitch:"Pitch 2" },
     { time:"7:10 PM",  home:"Rio Franz Ferdinand",away:"SUICIDER TENDENCIES",  pitch:"Pitch 2" },
     { time:"7:50 PM",  home:"WSOPC FC",           away:"Unfit 5",              pitch:"Pitch 2" },
-    { time:"8:30 PM",  home:"SECTION FC",         away:"VACANCY",              pitch:"Pitch 2" },
+    { time:"8:30 PM",  home:"SECTION FC",         away:"Kariustoglory",        pitch:"Pitch 2" },
   ]},
   { date:"Mon 20 Apr 2026", matches:[
     { time:"6:30 PM",  home:"VACANCY",            away:"Rio Franz Ferdinand",  pitch:"Pitch 2" },
@@ -1632,7 +1632,7 @@ export default function App() {
   // ══════════════════════════════════════════════════════════════════════════
   // ADMIN ONLY: SETUP / SPIN / PITCH
   // ══════════════════════════════════════════════════════════════════════════
-  if (!isAdmin) return null;
+  if (!isAdmin && (screen === "setup" || screen === "spin" || screen === "pitch")) return null;
 
   if (screen === "setup") return (
     <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
