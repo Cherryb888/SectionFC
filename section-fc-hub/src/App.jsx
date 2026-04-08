@@ -1486,8 +1486,14 @@ export default function App() {
             const rawD = (sfcRow.d/sfcRow.pl + oppRow.d/oppRow.pl) / 2;
             const rawL = (sfcRow.l/sfcRow.pl + oppRow.w/oppRow.pl) / 2;
             const tot  = rawW + rawD + rawL;
-            const fmt  = p => (1/(p/tot)).toFixed(2);
-            return { win: fmt(rawW), draw: fmt(rawD), lose: fmt(rawL) };
+            const toFrac = p => {
+              const profit = (1/(p/tot)) - 1;
+              let bestN=1,bestD=1,bestErr=Infinity;
+              for (let d=1;d<=20;d++){const n=Math.round(profit*d);if(n<=0)continue;const err=Math.abs(n/d-profit);if(err<bestErr){bestErr=err;bestN=n;bestD=d;}}
+              const gcd=(a,b)=>b===0?a:gcd(b,a%b);const g=gcd(bestN,bestD);
+              return `${bestN/g}/${bestD/g}`;
+            };
+            return { win: toFrac(rawW), draw: toFrac(rawD), lose: toFrac(rawL) };
           })();
           return (
           <>
