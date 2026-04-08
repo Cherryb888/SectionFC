@@ -24,14 +24,14 @@ const PLAYER_IMGS = {
 };
 
 const LEAGUE_TABLE = [
-  { pos:1, team:"SECTION FC",           pl:10, w:7, d:1, l:2, gf:68, ga:32, gd:36,  pts:22 },
-  { pos:2, team:"SUICIDER TENDENCIES",  pl:10, w:7, d:1, l:2, gf:41, ga:42, gd:-1,  pts:22 },
-  { pos:3, team:"Kariustoglory",         pl:10, w:6, d:1, l:3, gf:55, ga:26, gd:29,  pts:19 },
-  { pos:4, team:"WSOPC FC",             pl:10, w:6, d:0, l:4, gf:33, ga:43, gd:-10, pts:18 },
-  { pos:5, team:"Seymour Dodgers",      pl:10, w:4, d:1, l:5, gf:25, ga:30, gd:-5,  pts:13 },
-  { pos:6, team:"High Prestbury FC",    pl:10, w:4, d:0, l:6, gf:32, ga:28, gd:4,   pts:12 },
-  { pos:7, team:"Unfit 5",              pl:10, w:2, d:2, l:6, gf:37, ga:55, gd:-18, pts:8  },
-  { pos:8, team:"Rio Franz Ferdinand",  pl:10, w:1, d:0, l:9, gf:25, ga:63, gd:-38, pts:3  },
+  { pos:1, team:"SECTION FC",           pl:11, w:8, d:1, l:2, gf:75, ga:33, gd:42,  pts:25 },
+  { pos:2, team:"SUICIDER TENDENCIES",  pl:11, w:8, d:1, l:2, gf:46, ga:42, gd:4,   pts:25 },
+  { pos:3, team:"WSOPC FC",             pl:11, w:7, d:0, l:4, gf:38, ga:43, gd:-5,  pts:21 },
+  { pos:4, team:"Kariustoglory",         pl:11, w:6, d:1, l:4, gf:55, ga:31, gd:24,  pts:19 },
+  { pos:5, team:"Seymour Dodgers",      pl:11, w:4, d:1, l:6, gf:26, ga:37, gd:-11, pts:13 },
+  { pos:6, team:"High Prestbury FC",    pl:11, w:4, d:0, l:7, gf:32, ga:33, gd:-1,  pts:12 },
+  { pos:7, team:"Unfit 5",              pl:11, w:2, d:2, l:7, gf:37, ga:60, gd:-23, pts:8  },
+  { pos:8, team:"Rio Franz Ferdinand",  pl:11, w:2, d:0, l:9, gf:30, ga:63, gd:-33, pts:6  },
 ];
 
 const PAST_RESULTS = [
