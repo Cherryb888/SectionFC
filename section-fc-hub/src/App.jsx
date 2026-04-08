@@ -557,6 +557,13 @@ export default function App() {
     await setDoc(doc(db, "matchday", "report"), { ...reportDraft, applied: false });
   };
 
+  const saveCorrection = async () => {
+    if (!reportDraft) return;
+    const corrected = { ...reportDraft, applied: true };
+    await setDoc(doc(db, "matchday", "report"), corrected);
+    setReportDraft(null);
+  };
+
   const applyReport = async () => {
     if (!reportDraft || reportDraft.applied) return;
     for (const p of reportDraft.players) {
@@ -1680,7 +1687,8 @@ export default function App() {
   if (screen === "report") {
     // Determine which data to show in editing form
     const draft = reportDraft || (matchReport && !matchReport.applied ? matchReport : null);
-    const published = matchReport?.applied ? matchReport : null;
+    const published = (matchReport?.applied && !reportDraft) ? matchReport : null;
+    const isCorrection = !!matchReport?.applied && !!reportDraft;
 
     // ── Shared: small number input ─────────────────────────────────────────
     const NumInput = ({ val, onChange, w=44 }) => (
@@ -1775,7 +1783,7 @@ export default function App() {
     );
 
     // ── Admin editing form ─────────────────────────────────────────────────
-    const EditForm = ({ d }) => (
+    const EditForm = ({ d, isCorrection }) => (
       <div>
         {/* Score row */}
         <div style={{background:"#ffffff06",border:"1px solid #ffffff12",padding:"14px 16px",marginBottom:18}}>
@@ -1853,16 +1861,30 @@ export default function App() {
         </div>
 
         {/* Action buttons */}
-        <button className="btn btn-y" onClick={applyReport}
-          style={{width:"100%",padding:"14px",fontSize:".95rem",marginBottom:9,background:"#00cc55",color:"#0a0a0f",letterSpacing:3}}>
-          ✓ CONFIRM &amp; ADD TO STATS
-        </button>
-        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:2,color:"#ff5555aa",textAlign:"center",marginBottom:12}}>
-          ⚠ This permanently adds stats to Season, All Time &amp; Player Form — only press once
-        </div>
-        <button className="btn btn-ghost" onClick={saveReportDraft} style={{width:"100%",marginBottom:6,fontSize:".72rem"}}>
-          SAVE DRAFT (does not update stats)
-        </button>
+        {isCorrection ? (
+          <>
+            <button className="btn btn-y" onClick={saveCorrection}
+              style={{width:"100%",padding:"14px",fontSize:".95rem",marginBottom:9,background:"#e8ff00",color:"#0a0a0f",letterSpacing:3}}>
+              ✓ SAVE CORRECTION (score &amp; display only)
+            </button>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:2,color:"#ffffff44",textAlign:"center",marginBottom:12}}>
+              Stats already applied — this only updates the displayed score &amp; report
+            </div>
+          </>
+        ) : (
+          <>
+            <button className="btn btn-y" onClick={applyReport}
+              style={{width:"100%",padding:"14px",fontSize:".95rem",marginBottom:9,background:"#00cc55",color:"#0a0a0f",letterSpacing:3}}>
+              ✓ CONFIRM &amp; ADD TO STATS
+            </button>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:2,color:"#ff5555aa",textAlign:"center",marginBottom:12}}>
+              ⚠ This permanently adds stats to Season, All Time &amp; Player Form — only press once
+            </div>
+            <button className="btn btn-ghost" onClick={saveReportDraft} style={{width:"100%",marginBottom:6,fontSize:".72rem"}}>
+              SAVE DRAFT (does not update stats)
+            </button>
+          </>
+        )}
       </div>
     );
 
@@ -1880,7 +1902,7 @@ export default function App() {
           {published && <PublishedView r={published} />}
 
           {/* Admin editing form */}
-          {!published && isAdmin && draft && <EditForm d={draft} />}
+          {!published && isAdmin && draft && <EditForm d={draft} isCorrection={isCorrection} />}
 
           {/* Admin: no draft yet, but squad is available */}
           {!published && isAdmin && !draft && matchdaySquad && (
