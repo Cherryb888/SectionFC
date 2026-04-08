@@ -567,7 +567,25 @@ export default function App() {
     if (!reportDraft) return;
     const corrected = { ...reportDraft, applied: true };
     await setDoc(doc(db, "matchday", "report"), corrected);
+    // Also fix the matching form entry
+    const formSnap = await getDoc(doc(db, "team", "form"));
+    const existing = formSnap.exists() ? (formSnap.data().results || []) : [];
+    const idx = existing.findIndex(e => e.opp === corrected.opponent);
+    if (idx !== -1) {
+      existing[idx] = { sfcScore: parseInt(corrected.sfcScore), oppScore: parseInt(corrected.oppScore), opp: corrected.opponent, date: corrected.date };
+      await setDoc(doc(db, "team", "form"), { results: existing });
+    }
     setReportDraft(null);
+  };
+
+  const fixFormFromReport = async () => {
+    if (!matchReport?.applied) return;
+    const formSnap = await getDoc(doc(db, "team", "form"));
+    const existing = formSnap.exists() ? (formSnap.data().results || []) : [];
+    const idx = existing.findIndex(e => e.opp === matchReport.opponent);
+    if (idx === -1) return;
+    existing[idx] = { sfcScore: parseInt(matchReport.sfcScore), oppScore: parseInt(matchReport.oppScore), opp: matchReport.opponent, date: matchReport.date };
+    await setDoc(doc(db, "team", "form"), { results: existing });
   };
 
   const applyReport = async () => {
@@ -965,9 +983,16 @@ export default function App() {
             )}
             {/* Admin: seed form */}
             {isAdmin && last5Form.length > 0 && !showSeedForm && (
-              <button onClick={() => setShowSeedForm(true)} style={{background:"none",border:"none",color:"#ffffff25",fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,cursor:"pointer",padding:0,marginTop:8}}>
-                ✏️ EDIT FORM DATA
-              </button>
+              <div style={{display:"flex",gap:12,marginTop:8,flexWrap:"wrap"}}>
+                <button onClick={() => setShowSeedForm(true)} style={{background:"none",border:"none",color:"#ffffff25",fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,cursor:"pointer",padding:0}}>
+                  ✏️ EDIT FORM DATA
+                </button>
+                {matchReport?.applied && (
+                  <button onClick={fixFormFromReport} style={{background:"none",border:"none",color:"#e8ff0044",fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,cursor:"pointer",padding:0}}>
+                    ↻ SYNC FROM REPORT
+                  </button>
+                )}
+              </div>
             )}
             {isAdmin && showSeedForm && (
               <div style={{marginTop:10,padding:"12px",background:"#ffffff08",border:"1px solid #e8ff0022"}}>
