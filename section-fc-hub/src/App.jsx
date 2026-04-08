@@ -1476,16 +1476,45 @@ export default function App() {
           </div>
         )}
 
-        {predSetup && (
+        {predSetup && (() => {
+          const oppName = predMatch.opp === "VACANCY" ? "TBD" : predMatch.opp;
+          const sfcRow  = LEAGUE_TABLE.find(t => t.team === "SECTION FC");
+          const oppRow  = LEAGUE_TABLE.find(t => t.team.toLowerCase() === predMatch.opp.toLowerCase());
+          const odds = (() => {
+            if (!sfcRow || !oppRow || sfcRow.pl === 0 || oppRow.pl === 0) return null;
+            const rawW = (sfcRow.w/sfcRow.pl + oppRow.l/oppRow.pl) / 2;
+            const rawD = (sfcRow.d/sfcRow.pl + oppRow.d/oppRow.pl) / 2;
+            const rawL = (sfcRow.l/sfcRow.pl + oppRow.w/oppRow.pl) / 2;
+            const tot  = rawW + rawD + rawL;
+            const fmt  = p => (1/(p/tot)).toFixed(2);
+            return { win: fmt(rawW), draw: fmt(rawD), lose: fmt(rawL) };
+          })();
+          return (
           <>
             {/* Active match banner */}
-            <div style={{background:"#e8ff0010",border:"1px solid #e8ff0033",padding:"14px 16px",marginBottom:18}}>
-              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#e8ff0088",marginBottom:5}}>PREDICT THIS MATCH</div>
-              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1.1rem,4vw,1.6rem)"}}>
-                SECTION FC <span style={{color:"#ffffff40",fontSize:".8em"}}>vs</span> {predMatch.opp==="VACANCY"?"TBD":predMatch.opp}
+            <div style={{background:"#e8ff0010",border:"1px solid #e8ff0033",padding:"16px 18px",marginBottom:18}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#e8ff0088",marginBottom:10}}>PREDICT THIS MATCH</div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,marginBottom:4}}>
+                <div style={{flex:1,fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1.1rem,4.5vw,1.7rem)",color:"#e8ff00",lineHeight:1}}>SECTION FC</div>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:400,fontSize:"clamp(.75rem,2.5vw,.95rem)",color:"#ffffff35",flexShrink:0,padding:"0 4px"}}>vs</div>
+                <div style={{flex:1,textAlign:"right",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1.1rem,4.5vw,1.7rem)",color:"#ff7755",lineHeight:1}}>{oppName}</div>
               </div>
-              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#ffffff44",letterSpacing:2,marginTop:3}}>{predMatch.date}</div>
-              {isAdmin && !predResult && <button className="btn btn-ghost" onClick={resetPredictor} style={{marginTop:10,fontSize:".6rem"}}>✕ CLOSE PREDICTIONS</button>}
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#ffffff44",letterSpacing:2,marginBottom: odds ? 14 : 0}}>{predMatch.date}</div>
+              {odds && (
+                <div style={{display:"flex",gap:6}}>
+                  {[
+                    {label:"WIN",  val:odds.win,  bg:"#44dd8818", border:"#44dd8844", col:"#44dd88"},
+                    {label:"DRAW", val:odds.draw, bg:"#ffffff08",  border:"#ffffff18", col:"#ffffffaa"},
+                    {label:"LOSE", val:odds.lose, bg:"#ff444418",  border:"#ff444440", col:"#ff6655"},
+                  ].map(({label,val,bg,border,col}) => (
+                    <div key={label} style={{flex:1,textAlign:"center",background:bg,border:`1px solid ${border}`,padding:"8px 4px"}}>
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:2,color:"#ffffff44",marginBottom:3}}>{label}</div>
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1rem,3.5vw,1.2rem)",color:col,letterSpacing:1}}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {isAdmin && !predResult && <button className="btn btn-ghost" onClick={resetPredictor} style={{marginTop:12,fontSize:".6rem"}}>✕ CLOSE PREDICTIONS</button>}
             </div>
 
             {/* Prediction form (visible until result revealed) */}
@@ -1643,7 +1672,8 @@ export default function App() {
               </div>
             )}
           </>
-        )}
+          );
+        })()}
 
         {/* Season Leaderboard */}
         {seasonPreds.length > 0 && (
