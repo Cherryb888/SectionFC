@@ -34,13 +34,76 @@ const LEAGUE_TABLE = [
   { pos:8, team:"Rio Franz Ferdinand",  pl:10, w:1, d:0, l:9, gf:25, ga:63, gd:-38, pts:3  },
 ];
 
-const FIXTURES = [
+const PAST_RESULTS = [
   { date:"Mon 6 Apr 2026", matches:[
-    { time:"6:30 PM",  home:"Unfit 5",            away:"Rio Franz Ferdinand",  pitch:"Pitch 2" },
-    { time:"7:10 PM",  home:"Seymour Dodgers",    away:"SECTION FC",           pitch:"Pitch 2" },
-    { time:"7:50 PM",  home:"WSOPC FC",           away:"High Prestbury FC",    pitch:"Pitch 2" },
-    { time:"8:30 PM",  home:"VACANCY",            away:"SUICIDER TENDENCIES",  pitch:"Pitch 2" },
+    { home:"Unfit 5",             hg:0,  ag:5,  away:"Rio Franz Ferdinand"   },
+    { home:"Kariustoglory",       hg:0,  ag:5,  away:"SUICIDER TENDENCIES"   },
+    { home:"Seymour Dodgers",     hg:1,  ag:7,  away:"SECTION FC"            },
+    { home:"WSOPC FC",            hg:5,  ag:0,  away:"High Prestbury FC"     },
   ]},
+  { date:"Mon 30 Mar 2026", matches:[
+    { home:"Seymour Dodgers",     hg:3,  ag:3,  away:"Kariustoglory"         },
+    { home:"SECTION FC",          hg:10, ag:3,  away:"WSOPC FC"              },
+    { home:"Rio Franz Ferdinand", hg:2,  ag:1,  away:"High Prestbury FC"     },
+    { home:"SUICIDER TENDENCIES", hg:6,  ag:3,  away:"Unfit 5"               },
+  ]},
+  { date:"Mon 23 Mar 2026", matches:[
+    { home:"Rio Franz Ferdinand", hg:2,  ag:4,  away:"SECTION FC"            },
+    { home:"Kariustoglory",       hg:13, ag:4,  away:"Unfit 5"               },
+    { home:"WSOPC FC",            hg:4,  ag:1,  away:"Seymour Dodgers"       },
+    { home:"High Prestbury FC",   hg:2,  ag:0,  away:"SUICIDER TENDENCIES"   },
+  ]},
+  { date:"Mon 16 Mar 2026", matches:[
+    { home:"Seymour Dodgers",     hg:5,  ag:2,  away:"Rio Franz Ferdinand"   },
+    { home:"Unfit 5",             hg:0,  ag:5,  away:"High Prestbury FC"     },
+    { home:"WSOPC FC",            hg:4,  ag:3,  away:"Kariustoglory"         },
+    { home:"SUICIDER TENDENCIES", hg:5,  ag:4,  away:"SECTION FC"            },
+  ]},
+  { date:"Mon 9 Mar 2026", matches:[
+    { home:"Kariustoglory",       hg:3,  ag:1,  away:"High Prestbury FC"     },
+    { home:"SECTION FC",          hg:7,  ag:7,  away:"Unfit 5"               },
+    { home:"Rio Franz Ferdinand", hg:2,  ag:4,  away:"WSOPC FC"              },
+    { home:"SUICIDER TENDENCIES", hg:6,  ag:3,  away:"Seymour Dodgers"       },
+  ]},
+  { date:"Mon 2 Mar 2026", matches:[
+    { home:"WSOPC FC",            hg:5,  ag:6,  away:"SUICIDER TENDENCIES"   },
+    { home:"Rio Franz Ferdinand", hg:2,  ag:6,  away:"Kariustoglory"         },
+    { home:"High Prestbury FC",   hg:1,  ag:4,  away:"SECTION FC"            },
+    { home:"Unfit 5",             hg:0,  ag:5,  away:"Seymour Dodgers"       },
+  ]},
+  { date:"Mon 23 Feb 2026", matches:[
+    { home:"Seymour Dodgers",     hg:2,  ag:1,  away:"High Prestbury FC"     },
+    { home:"SUICIDER TENDENCIES", hg:8,  ag:5,  away:"Rio Franz Ferdinand"   },
+    { home:"Unfit 5",             hg:1,  ag:3,  away:"WSOPC FC"              },
+    { home:"Kariustoglory",       hg:2,  ag:3,  away:"SECTION FC"            },
+  ]},
+  { date:"Mon 16 Feb 2026", matches:[
+    { home:"SUICIDER TENDENCIES", hg:5,  ag:3,  away:"Kariustoglory"         },
+    { home:"High Prestbury FC",   hg:5,  ag:1,  away:"WSOPC FC"              },
+    { home:"SECTION FC",          hg:5,  ag:2,  away:"Seymour Dodgers"       },
+    { home:"Rio Franz Ferdinand", hg:6,  ag:11, away:"Unfit 5"               },
+  ]},
+  { date:"Mon 9 Feb 2026", matches:[
+    { home:"Unfit 5",             hg:2,  ag:2,  away:"SUICIDER TENDENCIES"   },
+    { home:"WSOPC FC",            hg:5,  ag:4,  away:"SECTION FC"            },
+    { home:"High Prestbury FC",   hg:8,  ag:2,  away:"Rio Franz Ferdinand"   },
+    { home:"Kariustoglory",       hg:7,  ag:1,  away:"Seymour Dodgers"       },
+  ]},
+  { date:"Mon 2 Feb 2026", matches:[
+    { home:"SUICIDER TENDENCIES", hg:6,  ag:5,  away:"High Prestbury FC"     },
+    { home:"Unfit 5",             hg:1,  ag:5,  away:"Kariustoglory"         },
+    { home:"Seymour Dodgers",     hg:1,  ag:2,  away:"WSOPC FC"              },
+    { home:"SECTION FC",          hg:14, ag:2,  away:"Rio Franz Ferdinand"   },
+  ]},
+  { date:"Mon 26 Jan 2026", matches:[
+    { home:"High Prestbury FC",   hg:3,  ag:8,  away:"Unfit 5"               },
+    { home:"SECTION FC",          hg:13, ag:3,  away:"SUICIDER TENDENCIES"   },
+    { home:"Rio Franz Ferdinand", hg:0,  ag:2,  away:"Seymour Dodgers"       },
+    { home:"Kariustoglory",       hg:10, ag:2,  away:"WSOPC FC"              },
+  ]},
+];
+
+const FIXTURES = [
   { date:"Mon 13 Apr 2026", matches:[
     { time:"6:30 PM",  home:"High Prestbury FC",  away:"Seymour Dodgers",      pitch:"Pitch 2" },
     { time:"7:10 PM",  home:"Rio Franz Ferdinand",away:"SUICIDER TENDENCIES",  pitch:"Pitch 2" },
@@ -152,7 +215,7 @@ const CSS = `
 // ── Shared components ─────────────────────────────────────────────────────────
 const ALL_TABS = ["home","squad","report","stats","table","fixtures","halloffame","predictor"];
 const matchdayScreens = ["setup","spin","pitch"];
-const TAB_LABELS = {home:"Home",squad:"⚽ Squad",report:"Report",stats:"Stats",table:"Table",fixtures:"Fixtures",halloffame:"🏆 Hall",predictor:"Predictor"};
+const TAB_LABELS = {home:"Home",squad:"⚽ Squad",report:"Report",stats:"Stats",table:"Table",fixtures:"Results",halloffame:"🏆 Hall",predictor:"Predictor"};
 
 function Header({ screen, setScreen, isAdmin, onAdminClick }) {
   const activeTab = matchdayScreens.includes(screen) ? null : screen;
@@ -1169,9 +1232,11 @@ export default function App() {
       <style>{CSS}</style>
       <Header {...sharedProps} />
       <main style={{padding:"22px 14px",maxWidth:680,margin:"0 auto"}}>
+
+        {/* ── Upcoming Fixtures ── */}
         <div style={{marginBottom:20}}>
           <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ UPCOMING FIXTURES</div>
-          <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>FIXTURES</h1>
+          <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>FIXTURES & RESULTS</h1>
         </div>
         {FIXTURES.map((gw, gi) => (
           <div key={gi} style={{marginBottom:24,animation:"fadeUp .4s ease both",animationDelay:`${gi*.08}s`}}>
@@ -1192,6 +1257,41 @@ export default function App() {
             })}
           </div>
         ))}
+
+        {/* ── Past Results ── */}
+        <div style={{marginTop:36,marginBottom:20,paddingTop:28,borderTop:"1px solid #ffffff12"}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ PAST RESULTS</div>
+          <h2 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.3rem,4vw,2rem)",fontWeight:700,lineHeight:1,color:"#fff"}}>RESULTS</h2>
+        </div>
+        {PAST_RESULTS.map((gw, gi) => (
+          <div key={gi} style={{marginBottom:24,animation:"fadeUp .4s ease both",animationDelay:`${gi*.05}s`}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",letterSpacing:3,color:"#ffffff55",marginBottom:10,paddingBottom:8,borderBottom:"1px solid #ffffff1a"}}>{gw.date}</div>
+            {gw.matches.map((m, mi) => {
+              const sfcGame = isSFC(m.home) || isSFC(m.away);
+              const sfcWon  = sfcGame && (isSFC(m.home) ? m.hg > m.ag : m.ag > m.hg);
+              const sfcDraw = sfcGame && m.hg === m.ag;
+              const sfcLost = sfcGame && !sfcWon && !sfcDraw;
+              const badge   = sfcWon ? {label:"W",bg:"#22aa44"} : sfcDraw ? {label:"D",bg:"#cc8800"} : sfcLost ? {label:"L",bg:"#cc3333"} : null;
+              return (
+                <div key={mi} style={{display:"flex",alignItems:"center",background:sfcGame?"#e8ff0008":"#ffffff04",border:`1px solid ${sfcGame?"#e8ff0020":"#ffffff0a"}`,padding:"9px 12px",marginBottom:5}}>
+                  {badge && (
+                    <div style={{width:22,height:22,background:badge.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".65rem",color:"#fff",flexShrink:0,marginRight:8,letterSpacing:0}}>{badge.label}</div>
+                  )}
+                  {!badge && <div style={{width:22,marginRight:8,flexShrink:0}} />}
+                  <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                    <div style={{flex:1,textAlign:"right",fontFamily:"'Oswald',sans-serif",fontWeight:isSFC(m.home)?700:400,fontSize:".88rem",color:isSFC(m.home)?"#e8ff00":"#ffffffaa"}}>{m.home}</div>
+                    <div style={{display:"flex",gap:3,flexShrink:0}}>
+                      <div style={{width:26,height:26,background:"#1a1a22",border:"1px solid #ffffff18",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem",color:isSFC(m.home)?"#e8ff00":"#fff"}}>{m.hg}</div>
+                      <div style={{width:26,height:26,background:"#1a1a22",border:"1px solid #ffffff18",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem",color:isSFC(m.away)?"#e8ff00":"#fff"}}>{m.ag}</div>
+                    </div>
+                    <div style={{flex:1,fontFamily:"'Oswald',sans-serif",fontWeight:isSFC(m.away)?700:400,fontSize:".88rem",color:isSFC(m.away)?"#e8ff00":"#ffffffaa"}}>{m.away}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+
       </main>
       {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
     </div>
