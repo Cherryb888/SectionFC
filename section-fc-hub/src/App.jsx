@@ -353,7 +353,11 @@ export default function App() {
 
     // Match report
     unsubs.push(onSnapshot(doc(db, "matchday", "report"), snap => {
-      setMatchReport(snap.exists() ? snap.data() : null);
+      const data = snap.exists() ? snap.data() : null;
+      setMatchReport(data);
+      if (data && !data.applied) {
+        setReportDraft(prev => prev ?? data);
+      }
     }));
 
     return () => unsubs.forEach(u => u());
