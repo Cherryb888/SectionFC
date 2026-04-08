@@ -150,16 +150,16 @@ const CSS = `
 `;
 
 // ── Shared components ─────────────────────────────────────────────────────────
-const ALL_TABS = ["squad","report","stats","table","fixtures","halloffame","predictor"];
+const ALL_TABS = ["home","squad","report","stats","table","fixtures","halloffame","predictor"];
 const matchdayScreens = ["setup","spin","pitch"];
-const TAB_LABELS = {squad:"⚽ Squad",report:"Report",stats:"Stats",table:"Table",fixtures:"Fixtures",halloffame:"🏆 Hall",predictor:"Predictor"};
+const TAB_LABELS = {home:"Home",squad:"⚽ Squad",report:"Report",stats:"Stats",table:"Table",fixtures:"Fixtures",halloffame:"🏆 Hall",predictor:"Predictor"};
 
 function Header({ screen, setScreen, isAdmin, onAdminClick }) {
   const activeTab = matchdayScreens.includes(screen) ? null : screen;
   return (
     <div style={{background:"#0a0a0f",borderBottom:"1px solid #ffffff14",position:"sticky",top:0,zIndex:20}}>
       <div style={{height:50,padding:"0 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <div onClick={() => setScreen(isAdmin ? "setup" : "stats")} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
+        <div onClick={() => setScreen(isAdmin ? "setup" : "home")} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:32,height:32,background:"#e8ff00",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,color:"#0a0a0f",fontSize:".8rem",letterSpacing:1}}>SFC</div>
           <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:600,letterSpacing:3,fontSize:".8rem",color:"#ffffffcc"}}>SECTION FC</span>
         </div>
@@ -246,7 +246,7 @@ export default function App() {
   const [showPinModal, setShowPinModal] = useState(false);
 
   // Navigation
-  const [screen, setScreen] = useState("stats");
+  const [screen, setScreen] = useState("home");
   const [loading, setLoading] = useState(true);
 
   // Squad / Matchday (admin only)
@@ -298,6 +298,10 @@ export default function App() {
   const [predOpp,       setPredOpp]       = useState("");
   const [resultSFC,     setResultSFC]     = useState("");
   const [resultOpp,     setResultOpp]     = useState("");
+
+  // Team form / dashboard
+  const [teamForm,  setTeamForm]  = useState([]); // [{sfcScore,oppScore,opp,date}]
+  const [clockTick, setClockTick] = useState(0);  // bumped every minute to refresh countdown
 
   // ── Firebase listeners ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -360,7 +364,18 @@ export default function App() {
       }
     }));
 
+    // Team form (for dashboard)
+    unsubs.push(onSnapshot(doc(db, "team", "form"), snap => {
+      setTeamForm(snap.exists() ? (snap.data().results || []) : []);
+    }));
+
     return () => unsubs.forEach(u => u());
+  }, []);
+
+  // Clock: tick every minute so the countdown stays live
+  useEffect(() => {
+    const iv = setInterval(() => setClockTick(t => t + 1), 60000);
+    return () => clearInterval(iv);
   }, []);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -502,6 +517,12 @@ export default function App() {
     const final = { ...reportDraft, sfcScore: parseInt(reportDraft.sfcScore)||0, oppScore: parseInt(reportDraft.oppScore)||0, applied: true, publishedAt: Date.now() };
     await setDoc(doc(db, "matchday", "report"), final);
     setReportDraft(final);
+
+    // Append result to team form history (keeps last 10)
+    const formSnap2 = await getDoc(doc(db, "team", "form"));
+    const existingForm = formSnap2.exists() ? (formSnap2.data().results || []) : [];
+    const newResult = { sfcScore: final.sfcScore, oppScore: final.oppScore, opp: final.opponent, date: final.date };
+    await setDoc(doc(db, "team", "form"), { results: [...existingForm, newResult].slice(-10) });
   };
 
   const updateAllTimeStat = async (player, key, val) => {
@@ -573,6 +594,43 @@ export default function App() {
     await setDoc(doc(db, "predictor", "current"), { active: false, opp: "", date: "", home: "", away: "", predictions: [], result: null });
   };
 
+  // ── Dashboard helpers ────────────────────────────────────────────────────────
+  const parseMatchDateTime = (dateStr, timeStr) => {
+    const datePart = dateStr.replace(/^\w+ /, ''); // strip "Mon "
+    const [timePart, period] = timeStr.split(' ');
+    let [h, m] = timePart.split(':').map(Number);
+    if (period === 'PM' && h !== 12) h += 12;
+    if (period === 'AM' && h === 12) h = 0;
+    return new Date(`${datePart} ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+  };
+
+  const getCountdown = (match) => {
+    const diff = parseMatchDateTime(match.date, match.time) - new Date();
+    if (diff <= 0) return null;
+    return {
+      days:  Math.floor(diff / 86400000),
+      hours: Math.floor((diff % 86400000) / 3600000),
+      mins:  Math.floor((diff % 3600000)  / 60000),
+      diff,
+    };
+  };
+
+  const getFormText = (results) => {
+    if (results.length < 2) return '';
+    const rev = [...results].reverse();
+    const lossAt   = rev.findIndex(r => r.sfcScore <  r.oppScore);
+    const nonWinAt = rev.findIndex(r => r.sfcScore <= r.oppScore);
+    const nonLossAt= rev.findIndex(r => r.sfcScore >= r.oppScore);
+    if (lossAt   === -1 && results.length >= 3) return 'Unbeaten all season';
+    if (lossAt   >=  4) return `Unbeaten in ${lossAt}`;
+    if (lossAt   >=  2) return `Unbeaten in ${lossAt}`;
+    if (nonWinAt >=  3) return `Won last ${nonWinAt}`;
+    if (nonWinAt >=  2) return 'Back-to-back wins';
+    if (nonLossAt >= 3) return `${nonLossAt} without a win`;
+    if (nonLossAt >= 2) return 'Back-to-back defeats';
+    return '';
+  };
+
   // ── Derived ─────────────────────────────────────────────────────────────────
   const allStatPlayers = [...new Set([...KNOWN_PLAYERS, ...squad])].filter(p => stats[p]);
   const sortedStats = [...allStatPlayers].sort((a,b) => (stats[b][sortStat]||0) - (stats[a][sortStat]||0));
@@ -588,6 +646,281 @@ export default function App() {
   );
 
   const sharedProps = { screen, setScreen, isAdmin, onAdminClick: () => setShowPinModal(true) };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // HOME / DASHBOARD SCREEN
+  // ══════════════════════════════════════════════════════════════════════════
+  if (screen === "home") {
+    void clockTick; // reference so countdown re-renders every minute
+
+    // ── Data derivations ───────────────────────────────────────────────────
+    const nextMatch  = sfcFixtures.find(m => getCountdown(m) !== null);
+    const countdown  = nextMatch ? getCountdown(nextMatch) : null;
+    const isMatchDay = countdown && countdown.diff < 24 * 60 * 60 * 1000;
+
+    const lastResult = matchReport?.applied ? matchReport : null;
+    const motmPlayer = lastResult?.players?.find(p => p.motm);
+    const resultType = lastResult
+      ? (lastResult.sfcScore > lastResult.oppScore ? 'W' : lastResult.sfcScore < lastResult.oppScore ? 'L' : 'D')
+      : null;
+
+    const sfcRow    = LEAGUE_TABLE.find(t => t.team === "SECTION FC");
+    const rowAbove  = LEAGUE_TABLE.find(t => t.pos === sfcRow.pos - 1);
+    const rowBelow  = LEAGUE_TABLE.find(t => t.pos === sfcRow.pos + 1);
+
+    const last5Form  = teamForm.slice(-5);
+    const formText   = getFormText(teamForm);
+
+    const resultColor = { W:'#44dd88', D:'#e8ff00', L:'#ff4444' };
+
+    // ── Admin: seed historical form ────────────────────────────────────────
+    const seedForm = async (entries) => {
+      await setDoc(doc(db, "team", "form"), { results: entries });
+    };
+
+    const [showSeedForm, setShowSeedForm] = useState(false);
+    const [seedInput,    setSeedInput]    = useState('');
+
+    return (
+      <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+        <style>{CSS}</style>
+        <Header {...sharedProps} />
+        <main style={{padding:"16px 14px",maxWidth:640,margin:"0 auto",display:"flex",flexDirection:"column",gap:12}}>
+
+          {/* ── NEXT MATCH ── */}
+          <div style={{background: isMatchDay ? "#e8ff0010" : "#ffffff06", border:`1px solid ${isMatchDay?"#e8ff0044":"#ffffff14"}`,padding:"20px 20px 18px"}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff40",marginBottom:10}}>
+              {isMatchDay ? "⚡ MATCHDAY" : "◆ NEXT MATCH"}
+            </div>
+            {nextMatch ? (
+              <>
+                {/* Countdown */}
+                {countdown && (
+                  <div style={{display:"flex",gap:10,alignItems:"flex-end",marginBottom:14}}>
+                    {countdown.days > 0 && (
+                      <div style={{textAlign:"center"}}>
+                        <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(2.4rem,8vw,3.6rem)",lineHeight:1,color:"#e8ff00"}}>{countdown.days}</div>
+                        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:3,color:"#ffffff50"}}>DAY{countdown.days!==1?"S":""}</div>
+                      </div>
+                    )}
+                    {(countdown.days > 0 || countdown.hours > 0) && (
+                      <>
+                        {countdown.days > 0 && <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:300,fontSize:"2rem",color:"#ffffff20",lineHeight:1,marginBottom:6}}>:</div>}
+                        <div style={{textAlign:"center"}}>
+                          <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(2.4rem,8vw,3.6rem)",lineHeight:1,color:isMatchDay?"#e8ff00":"#fff"}}>{countdown.hours}</div>
+                          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:3,color:"#ffffff50"}}>HR{countdown.hours!==1?"S":""}</div>
+                        </div>
+                      </>
+                    )}
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:300,fontSize:"2rem",color:"#ffffff20",lineHeight:1,marginBottom:6}}>:</div>
+                    <div style={{textAlign:"center"}}>
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(2.4rem,8vw,3.6rem)",lineHeight:1,color:isMatchDay?"#e8ff00":"#fff"}}>{countdown.mins}</div>
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:3,color:"#ffffff50"}}>MIN{countdown.mins!==1?"S":""}</div>
+                    </div>
+                  </div>
+                )}
+                {/* Match info */}
+                <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(1rem,3.5vw,1.3rem)",lineHeight:1.1}}>
+                      {isSFC(nextMatch.home) ? `vs ${nextMatch.away}` : `@ ${nextMatch.home}`}
+                    </div>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffff60",marginTop:4,letterSpacing:.5}}>
+                      {nextMatch.date} · {nextMatch.time} · {nextMatch.pitch}
+                    </div>
+                  </div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".6rem",letterSpacing:2,padding:"4px 10px",border:`1px solid ${isSFC(nextMatch.home)?"#e8ff0066":"#ffffff33"}`,color:isSFC(nextMatch.home)?"#e8ff00":"#ffffffaa"}}>
+                    {isSFC(nextMatch.home) ? "HOME" : "AWAY"}
+                  </div>
+                </div>
+                {/* Matchday: squad alert */}
+                {isMatchDay && (
+                  <div style={{marginTop:12,padding:"8px 12px",background: matchdaySquad?"#44dd8814":"#ffffff08",border:`1px solid ${matchdaySquad?"#44dd8844":"#ffffff14"}`}}>
+                    <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".65rem",letterSpacing:2,color:matchdaySquad?"#44dd88":"#ffffff44"}}>
+                      {matchdaySquad ? "✓ SQUAD POSTED" : "⏳ SQUAD NOT YET POSTED"}
+                    </span>
+                    {matchdaySquad && (
+                      <button onClick={() => setScreen("squad")} style={{background:"none",border:"none",color:"#44dd88",fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:1,cursor:"pointer",marginLeft:10,textDecoration:"underline"}}>VIEW →</button>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".8rem",color:"#ffffff30",letterSpacing:2}}>NO MORE FIXTURES</div>
+            )}
+          </div>
+
+          {/* ── LAST RESULT ── */}
+          {lastResult ? (
+            <div style={{background:"#ffffff06",border:"1px solid #ffffff14",padding:"18px 20px"}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff40",marginBottom:10}}>◆ LAST RESULT</div>
+              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:900,fontSize:"clamp(1.8rem,6vw,2.6rem)",color:"#fff",lineHeight:1}}>{lastResult.sfcScore}</div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:400,fontSize:"1.2rem",color:"#ffffff30"}}>–</div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:900,fontSize:"clamp(1.8rem,6vw,2.6rem)",color:"#ff6644",lineHeight:1}}>{lastResult.oppScore}</div>
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1rem",color:"#ff6644",lineHeight:1}}>{lastResult.opponent}</div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",color:"#ffffff40",marginTop:3}}>{lastResult.date}</div>
+                </div>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".7rem",letterSpacing:2,padding:"5px 12px",background:`${resultColor[resultType]}18`,border:`1px solid ${resultColor[resultType]}55`,color:resultColor[resultType]}}>
+                  {resultType === 'W' ? '✓ WIN' : resultType === 'L' ? '✗ LOSS' : '= DRAW'}
+                </div>
+              </div>
+              {/* MOTM */}
+              {motmPlayer && (
+                <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"#e8ff0008",border:"1px solid #e8ff0020",marginBottom:10}}>
+                  <Avatar name={motmPlayer.name} size={34} border="#e8ff0055" />
+                  <div>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:3,color:"#e8ff0088",marginBottom:1}}>★ MAN OF THE MATCH</div>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".95rem"}}>{motmPlayer.name}</div>
+                  </div>
+                  {motmPlayer.rating !== "" && motmPlayer.rating !== undefined && (
+                    <div style={{marginLeft:"auto",width:38,height:38,borderRadius:5,background:`${getRatingColor(parseFloat(motmPlayer.rating))}22`,border:`2px solid ${getRatingColor(parseFloat(motmPlayer.rating))}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".88rem",color:getRatingColor(parseFloat(motmPlayer.rating))}}>{parseFloat(motmPlayer.rating).toFixed(1)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {/* Report teaser */}
+              {lastResult.reportText && (
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:".9rem",color:"#ffffffaa",lineHeight:1.5,marginBottom:10}}>
+                  {lastResult.reportText.length > 120 ? lastResult.reportText.slice(0,120).trimEnd() + '…' : lastResult.reportText}
+                </div>
+              )}
+              <button onClick={() => setScreen("report")} style={{background:"none",border:"none",color:"#ffffff55",fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:2,cursor:"pointer",padding:0}}>
+                READ FULL REPORT →
+              </button>
+            </div>
+          ) : (
+            <div style={{background:"#ffffff04",border:"1px solid #ffffff0a",padding:"18px 20px"}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff25",marginBottom:6}}>◆ LAST RESULT</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".75rem",color:"#ffffff25",letterSpacing:2}}>NO RESULT YET THIS SEASON</div>
+            </div>
+          )}
+
+          {/* ── LEAGUE POSITION ── */}
+          <div style={{background:"#ffffff06",border:"1px solid #ffffff14",padding:"18px 20px"}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff40",marginBottom:12}}>◆ LEAGUE POSITION</div>
+            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+              {[rowAbove, sfcRow, rowBelow].filter(Boolean).map((row, i) => {
+                const isSFCRow = row.team === "SECTION FC";
+                return (
+                  <div key={row.pos} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:isSFCRow?"#e8ff0010":"transparent",border:isSFCRow?"1px solid #e8ff0030":"1px solid transparent",borderRadius:2}}>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",width:18,color:isSFCRow?"#e8ff00":"#ffffff50",textAlign:"center"}}>{row.pos}</div>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:isSFCRow?700:400,fontSize:isSFCRow?".95rem":".85rem",flex:1,color:isSFCRow?"#fff":"#ffffffaa"}}>{row.team}</div>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem",color:isSFCRow?"#e8ff00":"#ffffff50"}}>{row.pts}<span style={{fontFamily:"'Oswald',sans-serif",fontWeight:400,fontSize:".55rem",letterSpacing:1,color:"#ffffff30",marginLeft:2}}>PTS</span></div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Context line */}
+            <div style={{marginTop:10,fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:2,color:"#ffffff40"}}>
+              {sfcRow.pos === 1
+                ? (rowBelow && rowBelow.pts === sfcRow.pts ? `TOP OF TABLE ON GOAL DIFFERENCE (+${sfcRow.gd})` : `TOP OF TABLE · ${rowBelow ? sfcRow.pts - rowBelow.pts + ' PTS CLEAR' : 'UNCONTESTED'}`)
+                : `${sfcRow.pos === 2 ? '1 PT' : `${(LEAGUE_TABLE[0].pts - sfcRow.pts)} PTS`} OFF TOP · GD ${sfcRow.gd > 0 ? '+' : ''}${sfcRow.gd}`
+              }
+            </div>
+          </div>
+
+          {/* ── FORM GUIDE ── */}
+          <div style={{background:"#ffffff06",border:"1px solid #ffffff14",padding:"18px 20px"}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff40",marginBottom:12}}>◆ FORM GUIDE</div>
+            {last5Form.length > 0 ? (
+              <>
+                <div style={{display:"flex",gap:6,marginBottom:10}}>
+                  {last5Form.map((r,i) => {
+                    const t = r.sfcScore > r.oppScore ? 'W' : r.sfcScore < r.oppScore ? 'L' : 'D';
+                    return (
+                      <div key={i} title={`${r.sfcScore}–${r.oppScore} vs ${r.opp}`}
+                        style={{width:36,height:36,borderRadius:4,background:`${resultColor[t]}18`,border:`2px solid ${resultColor[t]}66`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"default"}}>
+                        <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".85rem",color:resultColor[t]}}>{t}</span>
+                      </div>
+                    );
+                  })}
+                  {/* Empty slots up to 5 */}
+                  {Array.from({length: Math.max(0, 5 - last5Form.length)}).map((_,i) => (
+                    <div key={`e${i}`} style={{width:36,height:36,borderRadius:4,background:"#ffffff05",border:"1px dashed #ffffff15",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      <span style={{color:"#ffffff15",fontSize:".7rem"}}>–</span>
+                    </div>
+                  ))}
+                </div>
+                {formText && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".72rem",letterSpacing:2,color:"#ffffff60"}}>{formText.toUpperCase()}</div>}
+              </>
+            ) : (
+              <div>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".72rem",color:"#ffffff25",letterSpacing:2,marginBottom:10}}>NO RESULTS LOGGED YET</div>
+                {isAdmin && !showSeedForm && (
+                  <button onClick={() => setShowSeedForm(true)} style={{background:"none",border:"none",color:"#ffffff35",fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:2,cursor:"pointer",padding:0}}>
+                    + SEED FORM DATA
+                  </button>
+                )}
+              </div>
+            )}
+            {/* Admin: seed form */}
+            {isAdmin && last5Form.length > 0 && !showSeedForm && (
+              <button onClick={() => setShowSeedForm(true)} style={{background:"none",border:"none",color:"#ffffff25",fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,cursor:"pointer",padding:0,marginTop:8}}>
+                ✏️ EDIT FORM DATA
+              </button>
+            )}
+            {isAdmin && showSeedForm && (
+              <div style={{marginTop:10,padding:"12px",background:"#ffffff08",border:"1px solid #e8ff0022"}}>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:3,color:"#e8ff0077",marginBottom:6}}>PASTE RESULTS — one per line: SFC-OPP OPP_NAME DATE (eg: 4-2 Seymour Mon 6 Apr)</div>
+                <textarea value={seedInput} onChange={e => setSeedInput(e.target.value)} rows={5}
+                  placeholder={"4-2 Seymour Dodgers Mon 6 Apr\n2-1 Unfit 5 Mon 30 Mar\n3-3 WSOPC FC Mon 23 Mar"}
+                  style={{width:"100%",padding:"8px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:".85rem",resize:"vertical",outline:"none",boxSizing:"border-box"}}
+                />
+                <div style={{display:"flex",gap:8,marginTop:8}}>
+                  <button className="btn btn-y btn-sm" onClick={() => {
+                    const entries = seedInput.trim().split('\n').filter(Boolean).map(line => {
+                      const m = line.match(/^(\d+)-(\d+)\s+(.+?)\s+([\w\s]+\d{1,2}\s+\w+)$/);
+                      if (!m) return null;
+                      return { sfcScore: parseInt(m[1]), oppScore: parseInt(m[2]), opp: m[3].trim(), date: m[4].trim() };
+                    }).filter(Boolean);
+                    if (entries.length) { seedForm(entries); setShowSeedForm(false); setSeedInput(''); }
+                  }}>SAVE</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => { setShowSeedForm(false); setSeedInput(''); }}>CANCEL</button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── PREDICTION TEASER ── */}
+          {(predSetup || (predResult && predictions.length > 0)) && (
+            <div style={{background:"#ffffff06",border:"1px solid #ffffff14",padding:"18px 20px"}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff40",marginBottom:10}}>◆ PREDICTOR</div>
+              {predSetup && !predResult ? (
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+                  <div>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1rem"}}>vs {predMatch.opp}</div>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".65rem",color:"#ffffff50",letterSpacing:1}}>Predictions open · {predictions.length} submitted</div>
+                  </div>
+                  <button onClick={() => setScreen("predictor")} style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".65rem",letterSpacing:2,padding:"7px 14px",background:"#e8ff0010",border:"1px solid #e8ff0044",color:"#e8ff00",cursor:"pointer"}}>
+                    PREDICT →
+                  </button>
+                </div>
+              ) : predResult && seasonPreds.length > 0 && (
+                <div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".65rem",color:"#ffffff50",letterSpacing:1,marginBottom:8}}>LEADERBOARD — TOP 3</div>
+                  {seasonPreds.slice(0,3).map((p,i) => (
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"5px 0",borderBottom:"1px solid #ffffff08"}}>
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",color:i===0?"#e8ff00":"#ffffff55",width:16}}>{i+1}</div>
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:i===0?700:400,fontSize:".85rem",flex:1}}>{p.player}</div>
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".8rem",color:"#e8ff00"}}>{p.pts}<span style={{fontFamily:"'Oswald',sans-serif",fontWeight:400,fontSize:".55rem",color:"#ffffff40",marginLeft:2}}>PTS</span></div>
+                    </div>
+                  ))}
+                  <button onClick={() => setScreen("predictor")} style={{background:"none",border:"none",color:"#ffffff35",fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:2,cursor:"pointer",padding:0,marginTop:8}}>SEE FULL LEADERBOARD →</button>
+                </div>
+              )}
+            </div>
+          )}
+
+        </main>
+        {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+      </div>
+    );
+  }
 
   // ══════════════════════════════════════════════════════════════════════════
   // STATS SCREEN
