@@ -221,7 +221,7 @@ const CSS = `
 // ── Shared components ─────────────────────────────────────────────────────────
 const ALL_TABS = ["home","squad","report","stats","table","fixtures","halloffame","predictor"];
 const matchdayScreens = ["setup","spin","pitch"];
-const TAB_LABELS = {home:"Home",squad:"⚽ Squad",report:"Report",stats:"Stats",table:"Table",fixtures:"Results",halloffame:"🏆 Hall",predictor:"Predictor"};
+const TAB_LABELS = {home:"Home",squad:"⚽ Matchday Squad",report:"Report",stats:"Squad Stats",table:"Table",fixtures:"Results",halloffame:"🏆 Hall",predictor:"Predictor"};
 
 function Header({ screen, setScreen, isAdmin, onAdminClick }) {
   const activeTab = matchdayScreens.includes(screen) ? null : screen;
