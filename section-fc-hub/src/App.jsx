@@ -1827,7 +1827,6 @@ export default function App() {
   if (screen === "pitch") {
     const sfcP = sTeam.map((p,i) => ({...p, x:SFC_XY[i][0], y:SFC_XY[i][1], img:avatar(p.name)}));
     const oppP = oTeam.map((p,i) => ({...p, x:OPP_XY[i][0], y:OPP_XY[i][1]}));
-    const vbW = benchTeam.length > 0 ? PW+68 : PW;
     return (
       <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
         <style>{CSS}</style>
@@ -1840,10 +1839,9 @@ export default function App() {
             </div>
           </div>
           <div className="pitch-in" style={{width:"100%",maxWidth:520,margin:"0 auto 12px"}}>
-            <svg viewBox={`0 0 ${vbW} ${PH}`} style={{width:"100%",display:"block",borderRadius:6}}>
+            <svg viewBox={`0 0 ${PW} ${PH}`} style={{width:"100%",display:"block",borderRadius:6}}>
               <defs>
                 {sfcP.map((_,i) => <clipPath key={i} id={`cs${i}`}><circle cx={ptX(sfcP[i].x)} cy={ptY(sfcP[i].y)} r={17}/></clipPath>)}
-                {benchTeam.map((_,i) => <clipPath key={i} id={`cb${i}`}><circle cx={BX} cy={benchY(i,benchTeam.length)} r={14}/></clipPath>)}
               </defs>
               {Array.from({length:16}).map((_,i) => <rect key={i} x={0} y={i*(PH/16)} width={PW} height={PH/16} fill={i%2===0?"#1b6627":"#1e6e2a"}/>)}
               <rect x={10} y={10} width={PW-20} height={PH-20} fill="none" stroke="rgba(255,255,255,.62)" strokeWidth={2}/>
@@ -1862,15 +1860,31 @@ export default function App() {
               <text x={PW-12} y={PH/2+15} textAnchor="end" fill="rgba(232,255,0,.4)"  fontSize={6.5} fontFamily="sans-serif" fontWeight="bold">1-2-2</text>
               {oppP.map((p,i) => { const cx=ptX(p.x),cy=ptY(p.y); return (<g key={`o${i}`}><circle cx={cx} cy={cy} r={17} fill="#aa1e00" stroke="#ff6644" strokeWidth={2.5}/><text x={cx} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={8} fontWeight="bold" fontFamily="sans-serif">{p.pos}</text><rect x={cx-27} y={cy+19} width={54} height={13} rx={2} fill="rgba(0,0,0,.62)"/><text x={cx} y={cy+26} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={7} fontFamily="sans-serif">{lastWord(p.name)}</text></g>); })}
               {sfcP.map((p,i) => { const cx=ptX(p.x),cy=ptY(p.y); return (<g key={`s${i}`}><circle cx={cx} cy={cy} r={17} fill="#9eb400" stroke="#e8ff00" strokeWidth={2.5}/>{p.img?<image href={p.img} x={cx-17} y={cy-17} width={34} height={34} clipPath={`url(#cs${i})`} preserveAspectRatio="xMidYMid slice"/>:<text x={cx} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="#0a0a0f" fontSize={8} fontWeight="bold" fontFamily="sans-serif">{p.pos}</text>}<rect x={cx-27} y={cy+19} width={54} height={13} rx={2} fill="rgba(0,0,0,.72)"/><text x={cx} y={cy+26} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={7} fontFamily="sans-serif">{firstWord(p.name)}</text></g>); })}
-              {benchTeam.length>0 && <>
-                <line x1={PW+8} y1={20} x2={PW+8} y2={PH-20} stroke="rgba(255,255,255,.12)" strokeWidth={1} strokeDasharray="4 4"/>
-                <text transform={`rotate(-90,${BX},${PH/2})`} x={BX} y={PH/2} textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,.18)" fontSize={7} fontFamily="sans-serif" fontWeight="bold" letterSpacing={3}>BENCH</text>
-                {benchTeam.map((name,i) => { const cy=benchY(i,benchTeam.length),img=avatar(name); return (<g key={`b${i}`}><circle cx={BX} cy={cy} r={14} fill="#1a3a22" stroke="#e8ff0055" strokeWidth={1.5} strokeDasharray="3 2"/>{img?<image href={img} x={BX-14} y={cy-14} width={28} height={28} clipPath={`url(#cb${i})`} preserveAspectRatio="xMidYMid slice"/>:<text x={BX} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="#e8ff0099" fontSize={7} fontWeight="bold" fontFamily="sans-serif">SUB</text>}<rect x={BX-24} y={cy+16} width={48} height={12} rx={2} fill="rgba(0,0,0,.6)"/><text x={BX} y={cy+22} textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,.8)" fontSize={6.5} fontFamily="sans-serif">{firstWord(name)}</text></g>); })}
-              </>}
             </svg>
           </div>
+          {benchTeam.length > 0 && (
+            <div style={{marginBottom:14}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:3,color:"#ffffff38",marginBottom:10}}>BENCH</div>
+              <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
+                {benchTeam.map((name, i) => {
+                  const img = avatar(name);
+                  return (
+                    <div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
+                      <div style={{width:52,height:52,borderRadius:"50%",overflow:"hidden",border:"2px dashed #e8ff0055",background:"#1a3a22",flexShrink:0}}>
+                        {img
+                          ? <img src={img} alt={name} style={{width:"100%",height:"100%",objectFit:"cover"}} />
+                          : <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".7rem",color:"#e8ff0099"}}>SUB</div>
+                        }
+                      </div>
+                      <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".65rem",letterSpacing:1,color:"#ffffffaa"}}>{name.split(" ")[0].toUpperCase()}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div style={{display:"flex",justifyContent:"center",flexWrap:"wrap",gap:14,marginBottom:12}}>
-            {[["#9eb400","#e8ff00","SECTION FC · 1-2-2"],["#aa1e00","#ff6644",`${oppName} · 1-1-2-1`],...(benchTeam.length>0?[["#1a3a22","#e8ff0055","BENCH"]]:[])]
+            {[["#9eb400","#e8ff00","SECTION FC · 1-2-2"],["#aa1e00","#ff6644",`${oppName} · 1-1-2-1`]]
               .map(([bg,bo,label],i) => <div key={i} style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:10,height:10,borderRadius:"50%",background:bg,border:`2px solid ${bo}`}}/><span style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:1.5,color:"#ffffffaa"}}>{label}</span></div>)}
           </div>
           <button className="btn btn-y" onClick={async () => { await publishSquad(); setScreen("squad"); }}
@@ -2150,7 +2164,6 @@ export default function App() {
       const sfcP = sq.sTeam.map((p,i) => ({...p, x:SFC_XY[i][0], y:SFC_XY[i][1], img:avatar(p.name)}));
       const oppP = sq.oTeam.map((p,i) => ({...p, x:OPP_XY[i][0], y:OPP_XY[i][1]}));
       const bench = sq.benchTeam || [];
-      const vbW = bench.length > 0 ? PW+68 : PW;
       const published = new Date(sq.publishedAt).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
       return (
         <div style={{animation:"fadeUp .4s ease"}}>
@@ -2167,10 +2180,9 @@ export default function App() {
             <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",color:"#ffffff35",letterSpacing:2,marginTop:6}}>POSTED {published.toUpperCase()}</div>
           </div>
           <div className="pitch-in" style={{width:"100%",maxWidth:520,margin:"0 auto 12px"}}>
-            <svg viewBox={`0 0 ${vbW} ${PH}`} style={{width:"100%",display:"block",borderRadius:6}}>
+            <svg viewBox={`0 0 ${PW} ${PH}`} style={{width:"100%",display:"block",borderRadius:6}}>
               <defs>
                 {sfcP.map((_,i) => <clipPath key={i} id={`ps${i}`}><circle cx={ptX(sfcP[i].x)} cy={ptY(sfcP[i].y)} r={17}/></clipPath>)}
-                {bench.map((_,i) => <clipPath key={i} id={`pb${i}`}><circle cx={BX} cy={benchY(i,bench.length)} r={14}/></clipPath>)}
               </defs>
               {Array.from({length:16}).map((_,i) => <rect key={i} x={0} y={i*(PH/16)} width={PW} height={PH/16} fill={i%2===0?"#1b6627":"#1e6e2a"}/>)}
               <rect x={10} y={10} width={PW-20} height={PH-20} fill="none" stroke="rgba(255,255,255,.62)" strokeWidth={2}/>
@@ -2189,15 +2201,10 @@ export default function App() {
               <text x={PW-12} y={PH/2+15} textAnchor="end" fill="rgba(232,255,0,.4)"  fontSize={6.5} fontFamily="sans-serif" fontWeight="bold">1-2-2</text>
               {oppP.map((p,i) => { const cx=ptX(p.x),cy=ptY(p.y); return (<g key={`o${i}`}><circle cx={cx} cy={cy} r={17} fill="#aa1e00" stroke="#ff6644" strokeWidth={2.5}/><text x={cx} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={8} fontWeight="bold" fontFamily="sans-serif">{p.pos}</text><rect x={cx-27} y={cy+19} width={54} height={13} rx={2} fill="rgba(0,0,0,.62)"/><text x={cx} y={cy+26} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={7} fontFamily="sans-serif">{lastWord(p.name)}</text></g>); })}
               {sfcP.map((p,i) => { const cx=ptX(p.x),cy=ptY(p.y); return (<g key={`s${i}`}><circle cx={cx} cy={cy} r={17} fill="#9eb400" stroke="#e8ff00" strokeWidth={2.5}/>{p.img?<image href={p.img} x={cx-17} y={cy-17} width={34} height={34} clipPath={`url(#ps${i})`} preserveAspectRatio="xMidYMid slice"/>:<text x={cx} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="#0a0a0f" fontSize={8} fontWeight="bold" fontFamily="sans-serif">{p.pos}</text>}<rect x={cx-27} y={cy+19} width={54} height={13} rx={2} fill="rgba(0,0,0,.72)"/><text x={cx} y={cy+26} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={7} fontFamily="sans-serif">{firstWord(p.name)}</text></g>); })}
-              {bench.length>0 && <>
-                <line x1={PW+8} y1={20} x2={PW+8} y2={PH-20} stroke="rgba(255,255,255,.12)" strokeWidth={1} strokeDasharray="4 4"/>
-                <text transform={`rotate(-90,${BX},${PH/2})`} x={BX} y={PH/2} textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,.18)" fontSize={7} fontFamily="sans-serif" fontWeight="bold" letterSpacing={3}>BENCH</text>
-                {bench.map((name,i) => { const cy=benchY(i,bench.length),img=avatar(name); return (<g key={`b${i}`}><circle cx={BX} cy={cy} r={14} fill="#1a3a22" stroke="#e8ff0055" strokeWidth={1.5} strokeDasharray="3 2"/>{img?<image href={img} x={BX-14} y={cy-14} width={28} height={28} clipPath={`url(#pb${i})`} preserveAspectRatio="xMidYMid slice"/>:<text x={BX} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="#e8ff0099" fontSize={7} fontWeight="bold" fontFamily="sans-serif">SUB</text>}<rect x={BX-24} y={cy+16} width={48} height={12} rx={2} fill="rgba(0,0,0,.6)"/><text x={BX} y={cy+22} textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,.8)" fontSize={6.5} fontFamily="sans-serif">{firstWord(name)}</text></g>); })}
-              </>}
             </svg>
           </div>
           <div style={{display:"flex",justifyContent:"center",flexWrap:"wrap",gap:14,marginBottom:16}}>
-            {[["#9eb400","#e8ff00","SECTION FC · 1-2-2"],["#aa1e00","#ff6644",`${sq.oppName} · 1-1-2-1`],...(bench.length>0?[["#1a3a22","#e8ff0055","BENCH"]]:[])]
+            {[["#9eb400","#e8ff00","SECTION FC · 1-2-2"],["#aa1e00","#ff6644",`${sq.oppName} · 1-1-2-1`]]
               .map(([bg,bo,label],i) => <div key={i} style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:10,height:10,borderRadius:"50%",background:bg,border:`2px solid ${bo}`}}/><span style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:1.5,color:"#ffffffaa"}}>{label}</span></div>)}
           </div>
           {/* Starters list */}
@@ -2213,17 +2220,25 @@ export default function App() {
               ))}
             </div>
           </div>
-          {/* Bench list */}
+          {/* Bench */}
           {bench.length > 0 && (
             <div style={{marginBottom:16}}>
-              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#ffffff38",marginBottom:8}}>BENCH</div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {bench.map((name,i) => (
-                  <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",background:"#ffffff06",border:"1px solid #ffffff12"}}>
-                    <Avatar name={name} size={28} border="#ffffff33" />
-                    <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".85rem",color:"#ffffffaa"}}>{name}</span>
-                  </div>
-                ))}
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#ffffff38",marginBottom:10}}>BENCH</div>
+              <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
+                {bench.map((name, i) => {
+                  const img = avatar(name);
+                  return (
+                    <div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
+                      <div style={{width:52,height:52,borderRadius:"50%",overflow:"hidden",border:"2px dashed #e8ff0055",background:"#1a3a22",flexShrink:0}}>
+                        {img
+                          ? <img src={img} alt={name} style={{width:"100%",height:"100%",objectFit:"cover"}} />
+                          : <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".7rem",color:"#e8ff0099"}}>SUB</div>
+                        }
+                      </div>
+                      <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".65rem",letterSpacing:1,color:"#ffffffaa"}}>{name.split(" ")[0].toUpperCase()}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
