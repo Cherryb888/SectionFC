@@ -21,6 +21,11 @@ const PLAYER_IMGS = {
   "Hayden Hunter":   "/players/hayden-hunter.jpg",
   "Lewis Fowler":    "/players/lewis-fowler.jpg",
   "Guy Horton":      "/players/guy-horton.jpg",
+  "Max Murray":      "/players/max-murray.jpg",
+  "Ian Healey":      "/players/ian-healey.jpg",
+  "Freddie Palmer":  "/players/freddie-palmer.jpg",
+  "Jake Graham":     "/players/jake-graham.jpg",
+  "Callum Dagnall":  "/players/callum-dagnall.jpg",
 };
 
 const LEAGUE_TABLE = [
