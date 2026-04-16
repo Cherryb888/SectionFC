@@ -26,6 +26,7 @@ const PLAYER_IMGS = {
   "Freddie Palmer":  "/players/freddie-palmer.jpg",
   "Jake Graham":     "/players/jake-graham.jpg",
   "Callum Dagnall":  "/players/callum-dagnall.jpg",
+  "Tom Beeston":     "/players/tom-beeston.jpg",
 };
 
 const LEAGUE_TABLE = [
