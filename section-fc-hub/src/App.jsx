@@ -30,17 +30,23 @@ const PLAYER_IMGS = {
 };
 
 const LEAGUE_TABLE = [
-  { pos:1, team:"SECTION FC",           pl:11, w:8, d:1, l:2, gf:75, ga:33, gd:42,  pts:25 },
-  { pos:2, team:"SUICIDER TENDENCIES",  pl:11, w:8, d:1, l:2, gf:46, ga:42, gd:4,   pts:25 },
-  { pos:3, team:"WSOPC FC",             pl:11, w:7, d:0, l:4, gf:38, ga:43, gd:-5,  pts:21 },
-  { pos:4, team:"Kariustoglory",         pl:11, w:6, d:1, l:4, gf:55, ga:31, gd:24,  pts:19 },
-  { pos:5, team:"Seymour Dodgers",      pl:11, w:4, d:1, l:6, gf:26, ga:37, gd:-11, pts:13 },
-  { pos:6, team:"High Prestbury FC",    pl:11, w:4, d:0, l:7, gf:32, ga:33, gd:-1,  pts:12 },
-  { pos:7, team:"Unfit 5",              pl:11, w:2, d:2, l:7, gf:37, ga:60, gd:-23, pts:8  },
-  { pos:8, team:"Rio Franz Ferdinand",  pl:11, w:2, d:0, l:9, gf:30, ga:63, gd:-33, pts:6  },
+  { pos:1, team:"SECTION FC",           pl:12, w:9, d:1, l:2, gf:80, ga:33, gd:47,  pts:28 },
+  { pos:2, team:"SUICIDER TENDENCIES",  pl:12, w:8, d:1, l:3, gf:46, ga:47, gd:-1,  pts:25 },
+  { pos:3, team:"WSOPC FC",             pl:12, w:8, d:0, l:4, gf:40, ga:44, gd:-4,  pts:24 },
+  { pos:4, team:"Kariustoglory",         pl:12, w:6, d:1, l:5, gf:55, ga:36, gd:19,  pts:19 },
+  { pos:5, team:"Seymour Dodgers",      pl:12, w:5, d:1, l:6, gf:30, ga:38, gd:-8,  pts:16 },
+  { pos:6, team:"High Prestbury FC",    pl:12, w:4, d:0, l:8, gf:33, ga:37, gd:-4,  pts:12 },
+  { pos:7, team:"Rio Franz Ferdinand",  pl:12, w:3, d:0, l:9, gf:35, ga:63, gd:-28, pts:9  },
+  { pos:8, team:"Unfit 5",              pl:12, w:2, d:2, l:8, gf:38, ga:62, gd:-24, pts:8  },
 ];
 
 const PAST_RESULTS = [
+  { date:"Mon 13 Apr 2026", matches:[
+    { home:"Rio Franz Ferdinand", hg:5,  ag:0,  away:"SUICIDER TENDENCIES"   },
+    { home:"High Prestbury FC",   hg:1,  ag:4,  away:"Seymour Dodgers"       },
+    { home:"SECTION FC",          hg:5,  ag:0,  away:"Kariustoglory"         },
+    { home:"WSOPC FC",            hg:2,  ag:1,  away:"Unfit 5"               },
+  ]},
   { date:"Mon 6 Apr 2026", matches:[
     { home:"Unfit 5",             hg:0,  ag:5,  away:"Rio Franz Ferdinand"   },
     { home:"Kariustoglory",       hg:0,  ag:5,  away:"SUICIDER TENDENCIES"   },
