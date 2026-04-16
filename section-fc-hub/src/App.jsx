@@ -13,7 +13,6 @@ const PLAYER_IMGS = {
   "Tom Goldsby":     "/players/tom-goldsby.jpg",
   "Josh Treharne":   "/players/josh-treharne.jpg",
   "Ben Higgs":       "/players/ben-higgs.jpg",
-  "Alf Little":      "/players/alf-little.jpg",
   "Jeven Dhillon":   "/players/jeven-dhillon.jpg",
   "George Mcnulty":  "/players/george-mcnulty.jpg",
   "Dani Griffiths":  "/players/dani-griffiths.jpg",
