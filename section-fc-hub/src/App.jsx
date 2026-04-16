@@ -115,12 +115,6 @@ const PAST_RESULTS = [
 ];
 
 const FIXTURES = [
-  { date:"Mon 13 Apr 2026", matches:[
-    { time:"6:30 PM",  home:"High Prestbury FC",  away:"Seymour Dodgers",      pitch:"Pitch 2" },
-    { time:"7:10 PM",  home:"Rio Franz Ferdinand",away:"SUICIDER TENDENCIES",  pitch:"Pitch 2" },
-    { time:"7:50 PM",  home:"WSOPC FC",           away:"Unfit 5",              pitch:"Pitch 2" },
-    { time:"8:30 PM",  home:"SECTION FC",         away:"Kariustoglory",        pitch:"Pitch 2" },
-  ]},
   { date:"Mon 20 Apr 2026", matches:[
     { time:"6:30 PM",  home:"VACANCY",            away:"Rio Franz Ferdinand",  pitch:"Pitch 2" },
     { time:"7:10 PM",  home:"SECTION FC",         away:"High Prestbury FC",    pitch:"Pitch 2" },
