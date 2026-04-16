@@ -325,12 +325,6 @@ export default function App() {
   const [sTeam,        setSTeam]        = useState([]);
   const [oTeam,        setOTeam]        = useState([]);
   const [benchTeam,    setBenchTeam]    = useState([]);
-  const [displays,     setDisplays]     = useState(["?","?","?","?","?"]);
-  const [locked,       setLocked]       = useState([false,false,false,false,false]);
-  const [spinning,     setSpinning]     = useState(false);
-  const [done,         setDone]         = useState(false);
-  const [swapSlot,     setSwapSlot]     = useState(-1);
-  const [swapBench,    setSwapBench]    = useState(-1);
 
   // Published matchday squad (synced with Firestore)
   const [matchdaySquad, setMatchdaySquad] = useState(null);
@@ -457,8 +451,6 @@ export default function App() {
   }, []);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
-  const closeSwaps = () => { setSwapSlot(-1); setSwapBench(-1); };
-
   const addPlayer = () => {
     const n = pIn.trim();
     if (!n || squad.includes(n) || squad.length >= 20) return;
@@ -466,47 +458,19 @@ export default function App() {
     setPIn("");
   };
 
-  const goSpin = () => {
+  const goPick = () => {
     if (squad.length < 5 || !oIn.trim()) return;
     setOppName(oIn.trim().toUpperCase());
     setOTeam(buildOpp());
-    setDisplays(["?","?","?","?","?"]);
-    setLocked([false,false,false,false,false]);
-    setDone(false); setSpinning(false); setSTeam([]); setBenchTeam([]); closeSwaps();
+    setSTeam(SFC_POS.map(pos => ({ name: "", pos })));
+    setBenchTeam([]);
     setScreen("spin");
   };
 
-  const spin = useCallback(() => {
-    if (spinning || squad.length < 5) return;
-    setSpinning(true); setDone(false); closeSwaps();
-    setLocked([false,false,false,false,false]);
-    setDisplays(["?","?","?","?","?"]);
-    const sh = [...squad].sort(() => Math.random() - .5);
-    const picks = sh.slice(0, 5);
-    const team = picks.map((name, i) => ({ name, pos: SFC_POS[i] }));
-    picks.forEach((fn, idx) => {
-      setTimeout(() => {
-        const iv = setInterval(() => setDisplays(p => { const a=[...p]; a[idx]=squad[~~(Math.random()*squad.length)]; return a; }), 65);
-        setTimeout(() => {
-          clearInterval(iv);
-          setDisplays(p => { const a=[...p]; a[idx]=fn; return a; });
-          setLocked(p => { const a=[...p]; a[idx]=true; return a; });
-          if (idx === 4) { setSTeam(team); setBenchTeam(sh.slice(5,8)); setTimeout(() => { setDone(true); setSpinning(false); }, 350); }
-        }, 1000);
-      }, idx * 750);
-    });
-  }, [squad, spinning]);
-
-  const doStarterSwap = (si, nn) => {
-    const old = sTeam[si].name, bi = benchTeam.indexOf(nn);
-    setSTeam(p => { const a=[...p]; a[si]={...a[si],name:nn}; return a; });
-    setDisplays(p => { const a=[...p]; a[si]=nn; return a; });
-    if (bi !== -1) setBenchTeam(p => { const a=[...p]; a[bi]=old; return a; });
-    closeSwaps();
+  const setStarter = (i, name) => {
+    setSTeam(prev => prev.map((t, j) => j !== i ? (t.name === name ? {...t, name:""} : t) : {...t, name}));
+    if (name) setBenchTeam(prev => prev.filter(n => n !== name));
   };
-  const doBenchSwap = (bi, nn) => { setBenchTeam(p => { const a=[...p]; a[bi]=nn; return a; }); closeSwaps(); };
-  const starterOpts = si => squad.filter(p => !sTeam.some((t,i) => i!==si && t.name===p));
-  const benchOpts   = bi => squad.filter(p => !sTeam.map(t=>t.name).includes(p) && !benchTeam.some((b,i) => i!==bi && b===p));
 
   // ── Firestore writes (admin only) ──────────────────────────────────────────
   const updateStat = async (player, key, val) => {
@@ -1736,87 +1700,89 @@ export default function App() {
         </section>
         <section style={{marginBottom:28}}>
           <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:3,color:"#fff6",marginBottom:9}}>THIS WEEK'S OPPONENT</div>
-          <input value={oIn} onChange={e => setOIn(e.target.value)} onKeyDown={e => e.key==="Enter"&&goSpin()} placeholder="Opponent team name…" style={{width:"100%",padding:"12px 14px",background:"#ffffff0d",border:"1px solid #ffffff1e",color:"#fff",fontFamily:"'Oswald',sans-serif",fontSize:".9rem",letterSpacing:1}} />
+          <input value={oIn} onChange={e => setOIn(e.target.value)} onKeyDown={e => e.key==="Enter"&&goPick()} placeholder="Opponent team name…" style={{width:"100%",padding:"12px 14px",background:"#ffffff0d",border:"1px solid #ffffff1e",color:"#fff",fontFamily:"'Oswald',sans-serif",fontSize:".9rem",letterSpacing:1}} />
         </section>
-        <button className="btn btn-y" onClick={goSpin} disabled={squad.length<5||!oIn.trim()} style={{width:"100%",padding:"14px",fontSize:"1rem"}}>CONTINUE TO RANDOMISER →</button>
+        <button className="btn btn-y" onClick={goPick} disabled={squad.length<5||!oIn.trim()} style={{width:"100%",padding:"14px",fontSize:"1rem"}}>PICK YOUR TEAM →</button>
       </main>
       {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
     </div>
   );
 
-  if (screen === "spin") return (
-    <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
-      <style>{CSS}</style>
-      <Header {...sharedProps} />
-      <main style={{maxWidth:520,margin:"0 auto",padding:"24px 16px"}}>
-        <div style={{textAlign:"center",marginBottom:18}}>
-          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:6}}>◆ TEAM PICKER</div>
-          <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(1.1rem,4vw,1.7rem)"}}>
-            <span style={{color:"#e8ff00"}}>SECTION FC</span><span style={{color:"#ffffff28",margin:"0 10px"}}>vs</span><span style={{color:"#ff7755"}}>{oppName}</span>
+  if (screen === "spin") {
+    const allFilled = sTeam.length === 5 && sTeam.every(p => p.name);
+    return (
+      <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+        <style>{CSS}</style>
+        <Header {...sharedProps} />
+        <main style={{maxWidth:520,margin:"0 auto",padding:"24px 16px"}}>
+          <div style={{marginBottom:20}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ TEAM SELECTION</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(1.1rem,4vw,1.7rem)"}}>
+              <span style={{color:"#e8ff00"}}>SECTION FC</span><span style={{color:"#ffffff28",margin:"0 10px"}}>vs</span><span style={{color:"#ff7755"}}>{oppName}</span>
+            </div>
           </div>
-        </div>
-        {done && benchTeam.length > 0 && (
-          <div style={{marginBottom:12,animation:"fadeUp .3s ease"}}>
-            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#ffffff38",marginBottom:7}}>BENCH</div>
-            {benchTeam.map((name, bi) => {
-              const isOpen = swapBench===bi;
+
+          {/* Starting five */}
+          <div style={{marginBottom:20}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:3,color:"#ffffff44",marginBottom:9}}>STARTING FIVE</div>
+            {sTeam.map((slot, i) => {
+              const used = sTeam.map((t,j) => j!==i ? t.name : "").filter(Boolean).concat(benchTeam);
+              const opts = squad.filter(p => !used.includes(p));
               return (
-                <div key={bi}>
-                  <div style={{display:"flex",alignItems:"center",background:isOpen?"#e8ff0010":"#ffffff06",border:`1px solid ${isOpen?"#e8ff0044":"#ffffff0d"}`,padding:"8px 12px",gap:9,marginBottom:4,transition:"all .2s"}}>
-                    <Avatar name={name} size={30} />
-                    <div style={{width:36,fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".6rem",letterSpacing:2,color:"#e8ff0055"}}>SUB</div>
-                    <div style={{flex:1,fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".95rem",color:"#ffffffaa"}}>{name}</div>
-                    <button onClick={() => isOpen ? closeSwaps() : setSwapBench(bi)} style={{background:isOpen?"#e8ff00":"transparent",border:`1px solid ${isOpen?"#e8ff00":"#ffffff25"}`,color:isOpen?"#0a0a0f":"#ffffff88",padding:"4px 9px",cursor:"pointer",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".6rem",letterSpacing:1.5,transition:"all .15s"}}>{isOpen?"✕":"⇄"}</button>
-                  </div>
-                  {isOpen && (
-                    <div style={{background:"#0f0f14",border:"1px solid #e8ff0028",borderTop:"none",padding:"10px 12px",marginBottom:4}}>
-                      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".56rem",letterSpacing:3,color:"#e8ff0077",marginBottom:7}}>REPLACE BENCH SLOT</div>
-                      <div style={{display:"flex",flexWrap:"wrap",gap:5}}>{benchOpts(bi).map(n => <button key={n} className="swap-opt" onClick={() => doBenchSwap(bi, n)}><Avatar name={n} size={18}/>{n}</button>)}</div>
-                    </div>
-                  )}
+                <div key={i} style={{display:"flex",alignItems:"center",background:"#ffffff07",border:`1px solid ${slot.name?"#e8ff0033":"#ffffff0d"}`,padding:"9px 12px",gap:10,marginBottom:5,transition:"border-color .15s"}}>
+                  <div style={{width:42,fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".68rem",letterSpacing:2,color:"#e8ff00",flexShrink:0}}>{slot.pos}</div>
+                  {slot.name && <Avatar name={slot.name} size={30} />}
+                  <select value={slot.name} onChange={e => setStarter(i, e.target.value)}
+                    style={{flex:1,padding:"8px 10px",background:"#0f0f14",border:"1px solid #ffffff1e",color:slot.name?"#fff":"#ffffff44",fontFamily:"'Oswald',sans-serif",fontSize:".9rem",cursor:"pointer",outline:"none"}}>
+                    <option value="">— Pick player —</option>
+                    {slot.name && <option value={slot.name}>{slot.name}</option>}
+                    {opts.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
                 </div>
               );
             })}
           </div>
-        )}
-        <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:20}}>
-          {SFC_POS.map((pos, i) => {
-            const isOpen = swapSlot===i, lkd = locked[i], dn = displays[i];
-            return (
-              <div key={i}>
-                <div className={!lkd&&spinning?"slot-spin":lkd&&!isOpen?"slot-lock":""} style={{display:"flex",alignItems:"center",background:isOpen?"#e8ff0018":lkd?"#e8ff0010":"#ffffff07",border:`1px solid ${isOpen?"#e8ff00":lkd?"#e8ff0066":"#ffffff13"}`,padding:"11px 12px",gap:9,transition:"all .2s"}}>
-                  {lkd ? <Avatar name={dn} size={34} /> : <div style={{width:34,height:34,borderRadius:"50%",background:"#ffffff0a",border:"1px dashed #ffffff18",flexShrink:0}} />}
-                  <div style={{width:42,fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".68rem",letterSpacing:2,color:lkd?"#e8ff00":"#ffffff40"}}>{pos}</div>
-                  <div style={{flex:1,fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(.9rem,3.5vw,1.3rem)",color:lkd?"#fff":spinning?"#ffffff55":"#ffffff22",transition:"color .2s"}}>{dn}</div>
-                  <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
-                    {lkd && !isOpen && <span style={{color:"#e8ff00"}}>✓</span>}
-                    {done && <button onClick={() => isOpen ? closeSwaps() : setSwapSlot(i)} style={{background:isOpen?"#e8ff00":"transparent",border:`1px solid ${isOpen?"#e8ff00":"#ffffff30"}`,color:isOpen?"#0a0a0f":"#ffffffaa",padding:"4px 9px",cursor:"pointer",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".62rem",letterSpacing:1.5,transition:"all .15s"}}>{isOpen?"✕":"⇄"}</button>}
-                  </div>
+
+          {/* Bench (up to 3 optional) */}
+          <div style={{marginBottom:28}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:3,color:"#ffffff44",marginBottom:9}}>
+              BENCH <span style={{fontWeight:400,color:"#ffffff25"}}>OPTIONAL · MAX 3</span>
+            </div>
+            {[0,1,2].map(bi => {
+              const val = benchTeam[bi] || "";
+              const used = sTeam.map(t => t.name).filter(Boolean).concat(benchTeam.filter((_,j) => j!==bi));
+              const opts = squad.filter(p => !used.includes(p));
+              return (
+                <div key={bi} style={{display:"flex",alignItems:"center",background:"#ffffff04",border:`1px solid ${val?"#e8ff0022":"#ffffff08"}`,padding:"9px 12px",gap:10,marginBottom:5,transition:"border-color .15s"}}>
+                  <div style={{width:42,fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".6rem",letterSpacing:2,color:"#e8ff0055",flexShrink:0}}>SUB</div>
+                  {val && <Avatar name={val} size={30} />}
+                  <select value={val} onChange={e => {
+                    const nn = e.target.value;
+                    setBenchTeam(prev => { const a=[...prev]; nn ? (a[bi]=nn) : a.splice(bi,1); return a.slice(0,3); });
+                    if (nn) setSTeam(prev => prev.map(t => t.name===nn ? {...t,name:""} : t));
+                  }}
+                    style={{flex:1,padding:"8px 10px",background:"#0f0f14",border:"1px solid #ffffff14",color:val?"#fff":"#ffffff33",fontFamily:"'Oswald',sans-serif",fontSize:".9rem",cursor:"pointer",outline:"none"}}>
+                    <option value="">— Add substitute —</option>
+                    {val && <option value={val}>{val}</option>}
+                    {opts.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                  {val && <button onClick={() => setBenchTeam(prev => prev.filter((_,j) => j!==bi))}
+                    style={{background:"none",border:"none",color:"#ff555566",cursor:"pointer",fontSize:".8rem",padding:0,flexShrink:0}}>✕</button>}
                 </div>
-                {isOpen && (
-                  <div style={{background:"#0f0f14",border:"1px solid #e8ff0033",borderTop:"none",padding:"10px 12px"}}>
-                    <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".56rem",letterSpacing:3,color:"#e8ff0088",marginBottom:7}}>SWAP {pos}</div>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:5}}>{starterOpts(i).map(n => <button key={n} className="swap-opt" onClick={() => doStarterSwap(i, n)}><Avatar name={n} size={18}/>{n}{benchTeam.includes(n)?" ↑":""}</button>)}</div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:9}}>
-          {done ? (
-            <>
-              <button className="btn btn-y" onClick={() => setScreen("pitch")} style={{width:"100%",padding:"13px",fontSize:"1rem",animation:"glow 1.8s infinite"}}>VIEW ON PITCH →</button>
-              <button className="btn btn-o" onClick={spin} style={{width:"100%"}}>↺ FULL RESPIN</button>
-            </>
-          ) : (
-            <button className="btn btn-y" onClick={spin} disabled={spinning} style={{width:"100%",padding:"13px",fontSize:"1rem"}}>{spinning?"PICKING…":sTeam.length>0?"↺ RESPIN":"🎲 PICK TEAM"}</button>
-          )}
-        </div>
-      </main>
-      {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
-    </div>
-  );
+              );
+            })}
+          </div>
+
+          <button className="btn btn-y" onClick={() => setScreen("pitch")} disabled={!allFilled}
+            style={{width:"100%",padding:"13px",fontSize:"1rem",opacity:allFilled?1:.35,transition:"opacity .2s"}}>
+            VIEW ON PITCH →
+          </button>
+          <button className="btn btn-ghost" onClick={() => setScreen("setup")} style={{width:"100%",marginTop:8}}>← BACK</button>
+        </main>
+        {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+      </div>
+    );
+  }
 
   if (screen === "pitch") {
     const sfcP = sTeam.map((p,i) => ({...p, x:SFC_XY[i][0], y:SFC_XY[i][1], img:avatar(p.name)}));
