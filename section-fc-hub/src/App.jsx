@@ -370,6 +370,10 @@ export default function App() {
   const [teamForm,  setTeamForm]  = useState([]); // [{sfcScore,oppScore,opp,date}]
   const [clockTick, setClockTick] = useState(0);  // bumped every minute to refresh countdown
 
+  // Report archive
+  const [reportArchive,   setReportArchive]   = useState([]);
+  const [expandedArchive, setExpandedArchive] = useState(null);
+
   // Home screen admin seed form
   const [showSeedForm, setShowSeedForm] = useState(false);
   const [seedInput,    setSeedInput]    = useState('');
@@ -439,6 +443,14 @@ export default function App() {
     // Team form (for dashboard)
     unsubs.push(onSnapshot(doc(db, "team", "form"), snap => {
       setTeamForm(snap.exists() ? (snap.data().results || []) : []);
+    }));
+
+    // Report archive
+    unsubs.push(onSnapshot(collection(db, "reportArchive"), snap => {
+      const items = [];
+      snap.forEach(d => items.push({ id: d.id, ...d.data() }));
+      items.sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
+      setReportArchive(items);
     }));
 
     return () => unsubs.forEach(u => u());
@@ -590,6 +602,9 @@ export default function App() {
     const existingForm = formSnap2.exists() ? (formSnap2.data().results || []) : [];
     const newResult = { sfcScore: final.sfcScore, oppScore: final.oppScore, opp: final.opponent, date: final.date };
     await setDoc(doc(db, "team", "form"), { results: [...existingForm, newResult].slice(-10) });
+
+    // Save to report archive
+    await setDoc(doc(db, "reportArchive", `report_${final.publishedAt}`), final);
   };
 
   const updateAllTimeStat = async (player, key, val) => {
@@ -2108,6 +2123,57 @@ export default function App() {
               <div style={{fontSize:"2.5rem",marginBottom:14,opacity:.35}}>📋</div>
               <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1rem",color:"#ffffff40",letterSpacing:3,marginBottom:8}}>NO MATCH REPORT YET</div>
               <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffff25",letterSpacing:1}}>The manager will post a report after each game</div>
+            </div>
+          )}
+
+          {/* Report Archive — visible to all users */}
+          {reportArchive.length > 0 && (
+            <div style={{marginTop:44,borderTop:"1px solid #ffffff0e",paddingTop:28}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",color:"#ffffff38",letterSpacing:4,marginBottom:16}}>◆ REPORT ARCHIVE</div>
+              {reportArchive.map(r => {
+                const isExpanded = expandedArchive === r.id;
+                const won = r.sfcScore > r.oppScore;
+                const lost = r.sfcScore < r.oppScore;
+                const rc = won ? "#44dd88" : lost ? "#ff5544" : "#ffffff55";
+                return (
+                  <div key={r.id} style={{marginBottom:5}}>
+                    <button
+                      onClick={() => setExpandedArchive(isExpanded ? null : r.id)}
+                      style={{width:"100%",background:"#ffffff04",border:"1px solid #ffffff0e",color:"#fff",cursor:"pointer",padding:"12px 16px",display:"flex",alignItems:"center",gap:12,textAlign:"left",fontFamily:"inherit"}}
+                    >
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".72rem",letterSpacing:2,color:rc,minWidth:16}}>{won?"W":lost?"L":"D"}</div>
+                      <div style={{flex:1}}>
+                        <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem"}}>
+                          SECTION FC {r.sfcScore}–{r.oppScore} {r.opponent}
+                        </div>
+                        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,color:"#ffffff38",marginTop:2}}>{r.date}</div>
+                      </div>
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".65rem",color:"#ffffff28"}}>{isExpanded?"▲":"▼"}</div>
+                    </button>
+                    {isExpanded && (
+                      <div style={{background:"#ffffff03",border:"1px solid #ffffff08",borderTop:"none",padding:"16px 18px"}}>
+                        {r.reportText ? (
+                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"1rem",lineHeight:1.6,color:"#ffffffcc",whiteSpace:"pre-wrap"}}>{r.reportText}</div>
+                        ) : (
+                          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffff25",letterSpacing:1}}>No written report.</div>
+                        )}
+                        {r.players?.filter(p=>p.played).length > 0 && (
+                          <div style={{marginTop:12}}>
+                            {r.players.filter(p=>p.played).map((p,i) => (
+                              <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid #ffffff06"}}>
+                                <Avatar name={p.name} size={28} />
+                                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".78rem",flex:1}}>{p.name}</div>
+                                {p.motm && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",fontWeight:700}}>★ MOTM</span>}
+                                {p.rating!==""&&p.rating!==undefined && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".72rem",color:"#ffffff55"}}>{parseFloat(p.rating).toFixed(1)}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </main>
