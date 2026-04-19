@@ -246,7 +246,7 @@ function Header({ screen, setScreen, isAdmin, onAdminClick }) {
     <div style={{background:"#0a0a0f",borderBottom:"1px solid #ffffff14",position:"sticky",top:0,zIndex:20}}>
       <div style={{height:50,padding:"0 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div onClick={() => setScreen(isAdmin ? "setup" : "home")} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
-          <img src="/crest.png" alt="Section FC crest" style={{width:36,height:36,objectFit:"contain",filter:"drop-shadow(0 0 6px #e8ff0044)"}} />
+          <img src="/crest.png" alt="Section FC crest" style={{width:36,height:36,objectFit:"contain",filter:"drop-shadow(0 0 8px #e8ff0099) drop-shadow(0 0 3px #e8ff00cc)"}} />
           <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:600,letterSpacing:3,fontSize:".8rem",color:"#ffffffcc"}}>SECTION FC</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -1063,7 +1063,7 @@ export default function App() {
 
           {/* ── CLUB FOOTER ── */}
           <div style={{marginTop:12,padding:"20px 16px 24px",borderTop:"1px solid #ffffff0c",display:"flex",flexDirection:"column",alignItems:"center",gap:10,textAlign:"center"}}>
-            <img src="/crest.png" alt="Section FC" style={{width:72,height:72,opacity:.95,filter:"drop-shadow(0 0 10px #e8ff0033)"}} />
+            <img src="/crest.png" alt="Section FC" style={{width:72,height:72,opacity:1,filter:"drop-shadow(0 0 14px #e8ff0088) drop-shadow(0 0 4px #e8ff00bb)"}} />
             <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:6,fontSize:".85rem",color:"#e8ff00"}}>SECTION FC</div>
             <div style={{fontFamily:"'Oswald',sans-serif",fontStyle:"italic",letterSpacing:3,fontSize:".62rem",color:"#ffffff55"}}>PLAY WITH YOUR HEART ON YOUR SLEEVE</div>
           </div>
