@@ -187,7 +187,7 @@ const CSS = `
     position:fixed;
     inset:auto 0 0 0;
     height:60vh;
-    background: url('/crest.svg') no-repeat center 110%;
+    background: url('/crest.png') no-repeat center 110%;
     background-size: 78vmin auto;
     opacity:.035;
     pointer-events:none;
@@ -246,7 +246,7 @@ function Header({ screen, setScreen, isAdmin, onAdminClick }) {
     <div style={{background:"#0a0a0f",borderBottom:"1px solid #ffffff14",position:"sticky",top:0,zIndex:20}}>
       <div style={{height:50,padding:"0 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div onClick={() => setScreen(isAdmin ? "setup" : "home")} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
-          <img src="/crest.svg" alt="Section FC crest" style={{width:34,height:34,objectFit:"contain",filter:"drop-shadow(0 0 6px #e8ff0044)"}} />
+          <img src="/crest.png" alt="Section FC crest" style={{width:36,height:36,objectFit:"contain",filter:"drop-shadow(0 0 6px #e8ff0044)"}} />
           <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:600,letterSpacing:3,fontSize:".8rem",color:"#ffffffcc"}}>SECTION FC</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -820,13 +820,9 @@ export default function App() {
         <main style={{padding:"16px 14px",maxWidth:640,margin:"0 auto",display:"flex",flexDirection:"column",gap:12}}>
 
           {/* ── HERO BANNER ── */}
-          <div style={{position:"relative",overflow:"hidden",border:"1px solid #e8ff0022",background:"#0a0a0f",boxShadow:"0 0 40px #e8ff0010 inset"}}>
-            <img src="/banner.svg" alt="Section FC — Play With Your Heart On Your Sleeve"
+          <div style={{overflow:"hidden",border:"1px solid #e8ff0022",background:"#0a0a0f",boxShadow:"0 0 40px #e8ff0010 inset"}}>
+            <img src="/banner.png" alt="Section FC — Play With Your Heart On Your Sleeve"
                  style={{display:"block",width:"100%",height:"auto"}} />
-            <img src="/crest.svg" alt=""
-                 style={{position:"absolute",top:"50%",left:14,transform:"translateY(-50%)",width:52,height:52,opacity:.95,filter:"drop-shadow(0 0 8px #e8ff0055)",pointerEvents:"none"}} />
-            <img src="/crest.svg" alt=""
-                 style={{position:"absolute",top:"50%",right:14,transform:"translateY(-50%)",width:52,height:52,opacity:.95,filter:"drop-shadow(0 0 8px #e8ff0055)",pointerEvents:"none"}} />
           </div>
 
           {/* ── NEXT MATCH ── */}
@@ -1067,7 +1063,7 @@ export default function App() {
 
           {/* ── CLUB FOOTER ── */}
           <div style={{marginTop:12,padding:"20px 16px 24px",borderTop:"1px solid #ffffff0c",display:"flex",flexDirection:"column",alignItems:"center",gap:10,textAlign:"center"}}>
-            <img src="/crest.svg" alt="Section FC" style={{width:64,height:64,opacity:.9,filter:"drop-shadow(0 0 10px #e8ff0033)"}} />
+            <img src="/crest.png" alt="Section FC" style={{width:72,height:72,opacity:.95,filter:"drop-shadow(0 0 10px #e8ff0033)"}} />
             <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:6,fontSize:".85rem",color:"#e8ff00"}}>SECTION FC</div>
             <div style={{fontFamily:"'Oswald',sans-serif",fontStyle:"italic",letterSpacing:3,fontSize:".62rem",color:"#ffffff55"}}>PLAY WITH YOUR HEART ON YOUR SLEEVE</div>
           </div>
