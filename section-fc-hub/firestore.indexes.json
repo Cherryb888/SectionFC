@@ -1,1 +1,13 @@
-{ "indexes": [], "fieldOverrides": [] }
+{
+  "indexes": [
+    {
+      "collectionGroup": "metricsRuns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ovr", "order": "DESCENDING" },
+        { "fieldPath": "submittedAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
