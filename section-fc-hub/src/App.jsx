@@ -3,6 +3,7 @@ import { db } from './firebase';
 import {
   doc, collection, onSnapshot, setDoc, updateDoc, getDoc, deleteDoc, increment
 } from 'firebase/firestore';
+import Metrics from './Metrics';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const ADMIN_PIN = 'sfc2024'; // Change this to your own PIN
@@ -236,9 +237,9 @@ const CSS = `
 `;
 
 // ── Shared components ─────────────────────────────────────────────────────────
-const ALL_TABS = ["home","squad","report","stats","table","fixtures","halloffame","predictor"];
+const ALL_TABS = ["home","squad","report","stats","table","fixtures","halloffame","predictor","metrics"];
 const matchdayScreens = ["setup","spin","pitch"];
-const TAB_LABELS = {home:"Home",squad:"⚽ Matchday Squad",report:"Report",stats:"Squad Stats",table:"Table",fixtures:"Results",halloffame:"🏆 Hall",predictor:"Predictor"};
+const TAB_LABELS = {home:"Home",squad:"⚽ Matchday Squad",report:"Report",stats:"Squad Stats",table:"Table",fixtures:"Results",halloffame:"🏆 Hall",predictor:"Predictor",metrics:"🎯 Metrics"};
 
 function Header({ screen, setScreen, isAdmin, onAdminClick }) {
   const activeTab = matchdayScreens.includes(screen) ? null : screen;
@@ -1712,6 +1713,18 @@ export default function App() {
           </div>
         )}
       </main>
+      {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+    </div>
+  );
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SECTION METRICS (combine)
+  // ══════════════════════════════════════════════════════════════════════════
+  if (screen === "metrics") return (
+    <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+      <style>{CSS}</style>
+      <Header {...sharedProps} />
+      <Metrics isAdmin={isAdmin} />
       {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
     </div>
   );

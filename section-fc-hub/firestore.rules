@@ -1,6 +1,48 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Combine runs — strict validation (no auth, rules are the only gate)
+    match /metricsRuns/{runId} {
+      allow read: if true;
+      allow update, delete: if false;
+      allow create: if
+        request.resource.data.keys().hasOnly([
+          'name','nameLower','ovr','scores','raw',
+          'durationMs','startedAt','submittedAt','clientVersion','ua'
+        ]) &&
+        request.resource.data.name is string &&
+        request.resource.data.name.size() >= 1 &&
+        request.resource.data.name.size() <= 20 &&
+        request.resource.data.nameLower is string &&
+        request.resource.data.ovr is int &&
+        request.resource.data.ovr >= 0 && request.resource.data.ovr <= 100 &&
+        request.resource.data.scores.keys().hasOnly(
+          ['accuracy','reaction','speed','memory','decision']) &&
+        request.resource.data.scores.accuracy is int &&
+        request.resource.data.scores.accuracy >= 0 && request.resource.data.scores.accuracy <= 100 &&
+        request.resource.data.scores.reaction is int &&
+        request.resource.data.scores.reaction >= 0 && request.resource.data.scores.reaction <= 100 &&
+        request.resource.data.scores.speed is int &&
+        request.resource.data.scores.speed >= 0 && request.resource.data.scores.speed <= 100 &&
+        request.resource.data.scores.memory is int &&
+        request.resource.data.scores.memory >= 0 && request.resource.data.scores.memory <= 100 &&
+        request.resource.data.scores.decision is int &&
+        request.resource.data.scores.decision >= 0 && request.resource.data.scores.decision <= 100 &&
+        request.resource.data.durationMs is int &&
+        request.resource.data.durationMs >= 45000 &&
+        request.resource.data.durationMs <= 600000 &&
+        request.resource.data.submittedAt is int &&
+        request.time.toMillis() - request.resource.data.submittedAt < 60000;
+    }
+
+    // Admin-only soft flags on cheating entries.
+    // No auth in the app yet — rules stay open for parity with other collections.
+    match /metricsFlags/{flagId} {
+      allow read, write: if true;
+    }
+
+    // Everything else stays wide open (consistent with existing site).
     match /{document=**} {
       allow read: if true;
       allow write: if true;
