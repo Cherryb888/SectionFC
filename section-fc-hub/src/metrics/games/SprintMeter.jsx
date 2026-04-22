@@ -2,15 +2,24 @@ import { useEffect, useRef, useState } from 'react';
 import { Countdown, useBlockScroll } from '../shared.jsx';
 
 const PLAY_MS = 6000;
+const MIN_INTERVAL_MS = 35; // taps closer than this are impossible human throughput
 
 export default function SprintMeter({ onComplete }) {
   const [phase, setPhase] = useState("countdown"); // countdown | play | done
   const [taps, setTaps] = useState(0);
-  const [lastSide, setLastSide] = useState(null);
+  const [activeSide, setActiveSide] = useState(null); // UI highlight only
   const [elapsed, setElapsed] = useState(0);
-  const intervalsRef = useRef([]);
+
+  // Refs: gate logic. Refs update synchronously so rapid-fire taps can't
+  // race past the alternation check (which was the 100/100 cheese).
+  const lastSideRef = useRef(null);
   const lastTapRef = useRef(0);
+  const intervalsRef = useRef([]);
+  const tapsRef = useRef(0);
+  const phaseRef = useRef(phase);
   const startRef = useRef(0);
+
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
 
   useBlockScroll(phase === "play");
 
@@ -22,7 +31,7 @@ export default function SprintMeter({ onComplete }) {
       const e = performance.now() - startRef.current;
       setElapsed(e);
       if (e >= PLAY_MS) {
-        onComplete({ taps, intervals: intervalsRef.current });
+        onComplete({ taps: tapsRef.current, intervals: intervalsRef.current });
         setPhase("done");
         return;
       }
@@ -30,31 +39,35 @@ export default function SprintMeter({ onComplete }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [phase, taps, onComplete]);
+  }, [phase, onComplete]);
 
-  const handleTap = (side) => (e) => {
-    e.preventDefault();
-    if (phase !== "play") return;
-    if (side === lastSide) return;
+  const tap = (side) => {
+    if (phaseRef.current !== "play") return;
+    if (side === lastSideRef.current) return;          // must alternate
     const now = performance.now();
+    if (lastTapRef.current && now - lastTapRef.current < MIN_INTERVAL_MS) return;
     if (lastTapRef.current) intervalsRef.current.push(now - lastTapRef.current);
     lastTapRef.current = now;
-    setLastSide(side);
-    setTaps(t => t + 1);
+    lastSideRef.current = side;
+    tapsRef.current += 1;
+    setTaps(tapsRef.current);
+    setActiveSide(side);
     if (navigator.vibrate) navigator.vibrate(8);
   };
 
+  // Pointer handler factory — stable wrappers are fine, the ref guards prevent stale closures.
+  const onPointer = (side) => (e) => { e.preventDefault(); tap(side); };
+
   useEffect(() => {
-    if (phase !== "play") return;
     const keyHandler = (e) => {
       if (e.repeat) return;
       const k = e.key.toLowerCase();
-      if (k === "a") handleTap("L")(e);
-      else if (k === "l") handleTap("R")(e);
+      if (k === "a") tap("L");
+      else if (k === "l") tap("R");
     };
     window.addEventListener("keydown", keyHandler);
     return () => window.removeEventListener("keydown", keyHandler);
-  }, [phase, lastSide]);
+  }, []);
 
   const pct = Math.min(100, (taps / 75) * 100);
   const timePct = Math.min(100, (elapsed / PLAY_MS) * 100);
@@ -89,21 +102,27 @@ export default function SprintMeter({ onComplete }) {
 
       <div style={{ position: "relative", flex: 1, display: "flex", gap: 6, padding: "12px" }}>
         {phase === "countdown" && (
-          <Countdown from={3} onDone={() => setPhase("play")} />
+          <Countdown from={3} onDone={() => {
+            lastSideRef.current = null;
+            lastTapRef.current = 0;
+            tapsRef.current = 0;
+            intervalsRef.current = [];
+            setPhase("play");
+          }} />
         )}
         <button
-          onPointerDown={handleTap("L")}
+          onPointerDown={onPointer("L")}
           disabled={phase !== "play"}
-          style={tapBtnStyle(lastSide === "L")}
+          style={tapBtnStyle(activeSide === "L")}
         >
           <div style={{ fontSize: "3rem" }}>◀</div>
           <div style={{ fontFamily: "'Oswald',sans-serif", fontWeight: 800, fontSize: "1.2rem", letterSpacing: 3 }}>LEFT</div>
           <div style={{ fontFamily: "'Oswald',sans-serif", fontSize: ".65rem", color: "#ffffff66", letterSpacing: 2 }}>KEY A</div>
         </button>
         <button
-          onPointerDown={handleTap("R")}
+          onPointerDown={onPointer("R")}
           disabled={phase !== "play"}
-          style={tapBtnStyle(lastSide === "R")}
+          style={tapBtnStyle(activeSide === "R")}
         >
           <div style={{ fontSize: "3rem" }}>▶</div>
           <div style={{ fontFamily: "'Oswald',sans-serif", fontWeight: 800, fontSize: "1.2rem", letterSpacing: 3 }}>RIGHT</div>

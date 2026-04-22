@@ -39,7 +39,7 @@ export default function TacticsRecall({ onComplete }) {
   const startRef = useRef(0);
   const memoStartRef = useRef(0);
 
-  useBlockScroll(phase === "memo" || phase === "recall");
+  useBlockScroll(phase === "memo");
 
   useEffect(() => {
     if (phase === "memo") {
@@ -120,20 +120,27 @@ export default function TacticsRecall({ onComplete }) {
       <div style={{ padding: 14, position: "relative" }}>
         {phase === "countdown" && <Countdown from={3} onDone={() => setPhase("memo")} />}
 
-        {/* Timer bar during recall */}
+        {/* Timer bar during recall — sticky so it stays visible while scrolling */}
         {phase === "recall" && (
-          <div style={{ height: 4, background: "#ffffff10", marginBottom: 10 }}>
+          <div style={{
+            position: "sticky", top: 0, zIndex: 3,
+            height: 6, background: "#0a0a0f",
+            marginBottom: 10, border: "1px solid #ffffff10",
+          }}>
             <div style={{
               width: `${(timeLeft / RECALL_MS) * 100}%`, height: "100%",
               background: timeLeft > 8000 ? "#e8ff00" : "#ff5555",
+              transition: "width .05s linear",
             }} />
           </div>
         )}
 
-        {/* Pitch with slots */}
+        {/* Pitch with slots — capped so palette + LOCK IN stay reachable on short viewports */}
         <div style={{
           position: "relative", width: "100%",
-          aspectRatio: "3 / 4", maxHeight: "50vh", margin: "0 auto",
+          aspectRatio: "4 / 5", maxHeight: "38vh",
+          maxWidth: "min(100%, calc(38vh * 4/5))",
+          margin: "0 auto",
           border: "2px solid #ffffff22",
           background: "linear-gradient(180deg,#0d2416 0%,#0a1e12 100%)",
         }}>
@@ -207,8 +214,8 @@ export default function TacticsRecall({ onComplete }) {
                       fontFamily: "'Oswald',sans-serif",
                     }}
                   >
-                    <MetricsAvatar name={name} size={42} border={selected ? "#e8ff00" : "#ffffff33"} />
-                    <div style={{ fontSize: ".52rem", color: "#ffffffaa", letterSpacing: 1, textAlign: "center", lineHeight: 1.1 }}>
+                    <MetricsAvatar name={name} size={36} border={selected ? "#e8ff00" : "#ffffff33"} />
+                    <div style={{ fontSize: ".5rem", color: "#ffffffaa", letterSpacing: .5, textAlign: "center", lineHeight: 1.05 }}>
                       {name.split(" ").map((w, i) => <div key={i}>{w}</div>)}
                     </div>
                   </button>
@@ -216,11 +223,22 @@ export default function TacticsRecall({ onComplete }) {
               })}
             </div>
 
+          </div>
+        )}
+
+        {/* Sticky LOCK IN bar so it's always reachable on short viewports */}
+        {phase === "recall" && (
+          <div style={{
+            position: "sticky", bottom: 0, left: 0, right: 0,
+            padding: "10px 0 calc(10px + env(safe-area-inset-bottom))",
+            background: "linear-gradient(180deg, transparent, #0a0a0f 40%)",
+            zIndex: 4,
+          }}>
             <button
               disabled={!allPlaced}
               onPointerDown={(e) => { e.preventDefault(); if (allPlaced) finish(); }}
               style={{
-                marginTop: 12, width: "100%", padding: "14px",
+                width: "100%", padding: "14px",
                 background: allPlaced ? "#e8ff00" : "#2a2a2a",
                 color: allPlaced ? "#0a0a0f" : "#555",
                 border: "none", cursor: allPlaced ? "pointer" : "not-allowed",
