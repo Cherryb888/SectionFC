@@ -352,6 +352,11 @@ export default function App() {
   const [matchReport,  setMatchReport]  = useState(null);
   const [reportDraft,  setReportDraft]  = useState(null);
 
+  // { [playerName]: { rating, goals, assists } } – entered inline on the squad screen
+  const [squadStatInput, setSquadStatInput] = useState({});
+  const [squadStatBusy,  setSquadStatBusy]  = useState("");
+  const [squadStatFlash, setSquadStatFlash] = useState("");
+
   // Stats (synced with Firestore)
   const [stats,        setStats]        = useState(initStats());
   const [sortStat,     setSortStat]     = useState("apps");
@@ -524,6 +529,42 @@ export default function App() {
 
   const clearSquad = async () => {
     await setDoc(doc(db, "matchday", "squad"), { published: false });
+  };
+
+  // Each APPLY click increments — repeated clicks intentionally stack goals.
+  const applySquadStats = async (player) => {
+    const entry   = squadStatInput[player] || {};
+    const goals   = parseInt(entry.goals)   || 0;
+    const assists = parseInt(entry.assists) || 0;
+    const rating  = parseFloat(entry.rating);
+    const hasRating = !isNaN(rating) && rating >= 0 && rating <= 10;
+    if (!goals && !assists && !hasRating) return;
+
+    setSquadStatBusy(player);
+    try {
+      const upd = {};
+      if (goals)   upd.goals   = increment(goals);
+      if (assists) upd.assists = increment(assists);
+      if (Object.keys(upd).length) {
+        await setDoc(doc(db, "stats",        player), upd, { merge: true });
+        await setDoc(doc(db, "allTimeStats", player), upd, { merge: true });
+      }
+
+      if (hasRating) {
+        const formSnap = await getDoc(doc(db, "playerForm", player));
+        const existing = formSnap.exists() ? (formSnap.data().games || []) : [];
+        const opp  = matchdaySquad?.oppName || "";
+        const date = new Date().toLocaleDateString("en-GB", {weekday:"short",day:"numeric",month:"short",year:"numeric"});
+        const newGames = [...existing, { rating, opp, date }].slice(-5);
+        await setDoc(doc(db, "playerForm", player), { games: newGames });
+      }
+
+      setSquadStatInput(prev => ({ ...prev, [player]: { rating:"", goals:"", assists:"" } }));
+      setSquadStatFlash(player);
+      setTimeout(() => setSquadStatFlash(f => f === player ? "" : f), 1400);
+    } finally {
+      setSquadStatBusy("");
+    }
   };
 
   // ── Match Report helpers ───────────────────────────────────────────────────
@@ -2312,6 +2353,73 @@ export default function App() {
               </div>
             </div>
           )}
+          {isAdmin && (() => {
+            const roster = [
+              ...sq.sTeam.map(p => ({ name: p.name, pos: p.pos })),
+              ...(sq.benchTeam || []).map(n => ({ name: n, pos: "SUB" })),
+            ].filter(p => p.name);
+            const getVal = (name, key) => squadStatInput[name]?.[key] ?? "";
+            const setVal = (name, key, v) => setSquadStatInput(prev => ({
+              ...prev,
+              [name]: { ...(prev[name] || {}), [key]: v },
+            }));
+            const hasInput = (name) => {
+              const e = squadStatInput[name] || {};
+              const r = parseFloat(e.rating);
+              return (!isNaN(r) && r >= 0 && r <= 10) || (parseInt(e.goals) > 0) || (parseInt(e.assists) > 0);
+            };
+            return (
+              <div style={{marginTop:22,marginBottom:14,padding:"16px 14px",background:"#e8ff0008",border:"1px solid #e8ff0022"}}>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#e8ff00",marginBottom:4}}>◆ ADMIN · QUICK STATS</div>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:1,color:"#ffffff55",marginBottom:12}}>
+                  Adds straight to season & all-time stats — each APPLY adds again.
+                </div>
+                {/* Column headers */}
+                <div style={{display:"flex",alignItems:"center",gap:6,padding:"0 2px 6px",borderBottom:"1px solid #ffffff10",marginBottom:6}}>
+                  <div style={{minWidth:110,flex:1}} />
+                  <div style={{width:56,fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:1.5,color:"#ffffff35",textAlign:"center"}}>RATING</div>
+                  <div style={{width:44,fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:1.5,color:"#ffffff35",textAlign:"center"}}>G</div>
+                  <div style={{width:44,fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:1.5,color:"#ffffff35",textAlign:"center"}}>A</div>
+                  <div style={{width:64}} />
+                </div>
+                {roster.map((p, i) => {
+                  const r = parseFloat(getVal(p.name, "rating"));
+                  const hasR = !isNaN(r) && getVal(p.name,"rating") !== "";
+                  const rc = hasR ? getRatingColor(r) : "#ffffff22";
+                  const ready = hasInput(p.name);
+                  const busy  = squadStatBusy === p.name;
+                  const flashed = squadStatFlash === p.name;
+                  return (
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 2px",borderBottom:"1px solid #ffffff07",flexWrap:"wrap",transition:"background .3s",background:flashed?"#00cc5516":"transparent"}}>
+                      <div style={{minWidth:110,flex:1,display:"flex",alignItems:"center",gap:8}}>
+                        <Avatar name={p.name} size={28} />
+                        <div>
+                          <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".78rem"}}>{p.name}</div>
+                          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".5rem",color:"#ffffff40",letterSpacing:1}}>{p.pos}</div>
+                        </div>
+                      </div>
+                      <input type="number" min="0" max="10" step="0.1" value={getVal(p.name,"rating")}
+                        onChange={e => setVal(p.name,"rating",e.target.value)}
+                        placeholder="–"
+                        style={{width:56,padding:"5px 4px",background:hasR?`${rc}22`:"#0f0f14",border:`1.5px solid ${rc}`,color:hasR?rc:"#ffffff55",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".82rem",textAlign:"center",outline:"none",borderRadius:4}} />
+                      <input type="number" min="0" max="99" value={getVal(p.name,"goals")}
+                        onChange={e => setVal(p.name,"goals",e.target.value)}
+                        placeholder="0"
+                        style={{width:44,padding:"5px 3px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#fff",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".82rem",textAlign:"center",outline:"none"}} />
+                      <input type="number" min="0" max="99" value={getVal(p.name,"assists")}
+                        onChange={e => setVal(p.name,"assists",e.target.value)}
+                        placeholder="0"
+                        style={{width:44,padding:"5px 3px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#fff",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".82rem",textAlign:"center",outline:"none"}} />
+                      <button onClick={() => applySquadStats(p.name)} disabled={!ready || busy}
+                        style={{width:64,padding:"7px 4px",background:ready?"#00cc55":"#ffffff0a",border:"none",color:ready?"#0a0a0f":"#ffffff35",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".62rem",letterSpacing:2,cursor:ready&&!busy?"pointer":"not-allowed",borderRadius:3}}>
+                        {busy ? "…" : flashed ? "✓" : "APPLY"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
           {isAdmin && (
             <button className="btn btn-ghost" onClick={async () => { await clearSquad(); }}
               style={{width:"100%",marginTop:4,color:"#ff555588",borderColor:"#ff555533",fontSize:".62rem"}}>
