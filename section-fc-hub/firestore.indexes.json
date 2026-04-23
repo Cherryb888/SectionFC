@@ -1,11 +1,11 @@
 {
   "indexes": [
     {
-      "collectionGroup": "metricsRuns",
+      "collectionGroup": "combineRuns",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "ovr", "order": "DESCENDING" },
-        { "fieldPath": "submittedAt", "order": "DESCENDING" }
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
   ],
