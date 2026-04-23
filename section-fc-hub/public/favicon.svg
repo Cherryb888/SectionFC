@@ -1,23 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Simplified Section FC crest for favicon -->
-  <rect width="64" height="64" rx="10" fill="#0a0a0f"/>
-  <!-- shield -->
+  <rect width="64" height="64" rx="12" fill="#0a0a0f"/>
   <path d="M16 14 H48 C51 14 52 16 52 18 V34 C52 45 42 54 32 58 C22 54 12 45 12 34 V18 C12 16 13 14 16 14 Z"
         fill="#0a0a0f" stroke="#e8ff00" stroke-width="2.5" stroke-linejoin="round"/>
-  <!-- SFC text -->
-  <text x="32" y="34" text-anchor="middle"
+  <text x="32" y="38" text-anchor="middle"
         font-family="'Oswald','Arial Black',sans-serif"
-        font-weight="900" font-size="14" letter-spacing="0.5"
-        fill="#e8ff00">SFC</text>
-  <!-- mini ball -->
-  <circle cx="32" cy="46" r="5" fill="#e8ff00" stroke="#0a0a0f" stroke-width="0.6"/>
-  <g fill="#0a0a0f">
-    <polygon points="32,43 34.5,44.5 33.5,47 30.5,47 29.5,44.5"/>
-  </g>
-  <!-- stars -->
-  <g fill="#e8ff00">
-    <polygon points="22,9 22.7,10.7 24.5,10.8 23.1,12 23.6,13.8 22,12.8 20.4,13.8 20.9,12 19.5,10.8 21.3,10.7"/>
-    <polygon points="32,7 32.8,9 34.8,9.1 33.3,10.4 33.9,12.4 32,11.3 30.1,12.4 30.7,10.4 29.2,9.1 31.2,9"/>
-    <polygon points="42,9 42.7,10.7 44.5,10.8 43.1,12 43.6,13.8 42,12.8 40.4,13.8 40.9,12 39.5,10.8 41.3,10.7"/>
-  </g>
+        font-weight="900" font-size="20" letter-spacing="1"
+        fill="#e8ff00">SC</text>
 </svg>
