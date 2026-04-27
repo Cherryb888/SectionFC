@@ -30,17 +30,23 @@ const PLAYER_IMGS = {
 };
 
 const LEAGUE_TABLE = [
-  { pos:1, team:"SECTION FC",           pl:12, w:9, d:1, l:2, gf:80, ga:33, gd:47,  pts:28 },
-  { pos:2, team:"SUICIDER TENDENCIES",  pl:12, w:8, d:1, l:3, gf:46, ga:47, gd:-1,  pts:25 },
-  { pos:3, team:"WSOPC FC",             pl:12, w:8, d:0, l:4, gf:40, ga:44, gd:-4,  pts:24 },
-  { pos:4, team:"Kariustoglory",         pl:12, w:6, d:1, l:5, gf:55, ga:36, gd:19,  pts:19 },
-  { pos:5, team:"Seymour Dodgers",      pl:12, w:5, d:1, l:6, gf:30, ga:38, gd:-8,  pts:16 },
-  { pos:6, team:"High Prestbury FC",    pl:12, w:4, d:0, l:8, gf:33, ga:37, gd:-4,  pts:12 },
-  { pos:7, team:"Rio Franz Ferdinand",  pl:12, w:3, d:0, l:9, gf:35, ga:63, gd:-28, pts:9  },
-  { pos:8, team:"Unfit 5",              pl:12, w:2, d:2, l:8, gf:38, ga:62, gd:-24, pts:8  },
+  { pos:1, team:"SECTION FC",           pl:13, w:10, d:1, l:2, gf:92, ga:33, gd:59,  pts:31 },
+  { pos:2, team:"SUICIDER TENDENCIES",  pl:13, w:9,  d:1, l:3, gf:52, ga:52, gd:0,   pts:28 },
+  { pos:3, team:"WSOPC FC",             pl:13, w:8,  d:0, l:5, gf:45, ga:50, gd:-5,  pts:24 },
+  { pos:4, team:"Kariustoglory",         pl:13, w:7,  d:1, l:5, gf:67, ga:37, gd:30,  pts:22 },
+  { pos:5, team:"Seymour Dodgers",      pl:13, w:5,  d:1, l:7, gf:33, ga:46, gd:-13, pts:16 },
+  { pos:6, team:"High Prestbury FC",    pl:13, w:4,  d:0, l:9, gf:33, ga:48, gd:-15, pts:12 },
+  { pos:7, team:"Unfit 5",              pl:13, w:3,  d:2, l:8, gf:46, ga:65, gd:-19, pts:11 },
+  { pos:8, team:"Rio Franz Ferdinand",  pl:13, w:3,  d:0, l:10,gf:36, ga:75, gd:-39, pts:9  },
 ];
 
 const PAST_RESULTS = [
+  { date:"Mon 20 Apr 2026", matches:[
+    { home:"SUICIDER TENDENCIES", hg:6,  ag:5,  away:"WSOPC FC"               },
+    { home:"Kariustoglory",       hg:12, ag:1,  away:"Rio Franz Ferdinand"   },
+    { home:"SECTION FC",          hg:12, ag:0,  away:"High Prestbury FC"     },
+    { home:"Seymour Dodgers",     hg:3,  ag:8,  away:"Unfit 5"               },
+  ]},
   { date:"Mon 13 Apr 2026", matches:[
     { home:"Rio Franz Ferdinand", hg:5,  ag:0,  away:"SUICIDER TENDENCIES"   },
     { home:"High Prestbury FC",   hg:1,  ag:4,  away:"Seymour Dodgers"       },
@@ -116,12 +122,6 @@ const PAST_RESULTS = [
 ];
 
 const FIXTURES = [
-  { date:"Mon 20 Apr 2026", matches:[
-    { time:"6:30 PM",  home:"VACANCY",            away:"Rio Franz Ferdinand",  pitch:"Pitch 2" },
-    { time:"7:10 PM",  home:"SECTION FC",         away:"High Prestbury FC",    pitch:"Pitch 2" },
-    { time:"7:50 PM",  home:"Seymour Dodgers",    away:"Unfit 5",              pitch:"Pitch 2" },
-    { time:"8:30 PM",  home:"SUICIDER TENDENCIES",away:"WSOPC FC",             pitch:"Pitch 2" },
-  ]},
   { date:"Mon 27 Apr 2026", matches:[
     { time:"6:30 PM",  home:"Unfit 5",            away:"SECTION FC",           pitch:"Pitch 2" },
     { time:"7:10 PM",  home:"WSOPC FC",           away:"Rio Franz Ferdinand",  pitch:"Pitch 2" },
