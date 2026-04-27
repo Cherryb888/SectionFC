@@ -520,6 +520,10 @@ export default function App() {
       publishedAt: Date.now(),
     };
     await setDoc(doc(db, "matchday", "squad"), data);
+    // Reset the post-match report so the new matchday starts with empty
+    // stat inputs instead of inheriting the previous game's "applied" state.
+    await deleteDoc(doc(db, "matchday", "report"));
+    setReportDraft(null);
   };
 
   const clearSquad = async () => {
@@ -543,6 +547,7 @@ export default function App() {
       opponent: matchdaySquad.oppName || "",
       date: new Date().toLocaleDateString("en-GB", {weekday:"short",day:"numeric",month:"short",year:"numeric"}),
       sfcScore: "", oppScore: "", reportText: "", players, applied: false,
+      squadId: matchdaySquad.publishedAt || null,
     };
     setReportDraft(draft);
     setDoc(doc(db, "matchday", "report"), draft);
@@ -612,7 +617,7 @@ export default function App() {
         await setDoc(doc(db, "playerForm", p.name), { games: newGames });
       }
     }
-    const final = { ...reportDraft, sfcScore: parseInt(reportDraft.sfcScore)||0, oppScore: parseInt(reportDraft.oppScore)||0, applied: true, publishedAt: Date.now() };
+    const final = { ...reportDraft, sfcScore: parseInt(reportDraft.sfcScore)||0, oppScore: parseInt(reportDraft.oppScore)||0, applied: true, publishedAt: Date.now(), squadId: reportDraft.squadId ?? matchdaySquad?.publishedAt ?? null };
     await setDoc(doc(db, "matchday", "report"), final);
     setReportDraft(final);
 
@@ -2328,8 +2333,14 @@ export default function App() {
     // pre-fills opponent, score, players and ratings — admin only needs to
     // add the written report there before confirming.
     const SquadStatsPanel = ({ sq }) => {
-      const draft = reportDraft || (matchReport && !matchReport.applied ? matchReport : null);
-      const applied = matchReport?.applied && !reportDraft;
+      // Only treat a draft/applied report as belonging to THIS squad — an
+      // older report carrying applied:true must not block the input form
+      // for a freshly-posted matchday.
+      const reportIsForThisSquad =
+        !!matchReport && (matchReport.squadId === sq.publishedAt);
+      const draft = reportDraft
+        || (reportIsForThisSquad && !matchReport.applied ? matchReport : null);
+      const applied = reportIsForThisSquad && matchReport.applied && !reportDraft;
       const draftMatchesSquad =
         draft && draft.opponent === sq.oppName &&
         draft.players?.length === (sq.sTeam.length + (sq.benchTeam?.length || 0));
