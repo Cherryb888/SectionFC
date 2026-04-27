@@ -30,7 +30,7 @@ const PLAYER_IMGS = {
 };
 
 const LEAGUE_TABLE = [
-  { pos:1, team:"SECTION FC",           pl:13, w:10, d:1, l:2, gf:91, ga:33, gd:58,  pts:31 },
+  { pos:1, team:"SECTION FC",           pl:13, w:10, d:1, l:2, gf:92, ga:33, gd:59,  pts:31 },
   { pos:2, team:"SUICIDER TENDENCIES",  pl:13, w:9,  d:1, l:3, gf:52, ga:52, gd:0,   pts:28 },
   { pos:3, team:"WSOPC FC",             pl:13, w:8,  d:0, l:5, gf:45, ga:50, gd:-5,  pts:24 },
   { pos:4, team:"Kariustoglory",         pl:13, w:7,  d:1, l:5, gf:67, ga:37, gd:30,  pts:22 },
@@ -44,7 +44,7 @@ const PAST_RESULTS = [
   { date:"Mon 20 Apr 2026", matches:[
     { home:"SUICIDER TENDENCIES", hg:6,  ag:5,  away:"WSOPC FC"               },
     { home:"Kariustoglory",       hg:12, ag:1,  away:"Rio Franz Ferdinand"   },
-    { home:"SECTION FC",          hg:11, ag:0,  away:"High Prestbury FC"     },
+    { home:"SECTION FC",          hg:12, ag:0,  away:"High Prestbury FC"     },
     { home:"Seymour Dodgers",     hg:3,  ag:8,  away:"Unfit 5"               },
   ]},
   { date:"Mon 13 Apr 2026", matches:[
