@@ -2431,16 +2431,29 @@ export default function App() {
             </div>
           ))}
 
-          <button className="btn btn-y" onClick={saveReportDraft}
-            style={{width:"100%",marginTop:12,padding:"11px",fontSize:".78rem",letterSpacing:3}}>
-            ✓ SAVE STATS
-          </button>
-          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,color:"#ffffff44",textAlign:"center",marginTop:8,lineHeight:1.5}}>
-            Saves to the match report draft. Add the written report on the Match Report page, then confirm to apply stats and archive.
+          {/* Written match report */}
+          <div style={{marginTop:14}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,color:"#ffffff44",marginBottom:6}}>WRITTEN MATCH REPORT (OPTIONAL)</div>
+            <textarea defaultValue={draft.reportText}
+              onBlur={e=>setReportDraft(x=>({...(x||draft),reportText:e.target.value}))}
+              placeholder="Match summary, key moments, team performance…"
+              rows={5}
+              style={{width:"100%",padding:"10px 12px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#ffffffcc",fontFamily:"'Barlow Condensed',sans-serif",fontSize:".95rem",lineHeight:1.5,resize:"vertical",outline:"none",boxSizing:"border-box"}}
+            />
           </div>
-          <button className="btn btn-ghost" onClick={() => setScreen("report")}
+
+          {/* One-shot apply: writes stats, ratings, score & written report
+              everywhere (season, all-time, player form, team form, archive). */}
+          <button className="btn btn-y" onClick={applyReport}
+            style={{width:"100%",marginTop:14,padding:"13px",fontSize:".82rem",letterSpacing:3,background:"#00cc55",color:"#0a0a0f"}}>
+            ✓ CONFIRM &amp; APPLY ALL
+          </button>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,color:"#ff5555aa",textAlign:"center",marginTop:8,lineHeight:1.5}}>
+            ⚠ Permanently updates Season, All Time, Player Form, Team Form &amp; archives the report. Press once.
+          </div>
+          <button className="btn btn-ghost" onClick={saveReportDraft}
             style={{width:"100%",marginTop:8,padding:"9px",fontSize:".68rem",letterSpacing:2}}>
-            → GO TO MATCH REPORT
+            SAVE DRAFT (does not apply)
           </button>
         </div>
       );
