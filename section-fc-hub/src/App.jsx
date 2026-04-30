@@ -30,17 +30,23 @@ const PLAYER_IMGS = {
 };
 
 const LEAGUE_TABLE = [
-  { pos:1, team:"SECTION FC",           pl:13, w:10, d:1, l:2, gf:92, ga:33, gd:59,  pts:31 },
-  { pos:2, team:"SUICIDER TENDENCIES",  pl:13, w:9,  d:1, l:3, gf:52, ga:52, gd:0,   pts:28 },
-  { pos:3, team:"WSOPC FC",             pl:13, w:8,  d:0, l:5, gf:45, ga:50, gd:-5,  pts:24 },
-  { pos:4, team:"Kariustoglory",         pl:13, w:7,  d:1, l:5, gf:67, ga:37, gd:30,  pts:22 },
-  { pos:5, team:"Seymour Dodgers",      pl:13, w:5,  d:1, l:7, gf:33, ga:46, gd:-13, pts:16 },
-  { pos:6, team:"High Prestbury FC",    pl:13, w:4,  d:0, l:9, gf:33, ga:48, gd:-15, pts:12 },
-  { pos:7, team:"Unfit 5",              pl:13, w:3,  d:2, l:8, gf:46, ga:65, gd:-19, pts:11 },
-  { pos:8, team:"Rio Franz Ferdinand",  pl:13, w:3,  d:0, l:10,gf:36, ga:75, gd:-39, pts:9  },
+  { pos:1, team:"SECTION FC",           pl:14, w:11, d:1, l:2,  gf:96, ga:33, gd:63,  pts:34 },
+  { pos:2, team:"SUICIDER TENDENCIES",  pl:14, w:10, d:1, l:3,  gf:62, ga:56, gd:6,   pts:31 },
+  { pos:3, team:"WSOPC FC",             pl:14, w:9,  d:0, l:5,  gf:50, ga:54, gd:-4,  pts:27 },
+  { pos:4, team:"Kariustoglory",        pl:14, w:8,  d:1, l:5,  gf:71, ga:29, gd:42,  pts:25 },
+  { pos:5, team:"Seymour Dodgers",      pl:14, w:5,  d:1, l:8,  gf:37, ga:56, gd:-19, pts:16 },
+  { pos:6, team:"High Prestbury FC",    pl:14, w:4,  d:0, l:10, gf:35, ga:52, gd:-17, pts:12 },
+  { pos:7, team:"Unfit 5",              pl:14, w:3,  d:2, l:9,  gf:46, ga:70, gd:-24, pts:11 },
+  { pos:8, team:"Rio Franz Ferdinand",  pl:14, w:3,  d:0, l:11, gf:40, ga:80, gd:-40, pts:9  },
 ];
 
 const PAST_RESULTS = [
+  { date:"Mon 27 Apr 2026", matches:[
+    { home:"Unfit 5",             hg:0,  ag:5,  away:"SECTION FC"            },
+    { home:"Seymour Dodgers",     hg:4,  ag:10, away:"SUICIDER TENDENCIES"   },
+    { home:"High Prestbury FC",   hg:2,  ag:4,  away:"Kariustoglory"         },
+    { home:"WSOPC FC",            hg:5,  ag:4,  away:"Rio Franz Ferdinand"   },
+  ]},
   { date:"Mon 20 Apr 2026", matches:[
     { home:"SUICIDER TENDENCIES", hg:6,  ag:5,  away:"WSOPC FC"               },
     { home:"Kariustoglory",       hg:12, ag:1,  away:"Rio Franz Ferdinand"   },
@@ -121,14 +127,7 @@ const PAST_RESULTS = [
   ]},
 ];
 
-const FIXTURES = [
-  { date:"Mon 27 Apr 2026", matches:[
-    { time:"6:30 PM",  home:"Unfit 5",            away:"SECTION FC",           pitch:"Pitch 2" },
-    { time:"7:10 PM",  home:"WSOPC FC",           away:"Rio Franz Ferdinand",  pitch:"Pitch 2" },
-    { time:"7:50 PM",  home:"Seymour Dodgers",    away:"SUICIDER TENDENCIES",  pitch:"Pitch 2" },
-    { time:"8:30 PM",  home:"High Prestbury FC",  away:"VACANCY",              pitch:"Pitch 2" },
-  ]},
-];
+const FIXTURES = [];
 
 const AWARDS = [
   { id:"golden_boot", name:"Golden Boot",  icon:"⚽", color:"#FFD700", glow:"#FFD70055", desc:"Top Scorer of the Season"       },
@@ -237,9 +236,9 @@ const CSS = `
 `;
 
 // ── Shared components ─────────────────────────────────────────────────────────
-const ALL_TABS = ["home","squad","report","stats","table","fixtures","halloffame","predictor","metrics"];
+const ALL_TABS = ["home","squad","report","stats","table","fixtures","halloffame","cabinet","predictor","metrics"];
 const matchdayScreens = ["setup","spin","pitch"];
-const TAB_LABELS = {home:"Home",squad:"⚽ Matchday Squad",report:"Report",stats:"Squad Stats",table:"Table",fixtures:"Results",halloffame:"🏆 Hall",predictor:"Predictor",metrics:"🎯 Metrics"};
+const TAB_LABELS = {home:"Home",squad:"⚽ Matchday Squad",report:"Report",stats:"Squad Stats",table:"Table",fixtures:"Results",halloffame:"🏆 Hall",cabinet:"🏆 Trophy Cabinet",predictor:"Predictor",metrics:"🎯 Metrics"};
 
 function Header({ screen, setScreen, isAdmin, onAdminClick }) {
   const activeTab = matchdayScreens.includes(screen) ? null : screen;
@@ -1287,6 +1286,14 @@ export default function App() {
           <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ LEAGUE STANDINGS</div>
           <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>POWERLEAGUE TABLE</h1>
         </div>
+        <div style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",marginBottom:18,background:"linear-gradient(135deg,#e8ff0018 0%,#e8ff0006 60%,transparent 100%)",border:"1px solid #e8ff0055",boxShadow:"0 0 30px #e8ff0010 inset",animation:"fadeUp .5s ease both"}}>
+          <div style={{fontSize:"2.2rem",lineHeight:1,filter:"drop-shadow(0 0 10px #e8ff0099)"}}>🏆</div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#e8ff00",marginBottom:3}}>★ CHAMPIONS · 2025/26</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1.05rem",letterSpacing:1,color:"#fff"}}>SECTION FC WIN DIVISION 2</div>
+          </div>
+          <button onClick={() => setScreen("cabinet")} style={{background:"transparent",border:"1px solid #e8ff0055",color:"#e8ff00",fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:2,padding:"7px 12px",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}>VIEW →</button>
+        </div>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse",minWidth:420}}>
             <thead>
@@ -1454,6 +1461,157 @@ export default function App() {
             <button className="btn btn-ghost" onClick={() => { setActiveAward(i => (i+1)%AWARDS.length); setEditingAwards(false); }}>NEXT →</button>
           </div>
         </div>
+        {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // TROPHY CABINET SCREEN
+  // ══════════════════════════════════════════════════════════════════════════
+  if (screen === "cabinet") {
+    const champ = LEAGUE_TABLE.find(t => t.team === "SECTION FC");
+    return (
+      <div style={{minHeight:"100vh",background:"#060608",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+        <style>{CSS}</style>
+        <Header {...sharedProps} />
+        <main style={{padding:"22px 14px 40px",maxWidth:560,margin:"0 auto"}}>
+          <div style={{textAlign:"center",marginBottom:24}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:5,marginBottom:4}}>◆ SECTION FC</div>
+            <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(2rem,7vw,3.5rem)",fontWeight:700,letterSpacing:-1,lineHeight:1}}>TROPHY CABINET</h1>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",letterSpacing:3,color:"#ffffff44",marginTop:8}}>SILVERWARE EARNED</div>
+          </div>
+
+          {/* ── DIVISION 2 TROPHY CARD ── */}
+          <div className="award-card" style={{position:"relative",background:"radial-gradient(ellipse at 50% 30%, #1a3a1a 0%, #0a1a0a 55%, #060808 100%)",border:"1px solid #e8ff0044",borderRadius:14,padding:"30px 22px 26px",overflow:"hidden",boxShadow:"0 18px 60px #00000088, 0 0 50px #e8ff0010 inset"}}>
+            <div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 50% 60%, #e8ff0006, transparent 60%)",pointerEvents:"none"}} />
+
+            <div style={{textAlign:"center",position:"relative",marginBottom:14}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:5,color:"#e8ff00",marginBottom:6}}>★ CHAMPIONSHIP ★</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1.4rem,5.5vw,2.1rem)",letterSpacing:1,color:"#fff",textTransform:"uppercase",lineHeight:1}}>Division 2 Champions</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".82rem",letterSpacing:3,color:"#e8ff00cc",marginTop:6}}>2025 / 26 SEASON</div>
+            </div>
+
+            {/* ── Trophy SVG ── */}
+            <div style={{display:"flex",justifyContent:"center",position:"relative",margin:"6px 0 18px",animation:"awardIn .7s cubic-bezier(.22,1,.36,1) both"}}>
+              <svg viewBox="0 0 220 360" width="180" height="295" style={{filter:"drop-shadow(0 14px 18px #00000088) drop-shadow(0 0 22px #e8ff0033)"}}>
+                <defs>
+                  <linearGradient id="silver" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%"  stopColor="#fdfdfd" />
+                    <stop offset="25%" stopColor="#cfd3d6" />
+                    <stop offset="50%" stopColor="#9da3a7" />
+                    <stop offset="75%" stopColor="#dde1e3" />
+                    <stop offset="100%" stopColor="#7a8084" />
+                  </linearGradient>
+                  <linearGradient id="silverDark" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"  stopColor="#bcc1c4" />
+                    <stop offset="50%" stopColor="#7c8285" />
+                    <stop offset="100%" stopColor="#3e4346" />
+                  </linearGradient>
+                  <linearGradient id="ribbon" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#1f4dd6" />
+                    <stop offset="100%" stopColor="#0d2a85" />
+                  </linearGradient>
+                  <linearGradient id="ribbonRed" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ff2c2c" />
+                    <stop offset="100%" stopColor="#a00808" />
+                  </linearGradient>
+                  <radialGradient id="plate" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#3a4a78" />
+                    <stop offset="100%" stopColor="#0e1834" />
+                  </radialGradient>
+                </defs>
+
+                {/* Figure on top */}
+                <circle cx="110" cy="22" r="7" fill="url(#silver)" />
+                <path d="M110 30 L102 56 L118 56 Z" fill="url(#silver)" />
+                <path d="M102 56 Q98 50 90 38 Q86 32 94 30 Q100 32 104 44 Z" fill="url(#silver)" />
+                <path d="M118 56 Q122 50 130 38 Q134 32 126 30 Q120 32 116 44 Z" fill="url(#silver)" />
+                {/* Plinth under figure */}
+                <rect x="96" y="56" width="28" height="6" fill="url(#silverDark)" />
+
+                {/* Trophy lid / cap */}
+                <path d="M82 62 Q82 56 90 56 L130 56 Q138 56 138 62 L134 78 L86 78 Z" fill="url(#silver)" stroke="#5d6266" strokeWidth=".6" />
+                <ellipse cx="110" cy="78" rx="24" ry="5" fill="url(#silverDark)" />
+
+                {/* Handles */}
+                <path d="M70 110 Q34 110 34 150 Q34 200 70 210" stroke="url(#silver)" strokeWidth="9" fill="none" strokeLinecap="round" />
+                <path d="M150 110 Q186 110 186 150 Q186 200 150 210" stroke="url(#silver)" strokeWidth="9" fill="none" strokeLinecap="round" />
+
+                {/* Cup body */}
+                <path d="M70 88 Q68 100 70 118 Q72 158 78 198 Q82 224 110 226 Q138 224 142 198 Q148 158 150 118 Q152 100 150 88 Z" fill="url(#silver)" stroke="#5d6266" strokeWidth=".8" />
+                {/* Cup highlight */}
+                <path d="M82 96 Q80 130 86 170 Q90 200 96 215" stroke="#ffffffaa" strokeWidth="2" fill="none" strokeLinecap="round" opacity=".55" />
+                <path d="M138 96 Q140 130 134 170 Q130 200 124 215" stroke="#0000004a" strokeWidth="2" fill="none" strokeLinecap="round" opacity=".4" />
+
+                {/* Engraving plate */}
+                <rect x="78" y="135" width="64" height="50" rx="3" fill="url(#plate)" stroke="#5d6266" strokeWidth=".8" />
+                <text x="110" y="155" textAnchor="middle" fontFamily="Oswald, sans-serif" fontSize="8" fontWeight="700" fill="#e8ff00" letterSpacing="1.2">SECTION FC</text>
+                <text x="110" y="167" textAnchor="middle" fontFamily="Oswald, sans-serif" fontSize="6" fontWeight="600" fill="#ffffffcc" letterSpacing="1">DIV 2 CHAMPIONS</text>
+                <text x="110" y="178" textAnchor="middle" fontFamily="Oswald, sans-serif" fontSize="6" fontWeight="600" fill="#ffffff88" letterSpacing="1">2025 / 26</text>
+
+                {/* Stem */}
+                <path d="M96 226 L124 226 L130 248 L90 248 Z" fill="url(#silverDark)" stroke="#3e4346" strokeWidth=".6" />
+                <ellipse cx="110" cy="252" rx="22" ry="4" fill="url(#silver)" />
+                <rect x="96" y="252" width="28" height="14" fill="url(#silverDark)" />
+
+                {/* Base */}
+                <ellipse cx="110" cy="270" rx="36" ry="6" fill="url(#silver)" />
+                <path d="M74 270 L74 286 Q74 296 110 298 Q146 296 146 286 L146 270 Z" fill="url(#silverDark)" />
+                <ellipse cx="110" cy="298" rx="40" ry="7" fill="#0a0a0a" opacity=".55" />
+
+                {/* Ribbons */}
+                <path d="M74 88 L62 200 L48 196 L62 84 Z" fill="url(#ribbon)" />
+                <rect x="50" y="118" width="14" height="22" fill="#fff" />
+                <text x="57" y="133" textAnchor="middle" fontFamily="Oswald, sans-serif" fontSize="5.5" fontWeight="800" fill="#0d2a85" letterSpacing=".3">SFC</text>
+                <rect x="50" y="158" width="14" height="22" fill="url(#ribbonRed)" />
+                <text x="57" y="172" textAnchor="middle" fontFamily="Oswald, sans-serif" fontSize="4.5" fontWeight="800" fill="#fff" letterSpacing=".3">CHAMPS</text>
+
+                <path d="M146 88 L158 200 L172 196 L158 84 Z" fill="url(#ribbon)" />
+                <rect x="156" y="118" width="14" height="22" fill="#fff" />
+                <text x="163" y="133" textAnchor="middle" fontFamily="Oswald, sans-serif" fontSize="5.5" fontWeight="800" fill="#0d2a85" letterSpacing=".3">SFC</text>
+                <rect x="156" y="158" width="14" height="22" fill="url(#ribbonRed)" />
+                <text x="163" y="172" textAnchor="middle" fontFamily="Oswald, sans-serif" fontSize="4.5" fontWeight="800" fill="#fff" letterSpacing=".3">CHAMPS</text>
+              </svg>
+            </div>
+
+            {/* ── Stats strip ── */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4, 1fr)",gap:6,marginTop:6,position:"relative"}}>
+              {[
+                { label:"PLD", value:champ.pl },
+                { label:"WON", value:champ.w },
+                { label:"PTS", value:champ.pts },
+                { label:"GD",  value:(champ.gd>0?"+":"") + champ.gd },
+              ].map((s,i) => (
+                <div key={i} style={{background:"#ffffff06",border:"1px solid #e8ff0028",padding:"10px 4px",textAlign:"center"}}>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1.35rem",color:"#e8ff00",lineHeight:1}}>{s.value}</div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,color:"#ffffff55",marginTop:4}}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{textAlign:"center",marginTop:16,fontFamily:"'Oswald',sans-serif",fontSize:".72rem",letterSpacing:2,color:"#ffffff66"}}>
+              POWERLEAGUE · MEN&apos;S 5s · MONDAYS
+            </div>
+            <div style={{textAlign:"center",marginTop:6,fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:".95rem",color:"#e8ff00cc"}}>
+              &ldquo;Play with your heart on your sleeve.&rdquo;
+            </div>
+          </div>
+
+          {/* ── Empty placeholders for future trophies ── */}
+          <div style={{marginTop:22,display:"grid",gridTemplateColumns:"repeat(2, 1fr)",gap:10}}>
+            {[
+              { label:"DIV 1 TITLE", sub:"Next conquest" },
+              { label:"CUP",         sub:"To be added" },
+            ].map((p,i) => (
+              <div key={i} style={{background:"#ffffff04",border:"1px dashed #ffffff14",borderRadius:8,padding:"22px 12px",textAlign:"center"}}>
+                <div style={{fontSize:"1.6rem",opacity:.18,marginBottom:6}}>🏆</div>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".68rem",letterSpacing:3,color:"#ffffff35",fontWeight:700}}>{p.label}</div>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,color:"#ffffff20",marginTop:3}}>{p.sub}</div>
+              </div>
+            ))}
+          </div>
+        </main>
         {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
       </div>
     );
