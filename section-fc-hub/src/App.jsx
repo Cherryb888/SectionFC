@@ -164,6 +164,18 @@ const FIXTURES = [
     { time:"7:50 PM",  home:"Booty & Boys",       away:"SECTION FC",           pitch:"Pitch 2" },
     { time:"8:30 PM",  home:"WSOPC FC",           away:"Drew Peacock FC",      pitch:"Pitch 1" },
   ]},
+  { date:"Mon 22 Jun 2026", matches:[
+    { time:"6:30 PM",  home:"Drew Peacock FC",    away:"Booty & Boys",         pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"RBCC FC",            away:"SECTION FC",           pitch:"Pitch 1" },
+    { time:"7:10 PM",  home:"Karachi Athletic FC",away:"WSOPC FC",             pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"Pigs",               away:"Youre getting 5%",     pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 29 Jun 2026", matches:[
+    { time:"6:30 PM",  home:"WSOPC FC",           away:"Youre getting 5%",     pitch:"Pitch 1" },
+    { time:"7:50 PM",  home:"Booty & Boys",       away:"RBCC FC",              pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"Drew Peacock FC",    away:"Karachi Athletic FC",  pitch:"Pitch 1" },
+    { time:"8:30 PM",  home:"SECTION FC",         away:"Pigs",                 pitch:"Pitch 2" },
+  ]},
   { date:"Mon 20 Jul 2026", matches:[
     { time:"6:30 PM",  home:"Youre getting 5%",   away:"Booty & Boys",         pitch:"Pitch 2" },
     { time:"7:10 PM",  home:"WSOPC FC",           away:"Pigs",                 pitch:"Pitch 1" },
@@ -175,6 +187,42 @@ const FIXTURES = [
     { time:"7:10 PM",  home:"Pigs",               away:"Drew Peacock FC",      pitch:"Pitch 1" },
     { time:"7:50 PM",  home:"Booty & Boys",       away:"WSOPC FC",             pitch:"Pitch 2" },
     { time:"8:30 PM",  home:"Youre getting 5%",   away:"SECTION FC",           pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 3 Aug 2026", matches:[
+    { time:"6:30 PM",  home:"SECTION FC",         away:"Booty & Boys",         pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"RBCC FC",            away:"Youre getting 5%",     pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"Drew Peacock FC",    away:"WSOPC FC",             pitch:"Pitch 1" },
+    { time:"7:50 PM",  home:"Karachi Athletic FC",away:"Pigs",                 pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 10 Aug 2026", matches:[
+    { time:"6:30 PM",  home:"Youre getting 5%",   away:"Pigs",                 pitch:"Pitch 1" },
+    { time:"7:50 PM",  home:"Booty & Boys",       away:"Drew Peacock FC",      pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"WSOPC FC",           away:"Karachi Athletic FC",  pitch:"Pitch 1" },
+    { time:"8:30 PM",  home:"SECTION FC",         away:"RBCC FC",              pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 17 Aug 2026", matches:[
+    { time:"6:30 PM",  home:"RBCC FC",            away:"Booty & Boys",         pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"Karachi Athletic FC",away:"Drew Peacock FC",      pitch:"Pitch 1" },
+    { time:"7:10 PM",  home:"Pigs",               away:"SECTION FC",           pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"Youre getting 5%",   away:"WSOPC FC",             pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 24 Aug 2026", matches:[
+    { time:"6:30 PM",  home:"SECTION FC",         away:"WSOPC FC",             pitch:"Pitch 1" },
+    { time:"7:10 PM",  home:"Drew Peacock FC",    away:"Youre getting 5%",     pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"Booty & Boys",       away:"Karachi Athletic FC",  pitch:"Pitch 2" },
+    { time:"8:30 PM",  home:"RBCC FC",            away:"Pigs",                 pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 14 Sep 2026", matches:[
+    { time:"6:30 PM",  home:"WSOPC FC",           away:"Booty & Boys",         pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"Drew Peacock FC",    away:"Pigs",                 pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"SECTION FC",         away:"Youre getting 5%",     pitch:"Pitch 1" },
+    { time:"7:50 PM",  home:"RBCC FC",            away:"Karachi Athletic FC",  pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 21 Sep 2026", matches:[
+    { time:"6:30 PM",  home:"Pigs",               away:"Karachi Athletic FC",  pitch:"Pitch 1" },
+    { time:"7:10 PM",  home:"Youre getting 5%",   away:"RBCC FC",              pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"Booty & Boys",       away:"SECTION FC",           pitch:"Pitch 2" },
+    { time:"8:30 PM",  home:"WSOPC FC",           away:"Drew Peacock FC",      pitch:"Pitch 1" },
   ]},
 ];
 
