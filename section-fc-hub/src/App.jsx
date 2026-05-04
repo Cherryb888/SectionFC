@@ -40,86 +40,7 @@ const LEAGUE_TABLE = [
   { pos:8, team:"SECTION FC",           pl:0, w:0, d:0, l:0, gf:0, ga:0, gd:0, pts:0 },
 ];
 
-const PAST_RESULTS = [
-  { date:"Mon 20 Apr 2026", matches:[
-    { home:"SUICIDER TENDENCIES", hg:6,  ag:5,  away:"WSOPC FC"               },
-    { home:"Kariustoglory",       hg:12, ag:1,  away:"Rio Franz Ferdinand"   },
-    { home:"SECTION FC",          hg:12, ag:0,  away:"High Prestbury FC"     },
-    { home:"Seymour Dodgers",     hg:3,  ag:8,  away:"Unfit 5"               },
-  ]},
-  { date:"Mon 13 Apr 2026", matches:[
-    { home:"Rio Franz Ferdinand", hg:5,  ag:0,  away:"SUICIDER TENDENCIES"   },
-    { home:"High Prestbury FC",   hg:1,  ag:4,  away:"Seymour Dodgers"       },
-    { home:"SECTION FC",          hg:5,  ag:0,  away:"Kariustoglory"         },
-    { home:"WSOPC FC",            hg:2,  ag:1,  away:"Unfit 5"               },
-  ]},
-  { date:"Mon 6 Apr 2026", matches:[
-    { home:"Unfit 5",             hg:0,  ag:5,  away:"Rio Franz Ferdinand"   },
-    { home:"Kariustoglory",       hg:0,  ag:5,  away:"SUICIDER TENDENCIES"   },
-    { home:"Seymour Dodgers",     hg:1,  ag:7,  away:"SECTION FC"            },
-    { home:"WSOPC FC",            hg:5,  ag:0,  away:"High Prestbury FC"     },
-  ]},
-  { date:"Mon 30 Mar 2026", matches:[
-    { home:"Seymour Dodgers",     hg:3,  ag:3,  away:"Kariustoglory"         },
-    { home:"SECTION FC",          hg:10, ag:3,  away:"WSOPC FC"              },
-    { home:"Rio Franz Ferdinand", hg:2,  ag:1,  away:"High Prestbury FC"     },
-    { home:"SUICIDER TENDENCIES", hg:6,  ag:3,  away:"Unfit 5"               },
-  ]},
-  { date:"Mon 23 Mar 2026", matches:[
-    { home:"Rio Franz Ferdinand", hg:2,  ag:4,  away:"SECTION FC"            },
-    { home:"Kariustoglory",       hg:13, ag:4,  away:"Unfit 5"               },
-    { home:"WSOPC FC",            hg:4,  ag:1,  away:"Seymour Dodgers"       },
-    { home:"High Prestbury FC",   hg:2,  ag:0,  away:"SUICIDER TENDENCIES"   },
-  ]},
-  { date:"Mon 16 Mar 2026", matches:[
-    { home:"Seymour Dodgers",     hg:5,  ag:2,  away:"Rio Franz Ferdinand"   },
-    { home:"Unfit 5",             hg:0,  ag:5,  away:"High Prestbury FC"     },
-    { home:"WSOPC FC",            hg:4,  ag:3,  away:"Kariustoglory"         },
-    { home:"SUICIDER TENDENCIES", hg:5,  ag:4,  away:"SECTION FC"            },
-  ]},
-  { date:"Mon 9 Mar 2026", matches:[
-    { home:"Kariustoglory",       hg:3,  ag:1,  away:"High Prestbury FC"     },
-    { home:"SECTION FC",          hg:7,  ag:7,  away:"Unfit 5"               },
-    { home:"Rio Franz Ferdinand", hg:2,  ag:4,  away:"WSOPC FC"              },
-    { home:"SUICIDER TENDENCIES", hg:6,  ag:3,  away:"Seymour Dodgers"       },
-  ]},
-  { date:"Mon 2 Mar 2026", matches:[
-    { home:"WSOPC FC",            hg:5,  ag:6,  away:"SUICIDER TENDENCIES"   },
-    { home:"Rio Franz Ferdinand", hg:2,  ag:6,  away:"Kariustoglory"         },
-    { home:"High Prestbury FC",   hg:1,  ag:4,  away:"SECTION FC"            },
-    { home:"Unfit 5",             hg:0,  ag:5,  away:"Seymour Dodgers"       },
-  ]},
-  { date:"Mon 23 Feb 2026", matches:[
-    { home:"Seymour Dodgers",     hg:2,  ag:1,  away:"High Prestbury FC"     },
-    { home:"SUICIDER TENDENCIES", hg:8,  ag:5,  away:"Rio Franz Ferdinand"   },
-    { home:"Unfit 5",             hg:1,  ag:3,  away:"WSOPC FC"              },
-    { home:"Kariustoglory",       hg:2,  ag:3,  away:"SECTION FC"            },
-  ]},
-  { date:"Mon 16 Feb 2026", matches:[
-    { home:"SUICIDER TENDENCIES", hg:5,  ag:3,  away:"Kariustoglory"         },
-    { home:"High Prestbury FC",   hg:5,  ag:1,  away:"WSOPC FC"              },
-    { home:"SECTION FC",          hg:5,  ag:2,  away:"Seymour Dodgers"       },
-    { home:"Rio Franz Ferdinand", hg:6,  ag:11, away:"Unfit 5"               },
-  ]},
-  { date:"Mon 9 Feb 2026", matches:[
-    { home:"Unfit 5",             hg:2,  ag:2,  away:"SUICIDER TENDENCIES"   },
-    { home:"WSOPC FC",            hg:5,  ag:4,  away:"SECTION FC"            },
-    { home:"High Prestbury FC",   hg:8,  ag:2,  away:"Rio Franz Ferdinand"   },
-    { home:"Kariustoglory",       hg:7,  ag:1,  away:"Seymour Dodgers"       },
-  ]},
-  { date:"Mon 2 Feb 2026", matches:[
-    { home:"SUICIDER TENDENCIES", hg:6,  ag:5,  away:"High Prestbury FC"     },
-    { home:"Unfit 5",             hg:1,  ag:5,  away:"Kariustoglory"         },
-    { home:"Seymour Dodgers",     hg:1,  ag:2,  away:"WSOPC FC"              },
-    { home:"SECTION FC",          hg:14, ag:2,  away:"Rio Franz Ferdinand"   },
-  ]},
-  { date:"Mon 26 Jan 2026", matches:[
-    { home:"High Prestbury FC",   hg:3,  ag:8,  away:"Unfit 5"               },
-    { home:"SECTION FC",          hg:13, ag:3,  away:"SUICIDER TENDENCIES"   },
-    { home:"Rio Franz Ferdinand", hg:0,  ag:2,  away:"Seymour Dodgers"       },
-    { home:"Kariustoglory",       hg:10, ag:2,  away:"WSOPC FC"              },
-  ]},
-];
+const PAST_RESULTS = [];
 
 const FIXTURES = [
   { date:"Mon 4 May 2026", matches:[
@@ -159,6 +80,78 @@ const FIXTURES = [
     { time:"7:50 PM",  home:"RBCC FC",            away:"Karachi Athletic FC",  pitch:"Pitch 1" },
   ]},
   { date:"Mon 15 Jun 2026", matches:[
+    { time:"6:30 PM",  home:"Pigs",               away:"Karachi Athletic FC",  pitch:"Pitch 1" },
+    { time:"7:10 PM",  home:"Youre getting 5%",   away:"RBCC FC",              pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"Booty & Boys",       away:"SECTION FC",           pitch:"Pitch 2" },
+    { time:"8:30 PM",  home:"WSOPC FC",           away:"Drew Peacock FC",      pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 22 Jun 2026", matches:[
+    { time:"6:30 PM",  home:"Drew Peacock FC",    away:"Booty & Boys",         pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"RBCC FC",            away:"SECTION FC",           pitch:"Pitch 1" },
+    { time:"7:10 PM",  home:"Karachi Athletic FC",away:"WSOPC FC",             pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"Pigs",               away:"Youre getting 5%",     pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 29 Jun 2026", matches:[
+    { time:"6:30 PM",  home:"WSOPC FC",           away:"Youre getting 5%",     pitch:"Pitch 1" },
+    { time:"7:50 PM",  home:"Booty & Boys",       away:"RBCC FC",              pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"Drew Peacock FC",    away:"Karachi Athletic FC",  pitch:"Pitch 1" },
+    { time:"8:30 PM",  home:"SECTION FC",         away:"Pigs",                 pitch:"Pitch 2" },
+  ]},
+  { date:"Mon 20 Jul 2026", matches:[
+    { time:"6:30 PM",  home:"Youre getting 5%",   away:"Booty & Boys",         pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"WSOPC FC",           away:"Pigs",                 pitch:"Pitch 1" },
+    { time:"7:10 PM",  home:"SECTION FC",         away:"Karachi Athletic FC",  pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"Drew Peacock FC",    away:"RBCC FC",              pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 27 Jul 2026", matches:[
+    { time:"6:30 PM",  home:"Karachi Athletic FC",away:"RBCC FC",              pitch:"Pitch 1" },
+    { time:"7:10 PM",  home:"Pigs",               away:"Drew Peacock FC",      pitch:"Pitch 1" },
+    { time:"7:50 PM",  home:"Booty & Boys",       away:"WSOPC FC",             pitch:"Pitch 2" },
+    { time:"8:30 PM",  home:"Youre getting 5%",   away:"SECTION FC",           pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 3 Aug 2026", matches:[
+    { time:"6:30 PM",  home:"SECTION FC",         away:"Booty & Boys",         pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"RBCC FC",            away:"Youre getting 5%",     pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"Drew Peacock FC",    away:"WSOPC FC",             pitch:"Pitch 1" },
+    { time:"7:50 PM",  home:"Karachi Athletic FC",away:"Pigs",                 pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 10 Aug 2026", matches:[
+    { time:"6:30 PM",  home:"Youre getting 5%",   away:"Pigs",                 pitch:"Pitch 1" },
+    { time:"7:50 PM",  home:"Booty & Boys",       away:"Drew Peacock FC",      pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"WSOPC FC",           away:"Karachi Athletic FC",  pitch:"Pitch 1" },
+    { time:"8:30 PM",  home:"SECTION FC",         away:"RBCC FC",              pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 17 Aug 2026", matches:[
+    { time:"6:30 PM",  home:"RBCC FC",            away:"Booty & Boys",         pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"Karachi Athletic FC",away:"Drew Peacock FC",      pitch:"Pitch 1" },
+    { time:"7:10 PM",  home:"Pigs",               away:"SECTION FC",           pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"Youre getting 5%",   away:"WSOPC FC",             pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 24 Aug 2026", matches:[
+    { time:"6:30 PM",  home:"SECTION FC",         away:"WSOPC FC",             pitch:"Pitch 1" },
+    { time:"7:10 PM",  home:"Drew Peacock FC",    away:"Youre getting 5%",     pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"Booty & Boys",       away:"Karachi Athletic FC",  pitch:"Pitch 2" },
+    { time:"8:30 PM",  home:"RBCC FC",            away:"Pigs",                 pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 31 Aug 2026", matches:[
+    { time:"6:30 PM",  home:"Pigs",               away:"Booty & Boys",         pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"Youre getting 5%",   away:"Karachi Athletic FC",  pitch:"Pitch 1" },
+    { time:"7:10 PM",  home:"WSOPC FC",           away:"RBCC FC",              pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"SECTION FC",         away:"Drew Peacock FC",      pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 7 Sep 2026", matches:[
+    { time:"6:30 PM",  home:"RBCC FC",            away:"Drew Peacock FC",      pitch:"Pitch 1" },
+    { time:"6:30 PM",  home:"Karachi Athletic FC",away:"SECTION FC",           pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"Booty & Boys",       away:"Youre getting 5%",     pitch:"Pitch 2" },
+    { time:"8:30 PM",  home:"Pigs",               away:"WSOPC FC",             pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 14 Sep 2026", matches:[
+    { time:"6:30 PM",  home:"WSOPC FC",           away:"Booty & Boys",         pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"Drew Peacock FC",    away:"Pigs",                 pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"SECTION FC",         away:"Youre getting 5%",     pitch:"Pitch 1" },
+    { time:"7:50 PM",  home:"RBCC FC",            away:"Karachi Athletic FC",  pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 21 Sep 2026", matches:[
     { time:"6:30 PM",  home:"Pigs",               away:"Karachi Athletic FC",  pitch:"Pitch 1" },
     { time:"7:10 PM",  home:"Youre getting 5%",   away:"RBCC FC",              pitch:"Pitch 2" },
     { time:"7:50 PM",  home:"Booty & Boys",       away:"SECTION FC",           pitch:"Pitch 2" },
@@ -393,6 +386,8 @@ export default function App() {
   const [sortStat,     setSortStat]     = useState("apps");
   const [editCell,     setEditCell]     = useState(null);
   const [statsTab,     setStatsTab]     = useState("season"); // "season"|"alltime"|"form"
+  const [resetConfirm, setResetConfirm] = useState(false);
+  const [resetting,    setResetting]    = useState(false);
   const [allTimeStats, setAllTimeStats] = useState(initStats());
   const [playerFormData, setPlayerFormData] = useState({});
   const [editFormCell, setEditFormCell] = useState(null);
@@ -769,6 +764,24 @@ export default function App() {
     setResultFirstScorer(""); setResultMotm("");
   };
 
+  // Wipe everything tied to a single season. Keeps allTimeStats, reportArchive
+  // and Hall of Fame so previous seasons remain queryable.
+  const resetSeason = async () => {
+    const players = [...new Set([...KNOWN_PLAYERS, ...Object.keys(stats), ...Object.keys(playerFormData)])];
+    const zeros = { apps:0, goals:0, assists:0, yellows:0, reds:0, cleanSheets:0, motm:0 };
+    for (const p of players) {
+      await setDoc(doc(db, "stats", p), zeros);
+    }
+    for (const p of Object.keys(playerFormData)) {
+      await deleteDoc(doc(db, "playerForm", p));
+    }
+    await setDoc(doc(db, "team",     "form"),        { results: [] });
+    await setDoc(doc(db, "season",   "leaderboard"), { entries: [] });
+    await setDoc(doc(db, "matchday", "report"),      {});
+    await setDoc(doc(db, "matchday", "squad"),       { published: false });
+    await setDoc(doc(db, "predictor","current"),     { active: false, opp: "", date: "", home: "", away: "", predictions: [], result: null, propPlayer: "", propResult: null });
+  };
+
   // ── Dashboard helpers ────────────────────────────────────────────────────────
   const parseMatchDateTime = (dateStr, timeStr) => {
     const datePart = dateStr.replace(/^\w+ /, ''); // strip "Mon "
@@ -997,9 +1010,11 @@ export default function App() {
             </div>
             {/* Context line */}
             <div style={{marginTop:10,fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:2,color:"#ffffff40"}}>
-              {sfcRow.pos === 1
-                ? (rowBelow && rowBelow.pts === sfcRow.pts ? `TOP OF TABLE ON GOAL DIFFERENCE (+${sfcRow.gd})` : `TOP OF TABLE · ${rowBelow ? sfcRow.pts - rowBelow.pts + ' PTS CLEAR' : 'UNCONTESTED'}`)
-                : `${sfcRow.pos === 2 ? '1 PT' : `${(LEAGUE_TABLE[0].pts - sfcRow.pts)} PTS`} OFF TOP · GD ${sfcRow.gd > 0 ? '+' : ''}${sfcRow.gd}`
+              {sfcRow.pl === 0
+                ? 'SEASON NOT YET STARTED'
+                : sfcRow.pos === 1
+                  ? (rowBelow && rowBelow.pts === sfcRow.pts ? `TOP OF TABLE ON GOAL DIFFERENCE (+${sfcRow.gd})` : `TOP OF TABLE · ${rowBelow ? sfcRow.pts - rowBelow.pts + ' PTS CLEAR' : 'UNCONTESTED'}`)
+                  : `${sfcRow.pos === 2 ? '1 PT' : `${(LEAGUE_TABLE[0].pts - sfcRow.pts)} PTS`} OFF TOP · GD ${sfcRow.gd > 0 ? '+' : ''}${sfcRow.gd}`
               }
             </div>
           </div>
@@ -1296,6 +1311,27 @@ export default function App() {
             <>
               {isAdmin && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".56rem",letterSpacing:3,color:"#ffffff35",marginBottom:9}}>CLICK ANY STAT TO EDIT · CLICK HEADER TO SORT</div>}
               <StatsTable data={stats} updateFn={updateStat} />
+              {isAdmin && (
+                <div style={{marginTop:24,paddingTop:18,borderTop:"1px solid #ffffff10"}}>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:3,color:"#ff666688",marginBottom:8}}>◆ DANGER ZONE</div>
+                  {!resetConfirm ? (
+                    <button className="btn btn-ghost" onClick={() => setResetConfirm(true)} style={{borderColor:"#ff444455",color:"#ff8888"}}>↺ RESET SEASON STATS</button>
+                  ) : (
+                    <div style={{background:"#ff44440a",border:"1px solid #ff444433",padding:"14px 16px"}}>
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".82rem",color:"#ff8888",marginBottom:6}}>⚠ Reset season — are you sure?</div>
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".66rem",letterSpacing:1,color:"#ffffff70",lineHeight:1.55,marginBottom:12}}>
+                        This zeros every player&apos;s season stats and clears player form, team form, the predictor leaderboard, the active match report and the published squad. <strong style={{color:"#ffffffaa"}}>All-time stats, the report archive and Hall of Fame winners are kept.</strong>
+                      </div>
+                      <div style={{display:"flex",gap:8}}>
+                        <button className="btn btn-y" disabled={resetting} onClick={async () => { setResetting(true); await resetSeason(); setResetting(false); setResetConfirm(false); }} style={{background:"#ff4444",color:"#fff",padding:"10px 18px",fontSize:".75rem"}}>
+                          {resetting ? "RESETTING…" : "✓ YES, RESET"}
+                        </button>
+                        <button className="btn btn-ghost" disabled={resetting} onClick={() => setResetConfirm(false)}>CANCEL</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
           {statsTab === "alltime" && (
@@ -1394,10 +1430,12 @@ export default function App() {
         ))}
 
         {/* ── Past Results ── */}
-        <div style={{marginTop:36,marginBottom:20,paddingTop:28,borderTop:"1px solid #ffffff12"}}>
-          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ PAST RESULTS</div>
-          <h2 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.3rem,4vw,2rem)",fontWeight:700,lineHeight:1,color:"#fff"}}>RESULTS</h2>
-        </div>
+        {PAST_RESULTS.length > 0 && (
+          <div style={{marginTop:36,marginBottom:20,paddingTop:28,borderTop:"1px solid #ffffff12"}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ PAST RESULTS</div>
+            <h2 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.3rem,4vw,2rem)",fontWeight:700,lineHeight:1,color:"#fff"}}>RESULTS</h2>
+          </div>
+        )}
         {PAST_RESULTS.map((gw, gi) => (
           <div key={gi} style={{marginBottom:24,animation:"fadeUp .4s ease both",animationDelay:`${gi*.05}s`}}>
             <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",letterSpacing:3,color:"#ffffff55",marginBottom:10,paddingBottom:8,borderBottom:"1px solid #ffffff1a"}}>{gw.date}</div>
