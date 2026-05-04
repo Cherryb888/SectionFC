@@ -188,6 +188,20 @@ const ptY = p => (p/100)*PH;
 const benchY = (i,t) => (PH/2)+(i-(t-1)/2)*82;
 const pickRand = (arr,ex=[]) => { const p=arr.filter(x=>!ex.includes(x)); return (p.length?p:arr)[~~(Math.random()*(p.length||arr.length))]; };
 const buildOpp = () => { const u=[]; return OPP_POS.map(pos=>{ const n=pickRand(OPP_POOL[pos],u); u.push(n); return {name:n,pos}; }); };
+const oppSlug = name => (name||"").trim().toUpperCase().replace(/[^A-Z0-9]+/g,"_").replace(/^_+|_+$/g,"");
+const mergeOppRoster = saved => {
+  const used = [];
+  return OPP_POS.map((pos, i) => {
+    const sv = saved && saved[i];
+    if (sv && sv.name && typeof sv.name === "string" && sv.name.trim()) {
+      used.push(sv.name);
+      return { name: sv.name, pos };
+    }
+    const n = pickRand(OPP_POOL[pos], used);
+    used.push(n);
+    return { name: n, pos };
+  });
+};
 const lastWord  = n => n.split(" ").pop();
 const firstWord = n => n.split(" ")[0];
 const avatar    = n => PLAYER_IMGS[n] || null;
@@ -528,10 +542,19 @@ export default function App() {
     setPIn("");
   };
 
-  const goPick = () => {
+  const goPick = async () => {
     if (squad.length < 5 || !oIn.trim()) return;
-    setOppName(oIn.trim().toUpperCase());
-    setOTeam(buildOpp());
+    const name = oIn.trim().toUpperCase();
+    setOppName(name);
+    let opp = buildOpp();
+    try {
+      const slug = oppSlug(name);
+      if (slug) {
+        const snap = await getDoc(doc(db, "oppositionTeams", slug));
+        if (snap.exists()) opp = mergeOppRoster(snap.data().players);
+      }
+    } catch {/* fall back to random */}
+    setOTeam(opp);
     setSTeam(SFC_POS.map(pos => ({ name: "", pos })));
     setBenchTeam([]);
     setScreen("spin");
@@ -550,15 +573,25 @@ export default function App() {
   };
 
   const publishSquad = async () => {
+    const oTrimmed = oTeam.map(p => ({ name: (p.name||"").trim(), pos: p.pos }));
+    const oFilled = mergeOppRoster(oTrimmed);
     const data = {
       published: true,
       oppName,
       sTeam,
-      oTeam,
+      oTeam: oFilled,
       benchTeam,
       publishedAt: Date.now(),
     };
     await setDoc(doc(db, "matchday", "squad"), data);
+    const slug = oppSlug(oppName);
+    if (slug) {
+      await setDoc(doc(db, "oppositionTeams", slug), {
+        oppName,
+        players: oTrimmed,
+        updatedAt: Date.now(),
+      });
+    }
     // Reset the post-match report so the new matchday starts with empty
     // stat inputs instead of inheriting the previous game's "applied" state.
     await deleteDoc(doc(db, "matchday", "report"));
@@ -2093,6 +2126,29 @@ export default function App() {
             })}
           </div>
 
+          {/* Opposition five — editable, saved per opponent */}
+          <div style={{marginBottom:24}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:3,color:"#ffffff44",marginBottom:9,display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+              <span><span style={{color:"#ff7755"}}>{oppName}</span> <span style={{color:"#ffffff25"}}>· EDIT IF KNOWN</span></span>
+              <button className="btn btn-ghost btn-sm" onClick={() => setOTeam(buildOpp())} title="Replace with random legends">🎲 RANDOMISE</button>
+            </div>
+            {oTeam.map((slot, i) => (
+              <div key={i} style={{display:"flex",alignItems:"center",background:"#ffffff05",border:"1px solid #ff77551a",padding:"9px 12px",gap:10,marginBottom:5}}>
+                <div style={{width:42,fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".68rem",letterSpacing:2,color:"#ff7755",flexShrink:0}}>{slot.pos}</div>
+                <input
+                  value={slot.name}
+                  onChange={e => {
+                    const v = e.target.value;
+                    setOTeam(prev => prev.map((t, j) => j === i ? { ...t, name: v } : t));
+                  }}
+                  placeholder="Player name…"
+                  style={{flex:1,padding:"8px 10px",background:"#0f0f14",border:"1px solid #ffffff1e",color:slot.name?"#fff":"#ffffff44",fontFamily:"'Oswald',sans-serif",fontSize:".9rem",outline:"none"}}
+                />
+              </div>
+            ))}
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:2,color:"#ffffff35",marginTop:6}}>SAVED FOR {oppName} ON PUBLISH · LEAVE BLANK FOR RANDOMS</div>
+          </div>
+
           <button className="btn btn-y" onClick={() => setScreen("pitch")} disabled={!allFilled}
             style={{width:"100%",padding:"13px",fontSize:"1rem",opacity:allFilled?1:.35,transition:"opacity .2s"}}>
             VIEW ON PITCH →
@@ -2106,7 +2162,8 @@ export default function App() {
 
   if (screen === "pitch") {
     const sfcP = sTeam.map((p,i) => ({...p, x:SFC_XY[i][0], y:SFC_XY[i][1], img:avatar(p.name)}));
-    const oppP = oTeam.map((p,i) => ({...p, x:OPP_XY[i][0], y:OPP_XY[i][1]}));
+    const oppFilled = mergeOppRoster(oTeam.map(p => ({ name: (p.name||"").trim(), pos: p.pos })));
+    const oppP = oppFilled.map((p,i) => ({...p, x:OPP_XY[i][0], y:OPP_XY[i][1]}));
     return (
       <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
         <style>{CSS}</style>
