@@ -212,6 +212,18 @@ const FIXTURES = [
     { time:"7:50 PM",  home:"Booty & Boys",       away:"Karachi Athletic FC",  pitch:"Pitch 2" },
     { time:"8:30 PM",  home:"RBCC FC",            away:"Pigs",                 pitch:"Pitch 1" },
   ]},
+  { date:"Mon 31 Aug 2026", matches:[
+    { time:"6:30 PM",  home:"Pigs",               away:"Booty & Boys",         pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"Youre getting 5%",   away:"Karachi Athletic FC",  pitch:"Pitch 1" },
+    { time:"7:10 PM",  home:"WSOPC FC",           away:"RBCC FC",              pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"SECTION FC",         away:"Drew Peacock FC",      pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 7 Sep 2026", matches:[
+    { time:"6:30 PM",  home:"RBCC FC",            away:"Drew Peacock FC",      pitch:"Pitch 1" },
+    { time:"6:30 PM",  home:"Karachi Athletic FC",away:"SECTION FC",           pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"Booty & Boys",       away:"Youre getting 5%",     pitch:"Pitch 2" },
+    { time:"8:30 PM",  home:"Pigs",               away:"WSOPC FC",             pitch:"Pitch 1" },
+  ]},
   { date:"Mon 14 Sep 2026", matches:[
     { time:"6:30 PM",  home:"WSOPC FC",           away:"Booty & Boys",         pitch:"Pitch 2" },
     { time:"7:10 PM",  home:"Drew Peacock FC",    away:"Pigs",                 pitch:"Pitch 2" },
