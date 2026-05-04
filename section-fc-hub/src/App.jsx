@@ -164,6 +164,18 @@ const FIXTURES = [
     { time:"7:50 PM",  home:"Booty & Boys",       away:"SECTION FC",           pitch:"Pitch 2" },
     { time:"8:30 PM",  home:"WSOPC FC",           away:"Drew Peacock FC",      pitch:"Pitch 1" },
   ]},
+  { date:"Mon 20 Jul 2026", matches:[
+    { time:"6:30 PM",  home:"Youre getting 5%",   away:"Booty & Boys",         pitch:"Pitch 2" },
+    { time:"7:10 PM",  home:"WSOPC FC",           away:"Pigs",                 pitch:"Pitch 1" },
+    { time:"7:10 PM",  home:"SECTION FC",         away:"Karachi Athletic FC",  pitch:"Pitch 2" },
+    { time:"7:50 PM",  home:"Drew Peacock FC",    away:"RBCC FC",              pitch:"Pitch 1" },
+  ]},
+  { date:"Mon 27 Jul 2026", matches:[
+    { time:"6:30 PM",  home:"Karachi Athletic FC",away:"RBCC FC",              pitch:"Pitch 1" },
+    { time:"7:10 PM",  home:"Pigs",               away:"Drew Peacock FC",      pitch:"Pitch 1" },
+    { time:"7:50 PM",  home:"Booty & Boys",       away:"WSOPC FC",             pitch:"Pitch 2" },
+    { time:"8:30 PM",  home:"Youre getting 5%",   away:"SECTION FC",           pitch:"Pitch 1" },
+  ]},
 ];
 
 const AWARDS = [
