@@ -408,13 +408,21 @@ export default function App() {
   const [predName,          setPredName]          = useState("");
   const [predSFC,           setPredSFC]           = useState("");
   const [predOpp,           setPredOpp]           = useState("");
-  const [predFirstScorer,   setPredFirstScorer]   = useState(""); // "yes"|"no"|""
+  const [predFirstScorer,   setPredFirstScorer]   = useState(""); // legacy "yes"|"no"|""
   const [predMotmPick,      setPredMotmPick]      = useState(""); // player name
+  const [predOverUnder,     setPredOverUnder]     = useState(""); // "over"|"under"|""
+  const [predCleanSheet,    setPredCleanSheet]    = useState(""); // "yes"|"no"|""
+  const [predHTLeader,      setPredHTLeader]      = useState(""); // "sfc"|"opp"|"draw"|""
+  const [predAnytimeScorer, setPredAnytimeScorer] = useState(""); // player name
   const [resultSFC,         setResultSFC]         = useState("");
   const [resultOpp,         setResultOpp]         = useState("");
-  const [resultFirstScorer, setResultFirstScorer] = useState(""); // "yes"|"no"|""
+  const [resultFirstScorer, setResultFirstScorer] = useState(""); // legacy "yes"|"no"|""
   const [resultMotm,        setResultMotm]        = useState(""); // player name
-  const [propResult,        setPropResult]        = useState(null); // {firstScorer:bool,motm:string}
+  const [resultOverUnder,     setResultOverUnder]     = useState("");
+  const [resultCleanSheet,    setResultCleanSheet]    = useState("");
+  const [resultHTLeader,      setResultHTLeader]      = useState("");
+  const [resultAnytimeScorer, setResultAnytimeScorer] = useState("");
+  const [propResult,        setPropResult]        = useState(null);
 
   // Team form / dashboard
   const [teamForm,  setTeamForm]  = useState([]); // [{sfcScore,oppScore,opp,date}]
@@ -450,7 +458,7 @@ export default function App() {
       if (snap.exists()) {
         const d = snap.data();
         setPredSetup(d.active || false);
-        setPredMatch({ opp: d.opp||"", date: d.date||"", home: d.home||"", away: d.away||"", propPlayer: d.propPlayer||"" });
+        setPredMatch({ opp: d.opp||"", date: d.date||"", home: d.home||"", away: d.away||"", propPlayer: d.propPlayer||"", goalsLine: d.goalsLine ?? null });
         setPredictions(d.predictions || []);
         setPredResult(d.result || null);
         setPropResult(d.propResult || null);
@@ -703,14 +711,7 @@ export default function App() {
   };
 
   const setupPredMatch = async (m) => {
-    const allPlayers = [
-      ...(matchdaySquad?.sTeam?.map(p => p.name) || []),
-      ...(matchdaySquad?.benchTeam || []),
-    ];
-    const propPlayer = allPlayers.length > 0
-      ? allPlayers[Math.floor(Math.random() * allPlayers.length)]
-      : "";
-    const data = { active: true, opp: m.opp, date: m.date, home: m.home, away: m.away, predictions: [], result: null, propPlayer, propResult: null };
+    const data = { active: true, opp: m.opp, date: m.date, home: m.home, away: m.away, predictions: [], result: null, goalsLine: 6.5, propPlayer: "", propResult: null };
     await setDoc(doc(db, "predictor", "current"), data);
   };
 
@@ -722,26 +723,44 @@ export default function App() {
       oppG: parseInt(predOpp),
       firstScorer: predFirstScorer,
       motmPick: predMotmPick,
+      overUnder: predOverUnder,
+      cleanSheet: predCleanSheet,
+      htLeader: predHTLeader,
+      anytimeScorer: predAnytimeScorer,
       submitted: Date.now(),
     };
     const newPreds = [...predictions.filter(p => p.player !== pred.player), pred];
     await updateDoc(doc(db, "predictor", "current"), { predictions: newPreds });
     setPredName(""); setPredSFC(""); setPredOpp("");
     setPredFirstScorer(""); setPredMotmPick("");
+    setPredOverUnder(""); setPredCleanSheet(""); setPredHTLeader(""); setPredAnytimeScorer("");
   };
 
   const revealResult = async () => {
     const r = { sfcG: parseInt(resultSFC), oppG: parseInt(resultOpp) };
-    const pr = (resultFirstScorer !== "" || resultMotm !== "")
-      ? { firstScorer: resultFirstScorer === "yes", motm: resultMotm }
-      : null;
+    const anyProp =
+      resultFirstScorer !== "" || resultMotm !== "" ||
+      resultOverUnder !== "" || resultCleanSheet !== "" ||
+      resultHTLeader !== ""   || resultAnytimeScorer !== "";
+    const pr = anyProp ? {
+      firstScorer:   resultFirstScorer === "" ? null : resultFirstScorer === "yes",
+      motm:          resultMotm,
+      overUnder:     resultOverUnder,
+      cleanSheet:    resultCleanSheet === "" ? null : resultCleanSheet === "yes",
+      htLeader:      resultHTLeader,
+      anytimeScorer: resultAnytimeScorer,
+    } : null;
     const map = {};
     predictions.forEach(pred => {
       const { pts } = scorePredict(pred, r);
       let total = pts;
       if (pr) {
-        if (pred.firstScorer !== "") total += ((pred.firstScorer === "yes") === pr.firstScorer) ? 1 : 0;
-        if (pred.motmPick)           total += (pred.motmPick === pr.motm) ? 1 : 0;
+        if (pr.firstScorer !== null && pred.firstScorer)   total += ((pred.firstScorer === "yes") === pr.firstScorer) ? 1 : 0;
+        if (pr.motm && pred.motmPick)                       total += (pred.motmPick === pr.motm) ? 1 : 0;
+        if (pr.overUnder && pred.overUnder)                 total += (pred.overUnder === pr.overUnder) ? 1 : 0;
+        if (pr.cleanSheet !== null && pred.cleanSheet)      total += ((pred.cleanSheet === "yes") === pr.cleanSheet) ? 1 : 0;
+        if (pr.htLeader && pred.htLeader)                   total += (pred.htLeader === pr.htLeader) ? 1 : 0;
+        if (pr.anytimeScorer && pred.anytimeScorer)         total += (pred.anytimeScorer === pr.anytimeScorer) ? 1 : 0;
       }
       if (!map[pred.player]) map[pred.player] = { pts: 0, games: 0 };
       map[pred.player].pts += total;
@@ -756,12 +775,15 @@ export default function App() {
     await setDoc(doc(db, "season", "leaderboard"), { entries: newSeason });
     setResultSFC(""); setResultOpp("");
     setResultFirstScorer(""); setResultMotm("");
+    setResultOverUnder(""); setResultCleanSheet(""); setResultHTLeader(""); setResultAnytimeScorer("");
   };
 
   const resetPredictor = async () => {
-    await setDoc(doc(db, "predictor", "current"), { active: false, opp: "", date: "", home: "", away: "", predictions: [], result: null, propPlayer: "", propResult: null });
+    await setDoc(doc(db, "predictor", "current"), { active: false, opp: "", date: "", home: "", away: "", predictions: [], result: null, propPlayer: "", goalsLine: null, propResult: null });
     setPredFirstScorer(""); setPredMotmPick("");
+    setPredOverUnder(""); setPredCleanSheet(""); setPredHTLeader(""); setPredAnytimeScorer("");
     setResultFirstScorer(""); setResultMotm("");
+    setResultOverUnder(""); setResultCleanSheet(""); setResultHTLeader(""); setResultAnytimeScorer("");
   };
 
   // Wipe everything tied to a single season. Keeps allTimeStats, reportArchive
@@ -779,7 +801,7 @@ export default function App() {
     await setDoc(doc(db, "season",   "leaderboard"), { entries: [] });
     await setDoc(doc(db, "matchday", "report"),      {});
     await setDoc(doc(db, "matchday", "squad"),       { published: false });
-    await setDoc(doc(db, "predictor","current"),     { active: false, opp: "", date: "", home: "", away: "", predictions: [], result: null, propPlayer: "", propResult: null });
+    await setDoc(doc(db, "predictor","current"),     { active: false, opp: "", date: "", home: "", away: "", predictions: [], result: null, propPlayer: "", goalsLine: null, propResult: null });
   };
 
   // ── Dashboard helpers ────────────────────────────────────────────────────────
@@ -1645,8 +1667,97 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Prop Bet 1: First Scorer */}
-                {predMatch.propPlayer && (
+                {/* Prop: Over/Under total goals */}
+                {predMatch.goalsLine != null && (
+                  <div style={{marginBottom:10,background:"#ffffff06",border:"1px solid #ffffff14",padding:"14px 14px 12px"}}>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:3,color:"#e8ff0077",marginBottom:8}}>◆ PROP BET — +1 PT IF CORRECT</div>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(.95rem,3.5vw,1.1rem)",marginBottom:12}}>
+                      Total goals — <span style={{color:"#e8ff00"}}>over or under {predMatch.goalsLine}</span>?
+                    </div>
+                    <div style={{display:"flex",gap:8}}>
+                      {[{key:"over",label:`OVER ${predMatch.goalsLine}`},{key:"under",label:`UNDER ${predMatch.goalsLine}`}].map(({key,label}) => {
+                        const sel = predOverUnder === key;
+                        return (
+                          <button key={key} onClick={() => setPredOverUnder(sel?"":key)}
+                            style={{flex:1,padding:"10px",background:sel?"#e8ff0022":"#ffffff08",border:`1px solid ${sel?"#e8ff00":"#ffffff18"}`,color:sel?"#e8ff00":"#ffffffaa",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".82rem",cursor:"pointer",letterSpacing:1.5}}>
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Prop: Clean sheet */}
+                {predMatch.goalsLine != null && (
+                  <div style={{marginBottom:10,background:"#ffffff06",border:"1px solid #ffffff14",padding:"14px 14px 12px"}}>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:3,color:"#e8ff0077",marginBottom:8}}>◆ PROP BET — +1 PT IF CORRECT</div>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(.95rem,3.5vw,1.1rem)",marginBottom:12}}>
+                      Will Section FC keep a <span style={{color:"#e8ff00"}}>clean sheet</span>?
+                    </div>
+                    <div style={{display:"flex",gap:8}}>
+                      {["yes","no"].map(opt => {
+                        const sel = predCleanSheet === opt;
+                        return (
+                          <button key={opt} onClick={() => setPredCleanSheet(sel?"":opt)}
+                            style={{flex:1,padding:"10px",background:sel?(opt==="yes"?"#44dd8822":"#ff444422"):"#ffffff08",border:`1px solid ${sel?(opt==="yes"?"#44dd88":"#ff4444"):"#ffffff18"}`,color:sel?(opt==="yes"?"#44dd88":"#ff4444"):"#ffffffaa",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".9rem",cursor:"pointer",letterSpacing:2}}>
+                            {opt.toUpperCase()}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Prop: Half-time leader */}
+                {predMatch.goalsLine != null && (
+                  <div style={{marginBottom:10,background:"#ffffff06",border:"1px solid #ffffff14",padding:"14px 14px 12px"}}>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:3,color:"#e8ff0077",marginBottom:8}}>◆ PROP BET — +1 PT IF CORRECT</div>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(.95rem,3.5vw,1.1rem)",marginBottom:12}}>
+                      <span style={{color:"#e8ff00"}}>Half-time</span> leader?
+                    </div>
+                    <div style={{display:"flex",gap:6}}>
+                      {[
+                        {key:"sfc",  label:"SECTION FC", on:"#e8ff00", onBg:"#e8ff0022"},
+                        {key:"draw", label:"DRAW",       on:"#ffffffcc", onBg:"#ffffff14"},
+                        {key:"opp",  label:(predMatch.opp ? predMatch.opp.split(" ")[0].toUpperCase() : "OPP"), on:"#ff7755", onBg:"#ff775522"},
+                      ].map(({key,label,on,onBg}) => {
+                        const sel = predHTLeader === key;
+                        return (
+                          <button key={key} onClick={() => setPredHTLeader(sel?"":key)}
+                            style={{flex:1,padding:"10px 6px",background:sel?onBg:"#ffffff08",border:`1px solid ${sel?on:"#ffffff18"}`,color:sel?on:"#ffffffaa",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".75rem",cursor:"pointer",letterSpacing:1.2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Prop: Anytime scorer */}
+                {predMatch.goalsLine != null && squadPlayers.length > 0 && (
+                  <div style={{marginBottom:10,background:"#ffffff06",border:"1px solid #ffffff14",padding:"14px 14px 12px"}}>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:3,color:"#e8ff0077",marginBottom:8}}>◆ PROP BET — +1 PT IF CORRECT</div>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(.95rem,3.5vw,1.1rem)",marginBottom:12}}>
+                      <span style={{color:"#e8ff00"}}>Anytime scorer</span> for SFC?
+                    </div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+                      {squadPlayers.map(name => {
+                        const sel = predAnytimeScorer === name;
+                        return (
+                          <button key={name} onClick={() => setPredAnytimeScorer(sel?"":name)}
+                            style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,padding:"8px 10px",background:sel?"#e8ff0015":"#ffffff06",border:`1px solid ${sel?"#e8ff00":"#ffffff12"}`,cursor:"pointer",transition:"all .15s",minWidth:62}}>
+                            <Avatar name={name} size={38} border={sel?"#e8ff00":"#ffffff22"} />
+                            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:sel?700:500,fontSize:".62rem",color:sel?"#e8ff00":"#ffffffaa",letterSpacing:.5,textAlign:"center",maxWidth:62,wordBreak:"break-word",lineHeight:1.1}}>{firstWord(name)}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Legacy first-scorer prop (only if doc is from before the swap) */}
+                {!predMatch.goalsLine && predMatch.propPlayer && (
                   <div style={{marginBottom:10,background:"#ffffff06",border:"1px solid #ffffff14",padding:"14px 14px 12px"}}>
                     <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:3,color:"#e8ff0077",marginBottom:10}}>◆ PROP BET — +1 PT IF CORRECT</div>
                     <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
@@ -1669,7 +1780,7 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Prop Bet 2: MOTM */}
+                {/* Prop: MOTM */}
                 {squadPlayers.length > 0 && (
                   <div style={{marginBottom:14,background:"#ffffff06",border:"1px solid #ffffff14",padding:"14px 14px 12px"}}>
                     <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:3,color:"#e8ff0077",marginBottom:8}}>◆ PROP BET — +1 PT IF CORRECT</div>
@@ -1705,16 +1816,28 @@ export default function App() {
                 {predictions.map((p, i) => {
                   const scoreRes = predResult ? scorePredict(p, predResult) : null;
                   const propPts = propResult
-                    ? (p.firstScorer!==""&&p.firstScorer!==undefined ? ((p.firstScorer==="yes")===propResult.firstScorer?1:0) : 0)
-                      + (p.motmPick ? (p.motmPick===propResult.motm?1:0) : 0)
+                    ? (propResult.firstScorer!==null&&propResult.firstScorer!==undefined&&p.firstScorer ? ((p.firstScorer==="yes")===propResult.firstScorer?1:0) : 0)
+                      + (propResult.motm && p.motmPick                ? (p.motmPick===propResult.motm?1:0) : 0)
+                      + (propResult.overUnder && p.overUnder           ? (p.overUnder===propResult.overUnder?1:0) : 0)
+                      + (propResult.cleanSheet!==null&&propResult.cleanSheet!==undefined&&p.cleanSheet ? ((p.cleanSheet==="yes")===propResult.cleanSheet?1:0) : 0)
+                      + (propResult.htLeader && p.htLeader             ? (p.htLeader===propResult.htLeader?1:0) : 0)
+                      + (propResult.anytimeScorer && p.anytimeScorer   ? (p.anytimeScorer===propResult.anytimeScorer?1:0) : 0)
                     : 0;
                   const totalPts = (scoreRes?.pts||0) + propPts;
+                  const summaryBits = [
+                    p.overUnder      && `${p.overUnder.toUpperCase()} ${predMatch.goalsLine ?? ""}`.trim(),
+                    p.cleanSheet     && `CS: ${p.cleanSheet.toUpperCase()}`,
+                    p.htLeader       && `HT: ${p.htLeader === "sfc" ? "SFC" : p.htLeader === "opp" ? (predMatch.opp ? predMatch.opp.split(" ")[0].toUpperCase() : "OPP") : "DRAW"}`,
+                    p.anytimeScorer  && `Scorer: ${firstWord(p.anytimeScorer)}`,
+                    p.motmPick       && `MOTM: ${firstWord(p.motmPick)}`,
+                    p.firstScorer    && `First: ${p.firstScorer.toUpperCase()}`,
+                  ].filter(Boolean);
                   return (
                     <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:totalPts>=3?"#e8ff0012":totalPts>=1?"#ffffff0a":"#ffffff06",border:`1px solid ${totalPts>=3?"#e8ff0044":totalPts>=1?"#ffffff18":"#ffffff0d"}`,marginBottom:4}}>
                       <Avatar name={p.player} size={28} />
-                      <div style={{flex:1}}>
+                      <div style={{flex:1,minWidth:0}}>
                         <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".88rem"}}>{p.player}</div>
-                        {predMatch.propPlayer && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",color:"#ffffff35",letterSpacing:.5,marginTop:2}}>{p.firstScorer?"First scorer: "+p.firstScorer.toUpperCase():""}{p.firstScorer&&p.motmPick?" · ":""}{p.motmPick?"MOTM: "+firstWord(p.motmPick):""}</div>}
+                        {summaryBits.length > 0 && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",color:"#ffffff35",letterSpacing:.5,marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{summaryBits.join(" · ")}</div>}
                       </div>
                       <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1rem",letterSpacing:1,flexShrink:0}}>{p.sfcG} – {p.oppG}</div>
                       {scoreRes && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",color:totalPts>=3?"#e8ff00":totalPts>=1?"#88ccff":"#ffffff44",letterSpacing:1,textAlign:"right",minWidth:52,flexShrink:0}}>{scoreRes.label}{propPts>0&&<><br/>+{propPts} prop</>}<br/><span style={{color:totalPts>0?"#e8ff00":"#ffffff30",fontSize:".7rem",fontWeight:800}}>+{totalPts}pts</span></div>}
@@ -1731,12 +1854,70 @@ export default function App() {
                   return (
                   <div style={{marginTop:14,padding:"14px",background:"#ffffff05",border:"1px solid #ffffff0e"}}>
                     <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:3,color:"#ffffff44",marginBottom:10}}>ENTER ACTUAL RESULT</div>
-                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:predMatch.propPlayer||squadPlayers.length>0?14:0}}>
+                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:14}}>
                       <input type="number" min="0" max="20" value={resultSFC} onChange={e => setResultSFC(e.target.value)} placeholder="SFC" style={{flex:1,padding:"12px",background:"#ffffff0d",border:"1px solid #e8ff0044",color:"#fff",fontFamily:"'Oswald',sans-serif",fontSize:"1.4rem",fontWeight:700,textAlign:"center"}} />
                       <span style={{color:"#ffffff30",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1.2rem"}}>–</span>
                       <input type="number" min="0" max="20" value={resultOpp} onChange={e => setResultOpp(e.target.value)} placeholder="OPP" style={{flex:1,padding:"12px",background:"#ffffff0d",border:"1px solid #ff775544",color:"#fff",fontFamily:"'Oswald',sans-serif",fontSize:"1.4rem",fontWeight:700,textAlign:"center"}} />
                     </div>
-                    {predMatch.propPlayer && (
+
+                    {predMatch.goalsLine != null && (
+                      <>
+                        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:3,color:"#ffffff44",marginBottom:6}}>OVER OR UNDER {predMatch.goalsLine}?</div>
+                        <div style={{display:"flex",gap:6,marginBottom:12}}>
+                          {["over","under"].map(opt => {
+                            const sel = resultOverUnder === opt;
+                            return (
+                              <button key={opt} onClick={() => setResultOverUnder(sel?"":opt)}
+                                style={{flex:1,padding:"8px",background:sel?"#e8ff0022":"#ffffff08",border:`1px solid ${sel?"#e8ff00":"#ffffff18"}`,color:sel?"#e8ff00":"#ffffffaa",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".78rem",cursor:"pointer",letterSpacing:1}}>
+                                {opt.toUpperCase()} {predMatch.goalsLine}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:3,color:"#ffffff44",marginBottom:6}}>CLEAN SHEET?</div>
+                        <div style={{display:"flex",gap:6,marginBottom:12}}>
+                          {["yes","no"].map(opt => {
+                            const sel = resultCleanSheet === opt;
+                            return (
+                              <button key={opt} onClick={() => setResultCleanSheet(sel?"":opt)}
+                                style={{flex:1,padding:"8px",background:sel?(opt==="yes"?"#44dd8822":"#ff444422"):"#ffffff08",border:`1px solid ${sel?(opt==="yes"?"#44dd88":"#ff4444"):"#ffffff18"}`,color:sel?(opt==="yes"?"#44dd88":"#ff4444"):"#ffffffaa",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".78rem",cursor:"pointer",letterSpacing:1}}>
+                                {opt.toUpperCase()}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:3,color:"#ffffff44",marginBottom:6}}>HALF-TIME LEADER</div>
+                        <div style={{display:"flex",gap:6,marginBottom:12}}>
+                          {[
+                            {key:"sfc",  label:"SFC"},
+                            {key:"draw", label:"DRAW"},
+                            {key:"opp",  label:(predMatch.opp ? predMatch.opp.split(" ")[0].toUpperCase() : "OPP")},
+                          ].map(({key,label}) => {
+                            const sel = resultHTLeader === key;
+                            return (
+                              <button key={key} onClick={() => setResultHTLeader(sel?"":key)}
+                                style={{flex:1,padding:"8px 4px",background:sel?"#e8ff0022":"#ffffff08",border:`1px solid ${sel?"#e8ff00":"#ffffff18"}`,color:sel?"#e8ff00":"#ffffffaa",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",cursor:"pointer",letterSpacing:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {squadPlayers.length > 0 && (
+                          <>
+                            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:3,color:"#ffffff44",marginBottom:6}}>ANYTIME SFC SCORER</div>
+                            <select value={resultAnytimeScorer} onChange={e => setResultAnytimeScorer(e.target.value)} style={{width:"100%",marginBottom:12}}>
+                              <option value="">Select scorer (or leave blank if none)…</option>
+                              {squadPlayers.map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                          </>
+                        )}
+                      </>
+                    )}
+
+                    {!predMatch.goalsLine && predMatch.propPlayer && (
                       <>
                         <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:3,color:"#ffffff44",marginBottom:6}}>DID {firstWord(predMatch.propPlayer).toUpperCase()} SCORE FIRST?</div>
                         <div style={{display:"flex",gap:6,marginBottom:12}}>
@@ -1749,6 +1930,7 @@ export default function App() {
                         </div>
                       </>
                     )}
+
                     {squadPlayers.length > 0 && (
                       <>
                         <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:3,color:"#ffffff44",marginBottom:6}}>ACTUAL MOTM</div>
