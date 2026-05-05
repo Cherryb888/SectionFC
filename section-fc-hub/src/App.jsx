@@ -40,6 +40,18 @@ const LEAGUE_TABLE = [
   { pos:8, team:"SECTION FC",           pl:0, w:0, d:0, l:0, gf:0, ga:0, gd:0, pts:0 },
 ];
 
+const PREV_SEASON_LABEL = "2025/26 · DIVISION 2 CHAMPIONS";
+const PREV_SEASON_TABLE = [
+  { pos:1, team:"SECTION FC",           pl:14, w:11, d:1, l:2,  gf:96, ga:33, gd:63,  pts:34 },
+  { pos:2, team:"SUICIDER TENDENCIES",  pl:13, w:9,  d:1, l:3,  gf:62, ga:56, gd:6,   pts:31 },
+  { pos:3, team:"WSOPC FC",             pl:14, w:9,  d:0, l:5,  gf:50, ga:54, gd:-4,  pts:27 },
+  { pos:4, team:"Pathetico Madrid",     pl:12, w:8,  d:1, l:3,  gf:71, ga:29, gd:42,  pts:25 },
+  { pos:5, team:"Seymour Dodgers",      pl:14, w:5,  d:1, l:8,  gf:37, ga:56, gd:-19, pts:16 },
+  { pos:6, team:"High Prestbury FC",    pl:14, w:4,  d:0, l:10, gf:35, ga:52, gd:-17, pts:12 },
+  { pos:7, team:"Unfit 5",              pl:14, w:3,  d:2, l:9,  gf:46, ga:70, gd:-24, pts:11 },
+  { pos:8, team:"Rio Franz Ferdinand",  pl:14, w:3,  d:0, l:11, gf:40, ga:80, gd:-40, pts:9  },
+];
+
 const PAST_RESULTS = [];
 
 const FIXTURES = [
@@ -1445,6 +1457,47 @@ export default function App() {
             </tbody>
           </table>
         </div>
+
+        {/* Previous season — champions table */}
+        <div style={{marginTop:38,marginBottom:14,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+          <span className="trophy" style={{fontSize:"1.6rem"}}>🏆</span>
+          <div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:4}}>◆ {PREV_SEASON_LABEL}</div>
+            <h2 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.2rem,4vw,2rem)",fontWeight:700,lineHeight:1}}>SECTION FC <span style={{color:"#e8ff00"}}>· TITLE WINNERS</span></h2>
+          </div>
+        </div>
+        <div style={{overflowX:"auto",border:"1px solid #e8ff0022",borderRadius:6,background:"linear-gradient(180deg,#e8ff0006 0%,transparent 60%)"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",minWidth:420}}>
+            <thead>
+              <tr style={{borderBottom:"2px solid #e8ff0030"}}>
+                {["#","TEAM","PL","W","D","L","GF","GA","GD","PTS"].map((h,i) => (
+                  <th key={i} style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:2,color:"#ffffff55",fontWeight:600,padding:"9px 6px",textAlign:i<2?"left":"center",whiteSpace:"nowrap"}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {PREV_SEASON_TABLE.map((row, i) => {
+                const sfc = isSFC(row.team);
+                return (
+                  <tr key={i} style={{borderBottom:`1px solid ${sfc?"#e8ff0035":"#ffffff08"}`,background:sfc?"#e8ff0012":i%2===0?"transparent":"#ffffff02"}}>
+                    <td style={{padding:"11px 6px",textAlign:"center"}}>
+                      <div style={{width:22,height:22,borderRadius:2,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",background:row.pos===1?"#e8ff00":row.pos<=3?"#ffffff20":"transparent",color:row.pos===1?"#0a0a0f":"#ffffffcc"}}>{row.pos}</div>
+                    </td>
+                    <td style={{padding:"11px 6px",fontFamily:"'Oswald',sans-serif",fontWeight:sfc?700:500,fontSize:".9rem",color:sfc?"#e8ff00":"#ffffffcc",whiteSpace:"nowrap"}}>
+                      {sfc && <span style={{marginRight:5}}>🏆</span>}{row.team}
+                    </td>
+                    {[row.pl,row.w,row.d,row.l,row.gf,row.ga].map((v,j) => (
+                      <td key={j} style={{padding:"11px 5px",textAlign:"center",fontFamily:"'Oswald',sans-serif",fontWeight:500,fontSize:".88rem",color:"#ffffffaa"}}>{v}</td>
+                    ))}
+                    <td style={{padding:"11px 5px",textAlign:"center",fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".88rem",color:row.gd>0?"#44dd88":row.gd<0?"#ff6644":"#ffffffaa"}}>{row.gd>0?"+":""}{row.gd}</td>
+                    <td style={{padding:"11px 5px",textAlign:"center",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".95rem",color:sfc?"#e8ff00":"#fff"}}>{row.pts}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:2,color:"#ffffff35",marginTop:8,textAlign:"center"}}>FINAL STANDINGS · PROMOTED TO DIVISION 1</div>
       </main>
       {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
     </div>
