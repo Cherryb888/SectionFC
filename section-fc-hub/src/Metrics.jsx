@@ -6,6 +6,7 @@ import {
   scoreAccuracy, scoreReaction, scoreSpeed, scoreMemory, scoreDecision,
   computeOVR, tierOf,
 } from './metrics/scoring.js';
+import { ShareButton } from './share';
 import TargetShooter from './metrics/games/TargetShooter.jsx';
 import KeeperDive from './metrics/games/KeeperDive.jsx';
 import SprintMeter from './metrics/games/SprintMeter.jsx';
@@ -82,6 +83,7 @@ export default function Metrics({ isAdmin }) {
   const [muted, setMuted] = useState(() => localStorage.getItem(MUTE_KEY) === "1");
   const [pendingResubmits, setPendingResubmits] = useState([]);
   const lastScoreRef = useRef(null);
+  const summaryCardRef = useRef(null);
 
   // Pick up any unsent pending runs from previous sessions
   useEffect(() => {
@@ -297,6 +299,7 @@ export default function Metrics({ isAdmin }) {
         <div style={{ fontFamily: "'Oswald',sans-serif", fontSize: ".62rem", color: "#e8ff0088", letterSpacing: 3, marginBottom: 5 }}>◆ COMBINE COMPLETE</div>
         <h1 className="metrics-h1" style={{ marginBottom: 18 }}>YOUR RATING</h1>
 
+        <div ref={summaryCardRef}>
         <div className="metrics-card" style={{ textAlign: "center", padding: "32px 16px", marginBottom: 18, border: `2px solid ${tier.colour}55` }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 10 }}>
             <MetricsAvatar name={playerName} size={44} />
@@ -322,6 +325,16 @@ export default function Metrics({ isAdmin }) {
             );
           })}
         </div>
+        </div>
+
+        <ShareButton
+          label="SHARE OVR"
+          getNode={() => summaryCardRef.current}
+          caption={`${playerName} — Section FC Metrics OVR ${ovr} (${tier.label})`}
+          filename="section-fc-metrics-ovr.png"
+          urlPath="/"
+          style={{ width: '100%', padding: '14px', marginBottom: 10, fontSize: '.85rem' }}
+        />
 
         <button
           className="btn btn-y"
