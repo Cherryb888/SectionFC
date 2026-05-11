@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from './firebase';
 import {
   doc, collection, onSnapshot, setDoc, updateDoc, getDoc, deleteDoc, increment
 } from 'firebase/firestore';
 import Metrics from './Metrics';
+import { ShareButton, useShareableCard } from './share';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const ADMIN_PIN = 'sfc2024'; // Change this to your own PIN
@@ -326,6 +327,175 @@ function Avatar({ name, size=38, border="#e8ff0055" }) {
   return <img src={src} alt={name} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",border:`2px solid ${border}`,flexShrink:0}} />;
 }
 
+// ── Share cards ──────────────────────────────────────────────────────────────
+// Clean cards used by `useShareableCard()` for per-player / per-fixture shares.
+// Width is fixed so the screenshot has a predictable size on WhatsApp.
+
+function ShareCardFrame({ width=560, children }) {
+  return (
+    <div style={{width,padding:"22px 22px 18px",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",border:"1px solid #e8ff0033",boxSizing:"border-box"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,paddingBottom:10,borderBottom:"1px solid #ffffff14"}}>
+        <img src="/crest.png" alt="" style={{width:34,height:34,objectFit:"contain",filter:"drop-shadow(0 0 6px #e8ff0099)"}} />
+        <div>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:4,fontSize:".85rem",color:"#e8ff00"}}>SECTION FC</div>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontStyle:"italic",letterSpacing:2,fontSize:".55rem",color:"#ffffff55"}}>PLAY WITH YOUR HEART ON YOUR SLEEVE</div>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function PlayerRatingShareCard({ player, opponent, date, sfcScore, oppScore }) {
+  const r = player.rating !== "" && player.rating !== undefined ? parseFloat(player.rating) : null;
+  const rc = r != null ? getRatingColor(r) : "#ffffff22";
+  const score = (sfcScore != null && oppScore != null) ? `${sfcScore}–${oppScore}` : null;
+  return (
+    <ShareCardFrame>
+      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#e8ff0099",marginBottom:6}}>◆ PLAYER RATING</div>
+      <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:14}}>
+        <Avatar name={player.name} size={72} border="#e8ff00aa" />
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1.5rem",letterSpacing:.5,lineHeight:1.1}}>{player.name}</div>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffff66",letterSpacing:2,marginTop:4}}>{player.pos}</div>
+          {(opponent || score || date) && (
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffff88",letterSpacing:1,marginTop:6}}>
+              {opponent && <span>vs {opponent}</span>}
+              {score && <span style={{color:"#ffffffcc",marginLeft:6,fontWeight:700}}>{score}</span>}
+              {date && <span style={{marginLeft:6,color:"#ffffff55"}}>· {date}</span>}
+            </div>
+          )}
+        </div>
+        {r != null && (
+          <div style={{width:88,height:88,borderRadius:8,background:`${rc}22`,border:`3px solid ${rc}`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:900,fontSize:"2rem",color:rc,lineHeight:1}}>{r.toFixed(1)}</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".5rem",letterSpacing:2,color:rc,marginTop:2}}>RATING</div>
+          </div>
+        )}
+      </div>
+      <div style={{display:"flex",gap:14,flexWrap:"wrap",fontFamily:"'Oswald',sans-serif",fontSize:".82rem",color:"#ffffffcc",letterSpacing:1}}>
+        {player.goals>0    && <div>⚽ {player.goals} GOAL{player.goals>1?"S":""}</div>}
+        {player.assists>0  && <div>🅰 {player.assists} ASSIST{player.assists>1?"S":""}</div>}
+        {player.yellows>0  && <div style={{color:"#f5c518"}}>🟨 {player.yellows}</div>}
+        {player.reds>0     && <div style={{color:"#ff4444"}}>🟥 {player.reds}</div>}
+        {player.cleanSheet && <div style={{color:"#44dd88"}}>🧤 CLEAN SHEET</div>}
+        {player.motm       && <div style={{color:"#e8ff00",fontWeight:800}}>★ MAN OF THE MATCH</div>}
+      </div>
+    </ShareCardFrame>
+  );
+}
+
+function PlayerFormShareCard({ name, games }) {
+  const list = (games || []).slice(0, 5);
+  const avg = list.length ? (list.reduce((s,g)=>s+parseFloat(g.rating||0),0)/list.length) : 0;
+  const avgC = list.length ? getRatingColor(avg) : "#ffffff22";
+  return (
+    <ShareCardFrame>
+      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#e8ff0099",marginBottom:6}}>◆ PLAYER FORM · LAST {list.length || 5}</div>
+      <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:14}}>
+        <Avatar name={name} size={64} border="#e8ff00aa" />
+        <div style={{flex:1}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1.4rem",letterSpacing:.5}}>{name}</div>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".68rem",color:"#ffffff66",letterSpacing:2,marginTop:4}}>FORM AVG · <span style={{color:avgC,fontWeight:700}}>{list.length?avg.toFixed(2):"—"}</span></div>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {list.length === 0 && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffff44",letterSpacing:2}}>NO GAMES YET</div>}
+        {list.map((g,i) => {
+          const c = getRatingColor(parseFloat(g.rating));
+          return (
+            <div key={i} style={{width:88,height:74,borderRadius:8,background:`${c}1f`,border:`2px solid ${c}`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"4px 6px"}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1.25rem",color:c,lineHeight:1}}>{parseFloat(g.rating).toFixed(1)}</div>
+              {g.opp && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".5rem",letterSpacing:1,color:"#ffffffaa",marginTop:3,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.opp}</div>}
+              {g.date && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".48rem",letterSpacing:1,color:"#ffffff55",marginTop:1}}>{g.date}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </ShareCardFrame>
+  );
+}
+
+function FixtureShareCard({ fixture, label = "NEXT MATCH" }) {
+  const sfcHome = isSFC(fixture.home);
+  const opp = sfcHome ? fixture.away : fixture.home;
+  return (
+    <ShareCardFrame width={520}>
+      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#e8ff0099",marginBottom:10}}>◆ {label}</div>
+      <div style={{textAlign:"center",padding:"12px 0 6px"}}>
+        <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1.6rem",letterSpacing:.5,lineHeight:1.1,marginBottom:8}}>
+          <span style={{color:"#e8ff00"}}>SECTION FC</span>
+          <span style={{color:"#ffffff30",margin:"0 12px",fontWeight:300}}>vs</span>
+          <span style={{color:"#ff6644"}}>{opp === "VACANCY" ? "TBD" : opp}</span>
+        </div>
+        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".8rem",color:"#ffffffcc",letterSpacing:2,marginTop:6}}>
+          {fixture.date} · {fixture.time}
+        </div>
+        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#ffffff55",letterSpacing:2,marginTop:4}}>
+          {fixture.pitch} · {sfcHome ? "HOME" : "AWAY"}
+        </div>
+      </div>
+    </ShareCardFrame>
+  );
+}
+
+function ResultShareCard({ sfcScore, oppScore, opponent, date, motm }) {
+  const won = sfcScore > oppScore;
+  const lost = sfcScore < oppScore;
+  const tag = won ? {label:"WIN",col:"#44dd88"} : lost ? {label:"LOSS",col:"#ff5544"} : {label:"DRAW",col:"#ffffffcc"};
+  return (
+    <ShareCardFrame width={520}>
+      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#e8ff0099",marginBottom:10}}>◆ LAST RESULT</div>
+      <div style={{textAlign:"center"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginBottom:6}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1.2rem",color:"#e8ff00",letterSpacing:.5}}>SECTION FC</div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginBottom:6}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:900,fontSize:"3.4rem",color:"#fff",lineHeight:1,minWidth:48,textAlign:"right"}}>{sfcScore}</div>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:300,fontSize:"1.6rem",color:"#ffffff30"}}>–</div>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:900,fontSize:"3.4rem",color:"#ff6644",lineHeight:1,minWidth:48,textAlign:"left"}}>{oppScore}</div>
+        </div>
+        <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1.05rem",color:"#ff6644",letterSpacing:1}}>{opponent}</div>
+        {date && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".68rem",color:"#ffffff55",letterSpacing:2,marginTop:4}}>{date}</div>}
+        <div style={{display:"inline-block",marginTop:12,padding:"5px 14px",background:`${tag.col}1c`,border:`1px solid ${tag.col}66`,fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".75rem",letterSpacing:3,color:tag.col}}>{tag.label}</div>
+        {motm && (
+          <div style={{marginTop:14,padding:"10px 14px",background:"#e8ff000a",border:"1px solid #e8ff0033",display:"flex",alignItems:"center",gap:10}}>
+            <Avatar name={motm.name} size={40} border="#e8ff0099" />
+            <div style={{flex:1,textAlign:"left"}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".5rem",letterSpacing:3,color:"#e8ff0088"}}>★ MAN OF THE MATCH</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1rem"}}>{motm.name}</div>
+            </div>
+            {motm.rating !== "" && motm.rating != null && (
+              <div style={{width:42,height:42,borderRadius:5,background:`${getRatingColor(parseFloat(motm.rating))}22`,border:`2px solid ${getRatingColor(parseFloat(motm.rating))}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".95rem",color:getRatingColor(parseFloat(motm.rating))}}>{parseFloat(motm.rating).toFixed(1)}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </ShareCardFrame>
+  );
+}
+
+function LeaderboardShareCard({ title, subtitle, rows, valueKey = 'pts', valueSuffix = 'pts' }) {
+  return (
+    <ShareCardFrame>
+      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#e8ff0099",marginBottom:6}}>◆ {title}</div>
+      {subtitle && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffff88",letterSpacing:1,marginBottom:12}}>{subtitle}</div>}
+      <div>
+        {rows.slice(0,10).map((row, i) => (
+          <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",background:i===0?"#e8ff0010":i%2===0?"transparent":"#ffffff04",borderBottom:"1px solid #ffffff0c"}}>
+            <div style={{width:22,fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".95rem",color:i===0?"#e8ff00":i===1?"#aaa":i===2?"#cd7f32":"#ffffff66",textAlign:"center"}}>{i+1}</div>
+            <Avatar name={row.name || row.player} size={32} />
+            <div style={{flex:1,fontFamily:"'Oswald',sans-serif",fontWeight:i===0?700:500,fontSize:".95rem"}}>{row.name || row.player}</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1rem",color:i===0?"#e8ff00":"#fff"}}>{row[valueKey]}<span style={{fontWeight:400,fontSize:".58rem",color:"#ffffff44",marginLeft:3,letterSpacing:1}}>{valueSuffix}</span></div>
+          </div>
+        ))}
+      </div>
+    </ShareCardFrame>
+  );
+}
+
 // ── Admin PIN Modal ───────────────────────────────────────────────────────────
 function AdminModal({ isAdmin, onClose, onLogin, onLogout }) {
   const [pin, setPin] = useState("");
@@ -449,6 +619,18 @@ export default function App() {
   // Home screen admin seed form
   const [showSeedForm, setShowSeedForm] = useState(false);
   const [seedInput,    setSeedInput]    = useState('');
+
+  // Share — off-screen card renderer + per-screen capture refs.
+  const shareCard          = useShareableCard();
+  const refHomeLastResult  = useRef(null);
+  const refHomeNextMatch   = useRef(null);
+  const refReport          = useRef(null);
+  const refSquad           = useRef(null);
+  const refHallOfFame      = useRef(null);
+  const refStatsTable      = useRef(null);
+  const refPlayerForm      = useRef(null);
+  const refPredictorBoard  = useRef(null);
+  const refFixtures        = useRef(null);
 
   // ── Firebase listeners ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -936,9 +1118,24 @@ export default function App() {
           </div>
 
           {/* ── NEXT MATCH ── */}
-          <div style={{background: isMatchDay ? "#e8ff0010" : "#ffffff06", border:`1px solid ${isMatchDay?"#e8ff0044":"#ffffff14"}`,padding:"20px 20px 18px"}}>
-            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff40",marginBottom:10}}>
-              {isMatchDay ? "⚡ MATCHDAY" : "◆ NEXT MATCH"}
+          <div ref={refHomeNextMatch} style={{background: isMatchDay ? "#e8ff0010" : "#ffffff06", border:`1px solid ${isMatchDay?"#e8ff0044":"#ffffff14"}`,padding:"20px 20px 18px"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,gap:8}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff40"}}>
+                {isMatchDay ? "⚡ MATCHDAY" : "◆ NEXT MATCH"}
+              </div>
+              {nextMatch && (
+                <ShareButton
+                  variant="icon"
+                  onShare={() => shareCard.share(
+                    <FixtureShareCard fixture={nextMatch} label={isMatchDay?"MATCHDAY":"NEXT MATCH"} />,
+                    {
+                      filename:"section-fc-next-match.png",
+                      caption:`Next up: SECTION FC ${isSFC(nextMatch.home)?"vs":"@"} ${isSFC(nextMatch.home)?nextMatch.away:nextMatch.home} — ${nextMatch.date} ${nextMatch.time}`,
+                      urlPath:"/",
+                    }
+                  )}
+                />
+              )}
             </div>
             {nextMatch ? (
               <>
@@ -1000,8 +1197,21 @@ export default function App() {
 
           {/* ── LAST RESULT ── */}
           {lastResult ? (
-            <div style={{background:"#ffffff06",border:"1px solid #ffffff14",padding:"18px 20px"}}>
-              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff40",marginBottom:10}}>◆ LAST RESULT</div>
+            <div ref={refHomeLastResult} style={{background:"#ffffff06",border:"1px solid #ffffff14",padding:"18px 20px"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,gap:8}}>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff40"}}>◆ LAST RESULT</div>
+                <ShareButton
+                  variant="icon"
+                  onShare={() => shareCard.share(
+                    <ResultShareCard sfcScore={lastResult.sfcScore} oppScore={lastResult.oppScore} opponent={lastResult.opponent} date={lastResult.date} motm={motmPlayer} />,
+                    {
+                      filename:"section-fc-result.png",
+                      caption:`SECTION FC ${lastResult.sfcScore}–${lastResult.oppScore} ${lastResult.opponent}${motmPlayer?` · MOTM: ${motmPlayer.name}`:""}`,
+                      urlPath:"/",
+                    }
+                  )}
+                />
+              </div>
               <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"}}>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:900,fontSize:"clamp(1.8rem,6vw,2.6rem)",color:"#fff",lineHeight:1}}>{lastResult.sfcScore}</div>
@@ -1182,6 +1392,7 @@ export default function App() {
 
         </main>
         {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+        {shareCard.portal}
       </div>
     );
   }
@@ -1211,11 +1422,11 @@ export default function App() {
       );
     };
 
-    const StatsTable = ({ data, updateFn }) => {
+    const StatsTable = ({ data, updateFn, captureRef }) => {
       const allP = [...new Set([...KNOWN_PLAYERS, ...squad])].filter(p => data[p]);
       const sorted = [...allP].sort((a,b) => (data[b][sortStat]||0) - (data[a][sortStat]||0));
       return (
-        <div style={{overflowX:"auto"}}>
+        <div ref={captureRef} style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse",minWidth:580}}>
             <thead>
               <tr style={{borderBottom:"2px solid #e8ff00"}}>
@@ -1253,7 +1464,7 @@ export default function App() {
       return (
         <div>
           {isAdmin && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".56rem",letterSpacing:3,color:"#ffffff35",marginBottom:12}}>CLICK + TO ADD GAME · CLICK RATING TO EDIT</div>}
-          <div style={{display:"flex",flexDirection:"column",gap:2}}>
+          <div ref={refPlayerForm} style={{display:"flex",flexDirection:"column",gap:2}}>
             {playersWithForm.map((player, pi) => {
               const games = playerFormData[player]?.games || [];
               const isAdding = addingFormGame === player;
@@ -1262,7 +1473,17 @@ export default function App() {
                   <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
                     <div style={{display:"flex",alignItems:"center",gap:9,minWidth:155,flexShrink:0}}>
                       <Avatar name={player} size={36} />
-                      <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".88rem"}}>{player}</div>
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".88rem",flex:1}}>{player}</div>
+                      {games.length > 0 && (
+                        <ShareButton
+                          variant="icon"
+                          size={26}
+                          onShare={() => shareCard.share(
+                            <PlayerFormShareCard name={player} games={games} />,
+                            { filename:`section-fc-${firstWord(player).toLowerCase()}-form.png`, caption:`${player} — recent form`, urlPath:"/" }
+                          )}
+                        />
+                      )}
                     </div>
                     <div style={{display:"flex",gap:5,flexWrap:"wrap",flex:1,alignItems:"center"}}>
                       {Array.from({length:5}).map((_,gi) => {
@@ -1364,8 +1585,24 @@ export default function App() {
           </div>
           {statsTab === "season" && (
             <>
-              {isAdmin && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".56rem",letterSpacing:3,color:"#ffffff35",marginBottom:9}}>CLICK ANY STAT TO EDIT · CLICK HEADER TO SORT</div>}
-              <StatsTable data={stats} updateFn={updateStat} />
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:9,flexWrap:"wrap"}}>
+                {isAdmin
+                  ? <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".56rem",letterSpacing:3,color:"#ffffff35"}}>CLICK ANY STAT TO EDIT · CLICK HEADER TO SORT</div>
+                  : <span />}
+                <ShareButton
+                  label="SHARE TABLE"
+                  onShare={() => {
+                    const allP = [...new Set([...KNOWN_PLAYERS, ...squad])].filter(p => stats[p]);
+                    const sorted = [...allP].sort((a,b) => (stats[b][sortStat]||0) - (stats[a][sortStat]||0));
+                    const rows = sorted.map(p => ({ name: p, [sortStat]: stats[p][sortStat]||0 }));
+                    return shareCard.share(
+                      <LeaderboardShareCard title={`SEASON · TOP ${STAT_LABELS[sortStat]}`} subtitle="Section FC" rows={rows} valueKey={sortStat} valueSuffix="" />,
+                      { filename:"section-fc-season-leaders.png", caption:`Section FC — season ${STAT_LABELS[sortStat]} leaders`, urlPath:"/" }
+                    );
+                  }}
+                />
+              </div>
+              <StatsTable data={stats} updateFn={updateStat} captureRef={refStatsTable} />
               {isAdmin && (
                 <div style={{marginTop:24,paddingTop:18,borderTop:"1px solid #ffffff10"}}>
                   <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:3,color:"#ff666688",marginBottom:8}}>◆ DANGER ZONE</div>
@@ -1398,6 +1635,7 @@ export default function App() {
           {statsTab === "form" && <PlayerFormView />}
         </main>
         {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+        {shareCard.portal}
       </div>
     );
   }
@@ -1447,6 +1685,7 @@ export default function App() {
         </div>
       </main>
       {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+        {shareCard.portal}
     </div>
   );
 
@@ -1460,10 +1699,20 @@ export default function App() {
       <main style={{padding:"22px 14px",maxWidth:680,margin:"0 auto"}}>
 
         {/* ── Upcoming Fixtures ── */}
-        <div style={{marginBottom:20}}>
-          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ UPCOMING FIXTURES</div>
-          <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>FIXTURES & RESULTS</h1>
+        <div style={{marginBottom:20,display:"flex",alignItems:"flex-end",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
+          <div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ UPCOMING FIXTURES</div>
+            <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>FIXTURES & RESULTS</h1>
+          </div>
+          <ShareButton
+            label="SHARE FIXTURES"
+            getNode={() => refFixtures.current}
+            caption="SECTION FC — upcoming fixtures"
+            filename="section-fc-fixtures.png"
+            urlPath="/"
+          />
         </div>
+        <div ref={refFixtures}>
         {FIXTURES.map((gw, gi) => (
           <div key={gi} style={{marginBottom:24,animation:"fadeUp .4s ease both",animationDelay:`${gi*.08}s`}}>
             <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",letterSpacing:3,color:"#e8ff00",marginBottom:10,paddingBottom:8,borderBottom:"1px solid #e8ff0033"}}>{gw.date}</div>
@@ -1477,12 +1726,29 @@ export default function App() {
                     <div style={{padding:"3px 8px",background:"#ffffff10",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".68rem",color:"#ffffff44",flexShrink:0}}>VS</div>
                     <div style={{flex:1,fontFamily:"'Oswald',sans-serif",fontWeight:isSFC(m.away)?700:500,fontSize:".9rem",color:isSFC(m.away)?"#e8ff00":"#ffffffbb"}}>{m.away==="VACANCY"?"TBD":m.away}</div>
                   </div>
-                  <div style={{width:52,textAlign:"right",fontFamily:"'Oswald',sans-serif",fontSize:".58rem",color:"#ffffff25",flexShrink:0}}>{m.pitch}</div>
+                  <div style={{width:52,textAlign:"right",fontFamily:"'Oswald',sans-serif",fontSize:".58rem",color:"#ffffff25",flexShrink:0,marginRight:6}}>{m.pitch}</div>
+                  {sfcGame && (
+                    <span data-share-hide="1">
+                      <ShareButton
+                        variant="icon"
+                        size={26}
+                        onShare={() => shareCard.share(
+                          <FixtureShareCard fixture={{...m, date: gw.date}} label="FIXTURE" />,
+                          {
+                            filename:"section-fc-fixture.png",
+                            caption:`SECTION FC ${isSFC(m.home)?"vs":"@"} ${isSFC(m.home)?m.away:m.home} — ${gw.date} ${m.time}`,
+                            urlPath:"/",
+                          }
+                        )}
+                      />
+                    </span>
+                  )}
                 </div>
               );
             })}
           </div>
         ))}
+        </div>
 
         {/* ── Past Results ── */}
         {PAST_RESULTS.length > 0 && (
@@ -1522,6 +1788,7 @@ export default function App() {
 
       </main>
       {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+        {shareCard.portal}
     </div>
   );
 
@@ -1547,7 +1814,7 @@ export default function App() {
           </div>
         </div>
         <div key={activeAward} className="award-card" style={{maxWidth:400,margin:"0 auto",padding:"0 20px 30px"}}>
-          <div style={{position:"relative",background:`radial-gradient(ellipse at 50% 40%, ${aw.glow}, transparent 70%)`,borderRadius:12,border:`1px solid ${aw.color}33`,padding:"28px 20px 22px",textAlign:"center"}}>
+          <div ref={refHallOfFame} style={{position:"relative",background:`radial-gradient(ellipse at 50% 40%, ${aw.glow}, transparent 70%)`,borderRadius:12,border:`1px solid ${aw.color}33`,padding:"28px 20px 22px",textAlign:"center"}}>
             <div style={{fontSize:"3.2rem",marginBottom:8,lineHeight:1}} className="trophy">{aw.icon}</div>
             <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1.5rem,5vw,2.3rem)",letterSpacing:-1,color:aw.color,marginBottom:3,textTransform:"uppercase"}}>{aw.name}</div>
             <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".68rem",letterSpacing:3,color:"#ffffff44",marginBottom:22}}>{aw.desc}</div>
@@ -1565,7 +1832,7 @@ export default function App() {
             )}
             {isAdmin && (
               editingAwards ? (
-                <div style={{marginTop:16}}>
+                <div data-share-hide="1" style={{marginTop:16}}>
                   <select value={winner||""} onChange={e => saveAward(aw.id, e.target.value)} style={{width:"100%",marginBottom:10}}>
                     <option value="">— Remove winner —</option>
                     {allForSelect.map(p => <option key={p} value={p}>{p}</option>)}
@@ -1573,10 +1840,21 @@ export default function App() {
                   <button className="btn btn-y" onClick={() => setEditingAwards(false)} style={{width:"100%",padding:"10px"}}>DONE ✓</button>
                 </div>
               ) : (
-                <button className="btn btn-ghost" onClick={() => setEditingAwards(true)} style={{marginTop:14}}>✏️ ASSIGN WINNER</button>
+                <button data-share-hide="1" className="btn btn-ghost" onClick={() => setEditingAwards(true)} style={{marginTop:14}}>✏️ ASSIGN WINNER</button>
               )
             )}
           </div>
+          {winner && (
+            <div style={{marginTop:12,display:"flex",justifyContent:"center"}}>
+              <ShareButton
+                label={`SHARE ${aw.name.toUpperCase()}`}
+                getNode={() => refHallOfFame.current}
+                caption={`${winner} — ${aw.name} 🏆`}
+                filename={`section-fc-${aw.id}.png`}
+                urlPath="/"
+              />
+            </div>
+          )}
           <div style={{display:"flex",justifyContent:"space-between",marginTop:12}}>
             <button className="btn btn-ghost" onClick={() => { setActiveAward(i => (i-1+AWARDS.length)%AWARDS.length); setEditingAwards(false); }}>← PREV</button>
             <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#ffffff30",letterSpacing:2,alignSelf:"center"}}>{activeAward+1} / {AWARDS.length}</span>
@@ -1584,6 +1862,7 @@ export default function App() {
           </div>
         </div>
         {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+        {shareCard.portal}
       </div>
     );
   }
@@ -1994,7 +2273,17 @@ export default function App() {
         {/* Season Leaderboard */}
         {seasonPreds.length > 0 && (
           <div style={{marginTop:8}}>
-            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:3,color:"#e8ff00",marginBottom:10,paddingTop:14,borderTop:"1px solid #ffffff0e"}}>🏆 SEASON LEADERBOARD</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:10,paddingTop:14,borderTop:"1px solid #ffffff0e"}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:3,color:"#e8ff00"}}>🏆 SEASON LEADERBOARD</div>
+              <ShareButton
+                variant="icon"
+                onShare={() => shareCard.share(
+                  <LeaderboardShareCard title="PREDICTOR · SEASON LEADERBOARD" subtitle="Section FC" rows={seasonPreds.map(p => ({ name:p.player, pts:p.pts }))} valueKey="pts" valueSuffix="pts" />,
+                  { filename:"section-fc-predictor-leaderboard.png", caption:"Section FC Predictor — season leaderboard", urlPath:"/" }
+                )}
+              />
+            </div>
+            <div ref={refPredictorBoard}>
             {seasonPreds.map((p, i) => (
               <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:i===0?"#e8ff0010":"#ffffff05",border:`1px solid ${i===0?"#e8ff0033":"#ffffff0a"}`,marginBottom:4}}>
                 <div style={{width:22,fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1rem",color:i===0?"#e8ff00":i===1?"#aaa":i===2?"#cd7f32":"#ffffff44",textAlign:"center"}}>{i+1}</div>
@@ -2004,10 +2293,12 @@ export default function App() {
                 <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1.1rem",color:i===0?"#e8ff00":"#fff",minWidth:40,textAlign:"right"}}>{p.pts}pts</div>
               </div>
             ))}
+            </div>
           </div>
         )}
       </main>
       {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+        {shareCard.portal}
     </div>
   );
 
@@ -2020,6 +2311,7 @@ export default function App() {
       <Header {...sharedProps} />
       <Metrics isAdmin={isAdmin} />
       {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+        {shareCard.portal}
     </div>
   );
 
@@ -2058,6 +2350,7 @@ export default function App() {
         <button className="btn btn-y" onClick={goPick} disabled={squad.length<5||!oIn.trim()} style={{width:"100%",padding:"14px",fontSize:"1rem"}}>PICK YOUR TEAM →</button>
       </main>
       {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+        {shareCard.portal}
     </div>
   );
 
@@ -2156,6 +2449,7 @@ export default function App() {
           <button className="btn btn-ghost" onClick={() => setScreen("setup")} style={{width:"100%",marginTop:8}}>← BACK</button>
         </main>
         {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+        {shareCard.portal}
       </div>
     );
   }
@@ -2234,6 +2528,7 @@ export default function App() {
           </div>
         </main>
         {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+        {shareCard.portal}
       </div>
     );
   }
@@ -2271,8 +2566,32 @@ export default function App() {
     };
 
     // ── Public (applied) report view ───────────────────────────────────────
-    const PublishedView = ({ r }) => (
+    const PublishedView = ({ r }) => {
+      const motm = r.players?.find(p => p.motm && p.played);
+      return (
       <div style={{animation:"fadeUp .4s ease"}}>
+        {/* Share whole report */}
+        <div ref={refReport}>
+        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10,gap:8}} data-share-hide="1">
+          <ShareButton
+            label="SHARE RESULT"
+            onShare={() => shareCard.share(
+              <ResultShareCard sfcScore={r.sfcScore} oppScore={r.oppScore} opponent={r.opponent} date={r.date} motm={motm} />,
+              {
+                filename:"section-fc-result.png",
+                caption:`SECTION FC ${r.sfcScore}–${r.oppScore} ${r.opponent}${motm?` · MOTM: ${motm.name}`:""}`,
+                urlPath:"/",
+              }
+            )}
+          />
+          <ShareButton
+            label="SHARE REPORT"
+            getNode={() => refReport.current}
+            caption={`Match report: SECTION FC ${r.sfcScore}–${r.oppScore} ${r.opponent}`}
+            filename="section-fc-match-report.png"
+            urlPath="/"
+          />
+        </div>
         {/* Match result header */}
         <div style={{background:"#ffffff06",border:"1px solid #ffffff12",padding:"18px 16px",marginBottom:18,textAlign:"center"}}>
           <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#ffffff44",marginBottom:8}}>{r.date}</div>
@@ -2295,6 +2614,7 @@ export default function App() {
           <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#ffffff38",marginBottom:10}}>PLAYER RATINGS & STATS</div>
           {r.players.filter(p=>p.played).map((p,i) => {
             const rc = p.rating!==undefined&&p.rating!=="" ? getRatingColor(parseFloat(p.rating)) : "#ffffff22";
+            const ratingTxt = (p.rating!==""&&p.rating!=null) ? ` ${parseFloat(p.rating).toFixed(1)}` : '';
             return (
               <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:i%2===0?"transparent":"#ffffff04",borderBottom:"1px solid #ffffff07",flexWrap:"wrap"}}>
                 <Avatar name={p.name} size={34} />
@@ -2317,6 +2637,18 @@ export default function App() {
                   {p.cleanSheet  && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#44dd88"}}>🧤 CS</div>}
                   {p.motm        && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#e8ff00",fontWeight:700}}>★ MOTM</div>}
                 </div>
+                <ShareButton
+                  variant="icon"
+                  size={26}
+                  onShare={() => shareCard.share(
+                    <PlayerRatingShareCard player={p} opponent={r.opponent} date={r.date} sfcScore={r.sfcScore} oppScore={r.oppScore} />,
+                    {
+                      filename:`section-fc-${firstWord(p.name).toLowerCase()}-rating.png`,
+                      caption:`${p.name}${ratingTxt} vs ${r.opponent} (${r.sfcScore}–${r.oppScore})`,
+                      urlPath:"/",
+                    }
+                  )}
+                />
               </div>
             );
           })}
@@ -2330,14 +2662,16 @@ export default function App() {
           </div>
         )}
 
+        </div>
         {isAdmin && (
-          <button className="btn btn-ghost" onClick={() => { setReportDraft({...r, applied:false}); }}
+          <button data-share-hide="1" className="btn btn-ghost" onClick={() => { setReportDraft({...r, applied:false}); }}
             style={{width:"100%",fontSize:".62rem",color:"#ff555588",borderColor:"#ff555533"}}>
             ✕ REOPEN FOR EDITING (will NOT reverse stat changes)
           </button>
         )}
       </div>
-    );
+      );
+    };
 
     // ── Admin editing form ─────────────────────────────────────────────────
     const EditForm = ({ d, isCorrection }) => (
@@ -2540,6 +2874,7 @@ export default function App() {
           )}
         </main>
         {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+        {shareCard.portal}
       </div>
     );
   }
@@ -2555,6 +2890,16 @@ export default function App() {
       const published = new Date(sq.publishedAt).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
       return (
         <div style={{animation:"fadeUp .4s ease"}}>
+          <div data-share-hide="1" style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
+            <ShareButton
+              label="SHARE SQUAD"
+              getNode={() => refSquad.current}
+              caption={`SECTION FC vs ${sq.oppName} — squad`}
+              filename="section-fc-squad.png"
+              urlPath="/"
+            />
+          </div>
+          <div ref={refSquad}>
           <div style={{textAlign:"center",marginBottom:14}}>
             <div style={{display:"inline-flex",alignItems:"center",gap:8,background:"#00cc5518",border:"1px solid #00cc5544",padding:"5px 14px",borderRadius:3,marginBottom:10}}>
               <div style={{width:7,height:7,borderRadius:"50%",background:"#00cc55",boxShadow:"0 0 6px #00cc55"}} />
@@ -2630,9 +2975,10 @@ export default function App() {
               </div>
             </div>
           )}
+          </div>
           {isAdmin && <SquadStatsPanel sq={sq} />}
           {isAdmin && (
-            <button className="btn btn-ghost" onClick={async () => { await clearSquad(); }}
+            <button data-share-hide="1" className="btn btn-ghost" onClick={async () => { await clearSquad(); }}
               style={{width:"100%",marginTop:4,color:"#ff555588",borderColor:"#ff555533",fontSize:".62rem"}}>
               ✕ CLEAR PUBLISHED SQUAD
             </button>
@@ -2801,6 +3147,7 @@ export default function App() {
           )}
         </main>
         {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+        {shareCard.portal}
       </div>
     );
   }
