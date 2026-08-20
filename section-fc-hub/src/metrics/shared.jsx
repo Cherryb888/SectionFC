@@ -5,7 +5,8 @@ export const SQUAD = [
   "Ben Higgs", "Jeven Dhillon", "George Mcnulty", "Dani Griffiths",
   "Hugo Hansen", "Hayden Hunter", "Lewis Fowler", "Guy Horton",
   "Max Murray", "Ian Healey", "Freddie Palmer", "Jake Graham",
-  "Callum Dagnall", "Tom Beeston",
+  "Callum Dagnall", "Tom Beeston", "Mooney", "Ollie McBall",
+  "Evan Von",
 ];
 
 export const AVATAR_SRC = Object.fromEntries(SQUAD.map(n => [

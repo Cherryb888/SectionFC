@@ -28,6 +28,9 @@ const PLAYER_IMGS = {
   "Jake Graham":     "/players/jake-graham.jpg",
   "Callum Dagnall":  "/players/callum-dagnall.jpg",
   "Tom Beeston":     "/players/tom-beeston.jpg",
+  "Mooney":          "/players/mooney.jpg",
+  "Ollie McBall":    "/players/ollie-mcball.jpg",
+  "Evan Von":        "/players/evan-von.jpg",
 };
 
 const LEAGUE_TABLE = [
