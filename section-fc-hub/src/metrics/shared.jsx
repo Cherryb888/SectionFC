@@ -6,12 +6,17 @@ export const SQUAD = [
   "Hugo Hansen", "Hayden Hunter", "Lewis Fowler", "Guy Horton",
   "Max Murray", "Ian Healey", "Freddie Palmer", "Jake Graham",
   "Callum Dagnall", "Tom Beeston", "Mooney", "Ollie McBall",
-  "Evan Von",
+  "Evan Von", "Akiat", "Chiz", "Mo",
 ];
 
-export const AVATAR_SRC = Object.fromEntries(SQUAD.map(n => [
-  n, `/players/${n.toLowerCase().replace(/\s+/g, '-')}.jpg`,
-]));
+// Squad members without a photo yet — MetricsAvatar falls back to initials.
+const NO_PHOTO = ["Akiat", "Chiz", "Mo"];
+
+export const AVATAR_SRC = Object.fromEntries(
+  SQUAD.filter(n => !NO_PHOTO.includes(n)).map(n => [
+    n, `/players/${n.toLowerCase().replace(/\s+/g, '-')}.jpg`,
+  ])
+);
 
 export function MetricsAvatar({ name, size = 40, border = "#e8ff0055", style = {} }) {
   const src = AVATAR_SRC[name];
