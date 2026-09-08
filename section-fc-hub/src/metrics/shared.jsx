@@ -6,11 +6,11 @@ export const SQUAD = [
   "Hugo Hansen", "Hayden Hunter", "Lewis Fowler", "Guy Horton",
   "Max Murray", "Ian Healey", "Freddie Palmer", "Jake Graham",
   "Callum Dagnall", "Tom Beeston", "Mooney", "Ollie McBall",
-  "Evan Von", "Akiat", "Chiz",
+  "Evan Von", "Akiat", "Chiz", "Mo",
 ];
 
 // Squad members without a photo yet — MetricsAvatar falls back to initials.
-const NO_PHOTO = ["Akiat", "Chiz"];
+const NO_PHOTO = ["Akiat", "Chiz", "Mo"];
 
 export const AVATAR_SRC = Object.fromEntries(
   SQUAD.filter(n => !NO_PHOTO.includes(n)).map(n => [
