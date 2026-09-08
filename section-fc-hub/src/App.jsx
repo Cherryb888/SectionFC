@@ -583,6 +583,10 @@ export default function App() {
   // Match report (synced with Firestore + local draft state)
   const [matchReport,  setMatchReport]  = useState(null);
   const [reportDraft,  setReportDraft]  = useState(null);
+  // Guards against a second apply: the ref blocks a double-click within the same
+  // tick (state updates too late for that), the flag drives the button.
+  const [applying,     setApplying]     = useState(false);
+  const applyingRef                     = useRef(false);
 
   // Stats (synced with Firestore)
   const [stats,        setStats]        = useState(initStats());
@@ -867,7 +871,32 @@ export default function App() {
   };
 
   const applyReport = async () => {
-    if (!reportDraft || reportDraft.applied) return;
+    if (!reportDraft || reportDraft.applied || applyingRef.current) return;
+    applyingRef.current = true;
+    setApplying(true);
+    try {
+      await applyReportOnce();
+    } finally {
+      applyingRef.current = false;
+      setApplying(false);
+    }
+  };
+
+  const applyReportOnce = async () => {
+    // A match already in team/form had its stats applied on an earlier press.
+    // Re-applying would double every player's apps, goals and ratings.
+    const guardSnap = await getDoc(doc(db, "team", "form"));
+    const guardResults = guardSnap.exists() ? (guardSnap.data().results || []) : [];
+    if (guardResults.some(r => r.opp === reportDraft.opponent && r.date === reportDraft.date)) {
+      window.alert(
+        `${reportDraft.opponent} on ${reportDraft.date} has already been added to the stats.\n\n` +
+        `Nothing was added a second time. To change the score or the write-up, ` +
+        `use SAVE CORRECTION instead.`
+      );
+      await setDoc(doc(db, "matchday", "report"), { ...reportDraft, applied: true });
+      setReportDraft(null);
+      return;
+    }
     for (const p of reportDraft.players) {
       if (!p.played) continue;
       const upd = {
@@ -2783,12 +2812,12 @@ export default function App() {
           </>
         ) : (
           <>
-            <button className="btn btn-y" onClick={applyReport}
-              style={{width:"100%",padding:"14px",fontSize:".95rem",marginBottom:9,background:"#00cc55",color:"#0a0a0f",letterSpacing:3}}>
-              ✓ CONFIRM &amp; ADD TO STATS
+            <button className="btn btn-y" onClick={applyReport} disabled={applying}
+              style={{width:"100%",padding:"14px",fontSize:".95rem",marginBottom:9,background:applying?"#2a2a2a":"#00cc55",color:applying?"#555":"#0a0a0f",letterSpacing:3}}>
+              {applying ? "ADDING…" : <>✓ CONFIRM &amp; ADD TO STATS</>}
             </button>
             <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:2,color:"#ff5555aa",textAlign:"center",marginBottom:12}}>
-              ⚠ This permanently adds stats to Season, All Time &amp; Player Form — only press once
+              ⚠ Permanently adds stats to Season, All Time &amp; Player Form. Safe to press once — a repeat press is ignored.
             </div>
             <button className="btn btn-ghost" onClick={saveReportDraft} style={{width:"100%",marginBottom:6,fontSize:".72rem"}}>
               SAVE DRAFT (does not update stats)
@@ -3133,12 +3162,12 @@ export default function App() {
 
           {/* One-shot apply: writes stats, ratings, score & written report
               everywhere (season, all-time, player form, team form, archive). */}
-          <button className="btn btn-y" onClick={applyReport}
-            style={{width:"100%",marginTop:14,padding:"13px",fontSize:".82rem",letterSpacing:3,background:"#00cc55",color:"#0a0a0f"}}>
-            ✓ CONFIRM &amp; APPLY ALL
+          <button className="btn btn-y" onClick={applyReport} disabled={applying}
+            style={{width:"100%",marginTop:14,padding:"13px",fontSize:".82rem",letterSpacing:3,background:applying?"#2a2a2a":"#00cc55",color:applying?"#555":"#0a0a0f"}}>
+            {applying ? "APPLYING…" : <>✓ CONFIRM &amp; APPLY ALL</>}
           </button>
           <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,color:"#ff5555aa",textAlign:"center",marginTop:8,lineHeight:1.5}}>
-            ⚠ Permanently updates Season, All Time, Player Form, Team Form &amp; archives the report. Press once.
+            ⚠ Permanently updates Season, All Time, Player Form, Team Form &amp; archives the report. A repeat press is ignored.
           </div>
           <button className="btn btn-ghost" onClick={saveReportDraft}
             style={{width:"100%",marginTop:8,padding:"9px",fontSize:".68rem",letterSpacing:2}}>
