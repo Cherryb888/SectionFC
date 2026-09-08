@@ -1,6 +1,6 @@
 // Applies the two post-match reports we have player data for:
 //   Mon 31 Aug 2026 — SECTION FC 6-4 Drew Peacock FC
-//   Mon  7 Sep 2026 — SECTION FC 6-7 Karachi Athletic FC
+//   Mon  7 Sep 2026 — SECTION FC 6-6 Karachi Athletic FC
 // The Mon 24 Aug win over WSOPC FC (6-2) is in the league data only —
 // no player stats were recorded for it.
 //
@@ -42,7 +42,7 @@ const MATCHES = [
     date:        "Mon 7 Sep 2026",
     opponent:    "Karachi Athletic FC",
     sfcScore:    6,
-    oppScore:    7,
+    oppScore:    6,
     publishedAt: new Date("2026-09-07T20:00:00").getTime(),
     players: [
       { name: "Guy Horton",     pos: "DEF", played: true, goals: 0, assists: 0, yellows: 0, reds: 0, cleanSheet: false, motm: false, rating: "6" },
