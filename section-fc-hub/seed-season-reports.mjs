@@ -10,6 +10,8 @@
 //   Mon 10 Aug 2026 — SECTION FC 5-0 RBCC FC         (walkover, RBCC didn't
 //                     turn up — league result only, no apps or ratings)
 //
+// Chiz and Akiat both made their debuts on Mon 7 Sep 2026.
+//
 // Run with: node seed-season-reports.mjs
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, setDoc, getDoc, increment } from 'firebase/firestore';
@@ -152,6 +154,24 @@ const MATCHES = [
       P("Hayden Hunter",  "ATT", "6", { goals: 2 }),
     ],
     reportText: "Emergency board meeting called after the game — gaffa's contract being investigated. We were so close to the win, after putting in some brilliant work, we failed in our last efforts. All we can do is win our last two games and hope Karachi slip on the soap so we can stay in DIV 1.",
+  },
+  {
+    date:        "Mon 14 Sep 2026",
+    opponent:    "Youre getting 5%",
+    sfcScore:    5,
+    oppScore:    2,
+    publishedAt: new Date("2026-09-14T19:10:00").getTime(),
+    players: [
+      P("Guy Horton",     "DEF", "9.5"),
+      P("Jeven Dhillon",  "GK",  "9.5"),
+      P("Tom Goldsby",    "DEF", "9"),
+      P("Ben Higgs",      "ATT", "9.5", { goals: 2 }),
+      P("George Mcnulty", "ATT", "9.5"),
+      P("Mo",             "ATT", "9.5", { goals: 2 }),
+      P("Chiz",           "ATT", "9.5", { goals: 1 }),
+      P("Hayden Hunter",  "ATT", "9.5"),
+    ],
+    reportText: "The club is inevitable. Attacking excellence, defensive masterclass, goalkeeping brilliance, team spirit. There was nothing the 5% could do — we rattled them and tore apart their team. Thanks to the heroics of the players, crisis is almost averted. Couldn't have asked for more this game. One game week left before the end of the season and we will have turned around a 1 win in our first 11 games disaster season into even more glorious Div 1 football. Whoever we play next week, we beat them.",
   },
 ];
 

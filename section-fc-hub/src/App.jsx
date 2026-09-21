@@ -37,17 +37,26 @@ const PLAYER_IMGS = {
 };
 
 const LEAGUE_TABLE = [
-  { pos:1, team:"Pigs", pl:19, w:18, d:1, l:0, gf:128, ga:25, gd:103, pts:55 },
-  { pos:2, team:"Youre getting 5%", pl:19, w:12, d:1, l:6, gf:116, ga:69, gd:47, pts:37 },
-  { pos:3, team:"Drew Peacock FC", pl:19, w:11, d:1, l:7, gf:97, ga:79, gd:18, pts:34 },
-  { pos:4, team:"RBCC FC", pl:19, w:9, d:2, l:8, gf:69, ga:59, gd:10, pts:29 },
-  { pos:5, team:"Karachi Athletic FC", pl:19, w:7, d:2, l:10, gf:92, ga:95, gd:-3, pts:23 },
-  { pos:6, team:"Booty & Boys", pl:19, w:7, d:1, l:11, gf:80, ga:100, gd:-20, pts:22 },
-  { pos:7, team:"SECTION FC", pl:19, w:5, d:3, l:11, gf:65, ga:90, gd:-25, pts:18 },
-  { pos:8, team:"WSOPC FC", pl:19, w:1, d:1, l:17, gf:44, ga:174, gd:-130, pts:4 },
+  { pos:1, team:"Pigs", pl:20, w:19, d:1, l:0, gf:135, ga:25, gd:110, pts:58 },
+  { pos:2, team:"Youre getting 5%", pl:20, w:12, d:1, l:7, gf:118, ga:74, gd:44, pts:37 },
+  { pos:3, team:"Drew Peacock FC", pl:20, w:11, d:1, l:8, gf:97, ga:86, gd:11, pts:34 },
+  { pos:4, team:"RBCC FC", pl:20, w:10, d:2, l:8, gf:74, ga:60, gd:14, pts:32 },
+  { pos:5, team:"Booty & Boys", pl:20, w:8, d:1, l:11, gf:85, ga:100, gd:-15, pts:25 },
+  { pos:6, team:"Karachi Athletic FC", pl:20, w:7, d:2, l:11, gf:93, ga:100, gd:-7, pts:23 },
+  { pos:7, team:"SECTION FC", pl:20, w:6, d:3, l:11, gf:70, ga:92, gd:-22, pts:21 },
+  { pos:8, team:"WSOPC FC", pl:20, w:1, d:1, l:18, gf:44, ga:179, gd:-135, pts:4 },
 ];
 
 const PAST_RESULTS = [
+  { date:"Mon 14 Sep 2026", matches:[
+    { time:"6:30 PM", home:"WSOPC FC", away:"Booty & Boys", hg:0, ag:5, pitch:"Pitch 2" },
+    // The league's results page has this one down as 4-2. The gaffa's report
+    // says 5-2 and names five scorers, so 5-2 it is — same as the 6-6 at
+    // Karachi, which the results page also had wrong.
+    { time:"7:10 PM", home:"SECTION FC", away:"Youre getting 5%", hg:5, ag:2, pitch:"Pitch 1" },
+    { time:"7:10 PM", home:"Drew Peacock FC", away:"Pigs", hg:0, ag:7, pitch:"Pitch 2" },
+    { time:"7:50 PM", home:"RBCC FC", away:"Karachi Athletic FC", hg:5, ag:1, pitch:"Pitch 1" },
+  ]},
   { date:"Mon 7 Sep 2026", matches:[
     { time:"6:30 PM", home:"RBCC FC", away:"Drew Peacock FC", hg:1, ag:3, pitch:"Pitch 1" },
     { time:"6:30 PM", home:"Karachi Athletic FC", away:"SECTION FC", hg:6, ag:6, pitch:"Pitch 2" },
@@ -165,12 +174,6 @@ const PAST_RESULTS = [
 ];
 
 const FIXTURES = [
-  { date:"Mon 14 Sep 2026", matches:[
-    { time:"6:30 PM",  home:"WSOPC FC",           away:"Booty & Boys",         pitch:"Pitch 2" },
-    { time:"7:10 PM",  home:"Drew Peacock FC",    away:"Pigs",                 pitch:"Pitch 2" },
-    { time:"7:10 PM",  home:"SECTION FC",         away:"Youre getting 5%",     pitch:"Pitch 1" },
-    { time:"7:50 PM",  home:"RBCC FC",            away:"Karachi Athletic FC",  pitch:"Pitch 1" },
-  ]},
   { date:"Mon 21 Sep 2026", matches:[
     { time:"6:30 PM",  home:"Pigs",               away:"Karachi Athletic FC",  pitch:"Pitch 1" },
     { time:"7:10 PM",  home:"Youre getting 5%",   away:"RBCC FC",              pitch:"Pitch 2" },
