@@ -12,6 +12,11 @@
 //
 // Chiz and Akiat both made their debuts on Mon 7 Sep 2026.
 //
+// The Division 1 games below were played by Josh Allenby, not Josh Treharne —
+// they were logged under the wrong Josh at the time. Treharne's record is the
+// Division 2 games plus one Div 1 appearance on 4 May. Corrected in Firestore
+// by fix-josh.mjs; the names here match so a re-run stays correct.
+//
 // Run with: node seed-season-reports.mjs
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, setDoc, getDoc, increment } from 'firebase/firestore';
@@ -80,7 +85,7 @@ const MATCHES = [
     players: [
       P("Guy Horton",     "DEF", "7",   { assists: 1 }),
       P("George Mcnulty", "ATT", "8"),
-      P("Josh Treharne",  "DEF", "9",   { goals: 2 }),
+      P("Josh Allenby",   "DEF", "9",   { goals: 2 }),
       P("Tom Goldsby",    "DEF", "8.5"),
       P("Mooney",         "ATT", "7",   { goals: 2 }),
       P("Rohan Naal",     "GK",  "8",   { assists: 1 }),
@@ -96,7 +101,7 @@ const MATCHES = [
     players: [
       P("Jeven Dhillon",  "GK",  ""),
       P("George Mcnulty", "ATT", "8"),
-      P("Josh Treharne",  "DEF", "9",   { goals: 1 }),
+      P("Josh Allenby",   "DEF", "9",   { goals: 1 }),
       P("Tom Goldsby",    "DEF", "8.5"),
       P("Mooney",         "ATT", "7",   { goals: 2 }),
       P("Ben Higgs",      "ATT", "",    { goals: 1 }),
@@ -115,7 +120,7 @@ const MATCHES = [
       P("Guy Horton",     "DEF", "8.5", { assists: 1 }),
       P("George Mcnulty", "ATT", "8.5"),
       P("Hayden Hunter",  "ATT", "8"),
-      P("Josh Treharne",  "DEF", "8.5"),
+      P("Josh Allenby",   "DEF", "8.5"),
       P("Jeven Dhillon",  "GK",  "8.5"),
       P("Ben Higgs",      "ATT", "9",   { motm: true }),
     ],
@@ -133,7 +138,7 @@ const MATCHES = [
       P("Mooney",         "ATT", "9.5", { goals: 3, assists: 2 }),
       P("George Mcnulty", "ATT", "9.5", { goals: 2 }),
       P("Rohan Naal",     "DEF", "9.5", { assists: 1 }),
-      P("Josh Treharne",  "DEF", "9.5", { goals: 1, assists: 1, motm: true }),
+      P("Josh Allenby",   "DEF", "9.5", { goals: 1, assists: 1, motm: true }),
     ],
     reportText: "The hardest, most savage and diabolically skilful performance we've put in as a club. However, the job's not done yet. 3 games to go, 5 point gap to Karachi Athletic FC — and we play them next week. Gotta keep fighting for these results boys, let's keep it going.",
   },
