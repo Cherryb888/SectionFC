@@ -218,7 +218,7 @@ const SEASON_REVIEW = {
     "For three months this season looked finished. Nine defeats in the first eleven, nine conceded at the Pigs, ten shipped to Drew Peacock, and a squad that some weeks could barely put five on the pitch, never mind a sub. Every table you looked at had us in the bottom two and every neutral had us down for the drop.",
     "Then it turned. Karachi beaten 3-2 in July — \"we are back\" — and from that night on this was a different team. Five past RBCC. Six past WSOPC. Six past Drew Peacock in the most savage performance the club has put in. Six at Karachi to claw back a point when the season was on the line. Five past Youre getting 5% when we had to win. And six at Booty & Boys on the final day to finish it.",
     "Four points from the first eleven games. Twenty from the last ten. Karachi were five clear with three to play and finished a point behind us. That is not a run of form — that is a group of players deciding, collectively, that they were not going down.",
-    "Sixth in Division 1, above Karachi, and safe. Nothing left to play for on the final day and we went to Booty & Boys and put six past them anyway, because that is who this team turned into.",
+    "It came down to the last night with everything still live, and only one combination did it: beat Booty & Boys and have Karachi lose to the Pigs. A draw for them would have been enough to finish above us on goal difference. We won 6-2. Karachi lost. Sixth in Division 1, a point clear of them, safe — on the only result in the league that would have done it.",
   ],
 
   // Written by hand — one for everyone who pulled on the shirt this season.
