@@ -34,6 +34,10 @@ const PLAYER_IMGS = {
   "Akiat":           null,
   "Chiz":            null,
   "Mo":              null,
+  // Both have stats records from this season but were never in this list, so
+  // they never showed up on the stats table or in Player Form. No photos yet.
+  "Josh Allenby":    null,
+  "Archie Bayliss":  null,
 };
 
 // Final Division 1 table, 2026 season.
@@ -220,18 +224,24 @@ const SEASON_REVIEW = {
   // Written by hand — one for everyone who pulled on the shirt this season.
   props: [
     { name:"Jeven Dhillon",  tag:"🧤 The last line",         text:"Finished with a 9.5 in a 6-2, and that is the easy one to remember. The ones that mattered came in the worst of the summer, standing in a defence that was getting overrun, taking the scoreline on the chin and coming back the next Monday for more of it. Commanded his box all night on the last day." },
-    { name:"Tom Goldsby",    tag:"⭐ Ever-present",           text:"In every single squad we have a record of, from the July wreckage to the last kick of the season. A 9.5 and Man of the Match in the finale, a goal in the 6-6 at Karachi, assists in the big wins. You do not make a run like this without someone who is simply there, at the same level, every week. That was Goldsby." },
-    { name:"George Mcnulty", tag:"Never missed",             text:"More appearances than almost anyone and not one of them phoned in. Two in the 6-4 against Drew Peacock, Man of the Match in the 6-6 at Karachi, another 9 in the finale. Played in the 1-4 at the Pigs and played in the six-goal win over Booty & Boys, at the same level in both." },
-    { name:"Mooney",         tag:"⚽ The goals",              text:"Ten goals in six games, including a hat-trick and two assists in the 6-4 that convinced everyone this was actually on. Walked into a losing side and turned us into a team other sides had to defend against. Plenty of people can claim a piece of this turnaround. Only one of them scored ten." },
-    { name:"Josh Treharne",  tag:"Defender, allegedly",      text:"Four goals in four games from the back, Man of the Match in the Drew Peacock demolition, and 9s in games we lost. Came in when the squad was at its thinnest and played like he had been here all season." },
+    { name:"Tom Goldsby",    tag:"⭐ Ever-present",           text:"In every squad sheet from the July wreckage to the last kick of the season. A 9.5 and Man of the Match in the finale, a goal in the 6-6 at Karachi, assists in the big wins. You do not make a run like this without someone who is simply there, at the same level, every week. That was Goldsby." },
+    { name:"George Mcnulty", tag:"Never missed",             text:"More appearances than anyone in the squad, more Man of the Match awards than anyone, and not one of them phoned in. Two in the 6-4 against Drew Peacock, Man of the Match in the 6-6 at Karachi, another 9 in the finale. Played in the 1-4 at the Pigs and played in the six-goal win over Booty & Boys, at the same level in both." },
+    { name:"Mooney",         tag:"⚽ The goals",              text:"Thirteen goals in seven games, including a hat-trick and two assists in the 6-4 that convinced everyone this was actually on. Walked into a losing side and turned us into a team other sides had to defend against. Plenty of people can claim a piece of this turnaround. Only one of them scored thirteen." },
+    { name:"Josh Treharne",  tag:"Defender, allegedly",      text:"Four goals in five games from the back, Man of the Match in the Drew Peacock demolition, and 9s in games we lost. Came in when the squad was at its thinnest and played like he had been here all season." },
     { name:"Ben Higgs",      tag:"⚽ Big game man",           text:"Scored in the thick of the bad run and scored twice in the must-win against Youre getting 5%. Man of the Match in a 1-4 at the Pigs, which tells you everything — a 9 in a beating, because he does not stop. On the sheet again on the last day." },
     { name:"Hayden Hunter",  tag:"⚽ In the right place",      text:"Two in the 6-6 at Karachi when we were chasing it and a point was worth its weight, and one more in the finale. One of the few who was there through the worst of it and still there to see the job finished." },
     { name:"Mo",             tag:"⚽⚽ Ruthless",              text:"Man of the Match on debut with a goal and two assists in the 3-2 that started the whole thing. Two in the 5-2. Two more on the last day. A record that reads like a typo. Whatever we did to get him here, do it again next season." },
     { name:"Chiz",           tag:"⚽ Instant impact",         text:"Debut at Karachi in September with the season hanging by a thread, and scored. Then scored in the 5-2. Then scored in the finale. Three games, three goals — and all three of them games we could not afford to lose." },
     { name:"Rohan Naal",     tag:"Wherever you need him",    text:"Went in goal against Youre getting 5% because there was nobody else — \"beaten down but we've found a new keeper.\" Then played out at the back against Drew Peacock and came away with an assist and a 9.5. Two completely different jobs, no fuss about either." },
-    { name:"Freddie Palmer", tag:"Chipped in",               text:"One appearance, one goal, in the 5-5 with Booty & Boys. Every point in that run-in mattered and he had a hand in one of them." },
-    { name:"Tom Beeston",    tag:"There at the worst of it", text:"Played on 6 July, when we were near the foot of the table, short of bodies and losing most weeks. No headlines in that. But the players who kept showing up through that stretch are the reason there was still a season left to save." },
-    { name:"Akiat",          tag:"Thrown in",                text:"Debut away at Karachi in a 6-6 with the club's Division 1 status riding on it. Not the gentlest introduction anyone has had to this team." },
+    { name:"Freddie Palmer", tag:"⚽ Played once",            text:"Played once, in the 5-5 with Booty & Boys, and scored." },
+    { name:"Tom Beeston",    tag:"Played once",              text:"Played once, away at WSOPC on 6 July." },
+    { name:"Akiat",          tag:"Played once",              text:"Played once, away at Karachi on 7 September." },
+    { name:"Evan Von",       tag:"Played twice",             text:"Played twice this season." },
+    { name:"Max Murray",     tag:"⚽ Played once",            text:"Played once, and scored." },
+    { name:"Josh Allenby",   tag:"Played once",              text:"Played once, and set up a goal." },
+    { name:"Dani Griffiths", tag:"Played once",              text:"Played once this season." },
+    { name:"Hugo Hansen",    tag:"Played once",              text:"Played once this season." },
+    { name:"Archie Bayliss", tag:"Played once",              text:"Played once this season." },
     { name:"Guy Horton",     tag:"The gaffa in boots",       text:"Easy to forget he played nearly every week as well as picking the side. Centre half most of the season, in goal against Drew Peacock because we had no keeper, and a goal in the 3-2 at Karachi that got all of this moving. A 9 on the last day, in a report he wrote himself." },
   ],
 
