@@ -173,6 +173,27 @@ const MATCHES = [
     ],
     reportText: "The club is inevitable. Attacking excellence, defensive masterclass, goalkeeping brilliance, team spirit. There was nothing the 5% could do — we rattled them and tore apart their team. Thanks to the heroics of the players, crisis is almost averted. Couldn't have asked for more this game. One game week left before the end of the season and we will have turned around a 1 win in our first 11 games disaster season into even more glorious Div 1 football. Whoever we play next week, we beat them.",
   },
+  {
+    date:        "Mon 21 Sep 2026",
+    opponent:    "Booty & Boys",
+    sfcScore:    6,
+    oppScore:    2,
+    publishedAt: new Date("2026-09-21T19:50:00").getTime(),
+    // Last game of the season. The gaffa called it 4-2 from memory but named
+    // six scorers, and the scorers are what we go on — same call as the 5-2
+    // over Youre getting 5% and the 6-6 at Karachi.
+    players: [
+      P("Guy Horton",     "DEF", "9"),
+      P("Jeven Dhillon",  "GK",  "9.5"),
+      P("Tom Goldsby",    "DEF", "9.5", { goals: 1, motm: true }),
+      P("Ben Higgs",      "ATT", "9",   { goals: 1 }),
+      P("George Mcnulty", "ATT", "9"),
+      P("Mo",             "ATT", "9",   { goals: 2 }),
+      P("Chiz",           "ATT", "9",   { goals: 1 }),
+      P("Hayden Hunter",  "ATT", "9",   { goals: 1 }),
+    ],
+    reportText: "Section FC v the world, and the world blinked. Six past Booty & Boys on the last day to finish the job — Mo with two, Goldsby, Higgs, Chiz and Hayden all on the sheet, Jeven commanding his box and the back line holding the shape all night. One win in our first eleven games. Twenty points from the last ten. Sixth, above Karachi, Division 1 football next season. The comeback to end all comebacks. Full season report on the Season page — every one of you earned a paragraph in it. 🟡⚫"
+  },
 ];
 
 async function applyMatch(m) {

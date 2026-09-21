@@ -36,18 +36,29 @@ const PLAYER_IMGS = {
   "Mo":              null,
 };
 
+// Final Division 1 table, 2026 season.
+// Mon 21 Sep 2026 was the last gameweek. We have our own result and we know
+// Pigs beat Karachi Athletic; that scoreline and the other two ties
+// (Youre getting 5% v RBCC, WSOPC v Drew Peacock) weren't posted, so those
+// teams still read 20 games and Pigs/Karachi keep their GF-GA from GW20.
+// Nothing outstanding can change the order.
 const LEAGUE_TABLE = [
-  { pos:1, team:"Pigs", pl:20, w:19, d:1, l:0, gf:135, ga:25, gd:110, pts:58 },
+  { pos:1, team:"Pigs", pl:21, w:20, d:1, l:0, gf:135, ga:25, gd:110, pts:61 },
   { pos:2, team:"Youre getting 5%", pl:20, w:12, d:1, l:7, gf:118, ga:74, gd:44, pts:37 },
   { pos:3, team:"Drew Peacock FC", pl:20, w:11, d:1, l:8, gf:97, ga:86, gd:11, pts:34 },
   { pos:4, team:"RBCC FC", pl:20, w:10, d:2, l:8, gf:74, ga:60, gd:14, pts:32 },
-  { pos:5, team:"Booty & Boys", pl:20, w:8, d:1, l:11, gf:85, ga:100, gd:-15, pts:25 },
-  { pos:6, team:"Karachi Athletic FC", pl:20, w:7, d:2, l:11, gf:93, ga:100, gd:-7, pts:23 },
-  { pos:7, team:"SECTION FC", pl:20, w:6, d:3, l:11, gf:70, ga:92, gd:-22, pts:21 },
+  { pos:5, team:"Booty & Boys", pl:21, w:8, d:1, l:12, gf:87, ga:106, gd:-19, pts:25 },
+  { pos:6, team:"SECTION FC", pl:21, w:7, d:3, l:11, gf:76, ga:94, gd:-18, pts:24 },
+  { pos:7, team:"Karachi Athletic FC", pl:21, w:7, d:2, l:12, gf:93, ga:100, gd:-7, pts:23 },
   { pos:8, team:"WSOPC FC", pl:20, w:1, d:1, l:18, gf:44, ga:179, gd:-135, pts:4 },
 ];
 
 const PAST_RESULTS = [
+  { date:"Mon 21 Sep 2026", matches:[
+    // Final day. Only our tie is listed — Pigs beat Karachi Athletic but the
+    // score never came through, and the other two results aren't in either.
+    { time:"7:50 PM", home:"Booty & Boys", away:"SECTION FC", hg:2, ag:6, pitch:"Pitch 2" },
+  ]},
   { date:"Mon 14 Sep 2026", matches:[
     { time:"6:30 PM", home:"WSOPC FC", away:"Booty & Boys", hg:0, ag:5, pitch:"Pitch 2" },
     // The league's results page has this one down as 4-2. The gaffa's report
@@ -173,14 +184,9 @@ const PAST_RESULTS = [
   ]},
 ];
 
-const FIXTURES = [
-  { date:"Mon 21 Sep 2026", matches:[
-    { time:"6:30 PM",  home:"Pigs",               away:"Karachi Athletic FC",  pitch:"Pitch 1" },
-    { time:"7:10 PM",  home:"Youre getting 5%",   away:"RBCC FC",              pitch:"Pitch 2" },
-    { time:"7:50 PM",  home:"Booty & Boys",       away:"SECTION FC",           pitch:"Pitch 2" },
-    { time:"8:30 PM",  home:"WSOPC FC",           away:"Drew Peacock FC",      pitch:"Pitch 1" },
-  ]},
-];
+// Season's done — Mon 21 Sep 2026 was the last gameweek. Next season's
+// fixtures go back in here when the league publishes them.
+const FIXTURES = [];
 
 const AWARDS = [
   { id:"golden_boot", name:"Golden Boot",  icon:"⚽", color:"#FFD700", glow:"#FFD70055", desc:"Top Scorer of the Season"       },
@@ -189,6 +195,58 @@ const AWARDS = [
   { id:"danger_man",  name:"Danger Man",   icon:"🟨", color:"#ff5544", glow:"#ff554444", desc:"Most Cards — Living Dangerously" },
   { id:"safe_hands",  name:"Safe Hands",   icon:"🧤", color:"#44dd88", glow:"#44dd8844", desc:"Most Clean Sheets"              },
 ];
+
+// ── End of season 2026 ───────────────────────────────────────────────────────
+// Powers the Season screen. The numbers on that page are derived from
+// PAST_RESULTS / LEAGUE_TABLE and the live Firestore stats — only the words
+// live here, so the page can't drift out of step with the results.
+const SEASON_REVIEW = {
+  season:   "2026",
+  division: "Division 1",
+  title:    "SECTION FC v THE WORLD",
+  verdict:  "SURVIVED",
+  // The night it turned: SECTION FC 3-2 Karachi Athletic FC, "we are back".
+  // The Season screen splits the campaign here.
+  turnDate: "Mon 20 Jul 2026",
+  standfirst: "One win in the first eleven. Twenty points from the last ten. Division 1 football next season.",
+
+  story: [
+    "For three months this season looked finished. Nine defeats in the first eleven, nine conceded at the Pigs, ten shipped to Drew Peacock, and a squad that some weeks could barely put five on the pitch, never mind a sub. Every table you looked at had us in the bottom two and every neutral had us down for the drop.",
+    "Then it turned. Karachi beaten 3-2 in July — \"we are back\" — and from that night on this was a different team. Five past RBCC. Six past WSOPC. Six past Drew Peacock in the most savage performance the club has put in. Six at Karachi to claw back a point when the season was on the line. Five past Youre getting 5% when we had to win. And six at Booty & Boys on the final day to finish it.",
+    "Four points from the first eleven games. Twenty from the last ten. Karachi were five clear with three to play and finished a point behind us. That is not a run of form — that is a group of players deciding, collectively, that they were not going down.",
+    "Sixth in Division 1, above Karachi, and safe. Nothing left to play for on the final day and we went to Booty & Boys and put six past them anyway, because that is who this team turned into.",
+  ],
+
+  // Written by hand — one for everyone who pulled on the shirt this season.
+  props: [
+    { name:"Jeven Dhillon",  tag:"🧤 The last line",         text:"Finished with a 9.5 in a 6-2, and that is the easy one to remember. The ones that mattered came in the worst of the summer, standing in a defence that was getting overrun, taking the scoreline on the chin and coming back the next Monday for more of it. Commanded his box all night on the last day." },
+    { name:"Tom Goldsby",    tag:"⭐ Ever-present",           text:"In every single squad we have a record of, from the July wreckage to the last kick of the season. A 9.5 and Man of the Match in the finale, a goal in the 6-6 at Karachi, assists in the big wins. You do not make a run like this without someone who is simply there, at the same level, every week. That was Goldsby." },
+    { name:"George Mcnulty", tag:"Never missed",             text:"More appearances than almost anyone and not one of them phoned in. Two in the 6-4 against Drew Peacock, Man of the Match in the 6-6 at Karachi, another 9 in the finale. Played in the 1-4 at the Pigs and played in the six-goal win over Booty & Boys, at the same level in both." },
+    { name:"Mooney",         tag:"⚽ The goals",              text:"Ten goals in six games, including a hat-trick and two assists in the 6-4 that convinced everyone this was actually on. Walked into a losing side and turned us into a team other sides had to defend against. Plenty of people can claim a piece of this turnaround. Only one of them scored ten." },
+    { name:"Josh Treharne",  tag:"Defender, allegedly",      text:"Four goals in four games from the back, Man of the Match in the Drew Peacock demolition, and 9s in games we lost. Came in when the squad was at its thinnest and played like he had been here all season." },
+    { name:"Ben Higgs",      tag:"⚽ Big game man",           text:"Scored in the thick of the bad run and scored twice in the must-win against Youre getting 5%. Man of the Match in a 1-4 at the Pigs, which tells you everything — a 9 in a beating, because he does not stop. On the sheet again on the last day." },
+    { name:"Hayden Hunter",  tag:"⚽ In the right place",      text:"Two in the 6-6 at Karachi when we were chasing it and a point was worth its weight, and one more in the finale. One of the few who was there through the worst of it and still there to see the job finished." },
+    { name:"Mo",             tag:"⚽⚽ Ruthless",              text:"Man of the Match on debut with a goal and two assists in the 3-2 that started the whole thing. Two in the 5-2. Two more on the last day. A record that reads like a typo. Whatever we did to get him here, do it again next season." },
+    { name:"Chiz",           tag:"⚽ Instant impact",         text:"Debut at Karachi in September with the season hanging by a thread, and scored. Then scored in the 5-2. Then scored in the finale. Three games, three goals — and all three of them games we could not afford to lose." },
+    { name:"Rohan Naal",     tag:"Wherever you need him",    text:"Went in goal against Youre getting 5% because there was nobody else — \"beaten down but we've found a new keeper.\" Then played out at the back against Drew Peacock and came away with an assist and a 9.5. Two completely different jobs, no fuss about either." },
+    { name:"Freddie Palmer", tag:"Chipped in",               text:"One appearance, one goal, in the 5-5 with Booty & Boys. Every point in that run-in mattered and he had a hand in one of them." },
+    { name:"Tom Beeston",    tag:"There at the worst of it", text:"Played on 6 July, when we were near the foot of the table, short of bodies and losing most weeks. No headlines in that. But the players who kept showing up through that stretch are the reason there was still a season left to save." },
+    { name:"Akiat",          tag:"Thrown in",                text:"Debut away at Karachi in a 6-6 with the club's Division 1 status riding on it. Not the gentlest introduction anyone has had to this team." },
+    { name:"Guy Horton",     tag:"The gaffa in boots",       text:"Easy to forget he played nearly every week as well as picking the side. Centre half most of the season, in goal against Drew Peacock because we had no keeper, and a goal in the 3-2 at Karachi that got all of this moving. A 9 on the last day, in a report he wrote himself." },
+  ],
+
+  manager: {
+    name: "Guy Horton",
+    tag:  "🏅 Manager of the Month",
+    text: [
+      "Four points from eleven games. An emergency board meeting into his own contract after the 6-6 at Karachi. No bench, no settled keeper, and a results column that had been red since May. Most managers would have been gone by August, and plenty would have walked long before that.",
+      "Instead he kept naming a team every Monday, kept the group together through 0-9 and 3-10, found Mo, found Chiz, found Mooney, put Rohan in goal when there was no keeper and went in goal himself when there still was not one. Changed how we set up, and a side that had been conceding at will took twenty points from the last ten.",
+      "He did all of it while playing centre half, and finished the season with a 9 of his own. Sixth, above Karachi, and Division 1 again next year. Manager of the Month, and the gaffa who got us over the line.",
+    ],
+  },
+
+  signoff: "The comeback to end all comebacks. Section FC v the world — and the world blinked. 🟡⚫",
+};
 
 const OPP_POOL = {
   GK:  ["Buffon","Schmeichel","Casillas","Neuer","Yashin","Kahn","Banks","Barthez","Zoff"],
@@ -229,6 +287,35 @@ const lastWord  = n => n.split(" ").pop();
 const firstWord = n => n.split(" ")[0];
 const avatar    = n => PLAYER_IMGS[n] || null;
 const isSFC     = t => t === "SECTION FC";
+
+// Every SECTION FC result of the season, oldest first, pulled straight out of
+// PAST_RESULTS so the Season screen can never disagree with the results page.
+const seasonRun = () => [...PAST_RESULTS].reverse().flatMap(gw =>
+  gw.matches
+    .filter(m => isSFC(m.home) || isSFC(m.away))
+    .map(m => {
+      const home = isSFC(m.home);
+      const gf = home ? m.hg : m.ag;
+      const ga = home ? m.ag : m.hg;
+      return {
+        date: gw.date,
+        opp:  home ? m.away : m.home,
+        home, gf, ga,
+        res: gf > ga ? "W" : gf < ga ? "L" : "D",
+      };
+    })
+);
+
+// Sums a slice of that run into a W/D/L + goals + points block.
+const runTotals = games => games.reduce((a, g) => ({
+  pl: a.pl + 1,
+  w:  a.w + (g.res === "W" ? 1 : 0),
+  d:  a.d + (g.res === "D" ? 1 : 0),
+  l:  a.l + (g.res === "L" ? 1 : 0),
+  gf: a.gf + g.gf,
+  ga: a.ga + g.ga,
+  pts: a.pts + (g.res === "W" ? 3 : g.res === "D" ? 1 : 0),
+}), { pl:0, w:0, d:0, l:0, gf:0, ga:0, pts:0 });
 const scorePredict = (pred, res) => {
   if (pred.sfcG===res.sfcG && pred.oppG===res.oppG) return {pts:3, label:"Exact! ⚽"};
   const pR = pred.sfcG>pred.oppG?"W":pred.sfcG<pred.oppG?"L":"D";
@@ -303,9 +390,9 @@ const CSS = `
 `;
 
 // ── Shared components ─────────────────────────────────────────────────────────
-const ALL_TABS = ["home","squad","report","stats","table","fixtures","halloffame","predictor","metrics"];
+const ALL_TABS = ["home","squad","report","season","stats","table","fixtures","halloffame","predictor","metrics"];
 const matchdayScreens = ["setup","spin","pitch"];
-const TAB_LABELS = {home:"Home",squad:"⚽ Matchday Squad",report:"Report",stats:"Squad Stats",table:"Table",fixtures:"Results",halloffame:"🏆 Hall",predictor:"Predictor",metrics:"🎯 Metrics"};
+const TAB_LABELS = {home:"Home",squad:"⚽ Matchday Squad",report:"Report",season:"🏁 Season",stats:"Squad Stats",table:"Table",fixtures:"Results",halloffame:"🏆 Hall",predictor:"Predictor",metrics:"🎯 Metrics"};
 
 function Header({ screen, setScreen, isAdmin, onAdminClick }) {
   const activeTab = matchdayScreens.includes(screen) ? null : screen;
@@ -335,6 +422,15 @@ function Header({ screen, setScreen, isAdmin, onAdminClick }) {
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function SectionHead({ kicker, title }) {
+  return (
+    <div style={{marginBottom:12}}>
+      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",color:"#e8ff00",letterSpacing:4,marginBottom:4}}>{kicker}</div>
+      <h2 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.2rem,4vw,1.8rem)",fontWeight:700,lineHeight:1,letterSpacing:-.5}}>{title}</h2>
     </div>
   );
 }
@@ -657,6 +753,7 @@ export default function App() {
   const refPlayerForm      = useRef(null);
   const refPredictorBoard  = useRef(null);
   const refFixtures        = useRef(null);
+  const refSeason          = useRef(null);
 
   // ── Firebase listeners ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -1309,6 +1406,19 @@ export default function App() {
             </div>
           )}
 
+          {/* ── SEASON OVER ── */}
+          {FIXTURES.length === 0 && (
+            <button onClick={() => setScreen("season")}
+                    style={{textAlign:"left",width:"100%",cursor:"pointer",background:"radial-gradient(ellipse at 0% 0%, #e8ff0016, transparent 70%)",border:"1px solid #e8ff0044",padding:"18px 20px"}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#e8ff00",marginBottom:6}}>◆ SEASON COMPLETE</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1.1rem,4.5vw,1.6rem)",letterSpacing:-.5,color:"#fff",lineHeight:1.1,marginBottom:6}}>
+                {SEASON_REVIEW.title}
+              </div>
+              <div style={{fontSize:".92rem",color:"#ffffffaa",lineHeight:1.45,marginBottom:10}}>{SEASON_REVIEW.standfirst}</div>
+              <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:2,color:"#e8ff00"}}>READ THE END OF SEASON REPORT →</span>
+            </button>
+          )}
+
           {/* ── LEAGUE POSITION ── */}
           <div style={{background:"#ffffff06",border:"1px solid #ffffff14",padding:"18px 20px"}}>
             <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff40",marginBottom:12}}>◆ LEAGUE POSITION</div>
@@ -1764,6 +1874,18 @@ export default function App() {
           />
         </div>
         <div ref={refFixtures}>
+        {FIXTURES.length === 0 && (
+          <div style={{background:"#ffffff05",border:"1px solid #e8ff0033",padding:"20px",textAlign:"center"}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".95rem",letterSpacing:3,color:"#e8ff00",marginBottom:6}}>SEASON COMPLETE</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".68rem",letterSpacing:2,color:"#ffffff45"}}>
+              NO FIXTURES LEFT — NEXT SEASON&apos;S GO UP WHEN THE LEAGUE PUBLISHES THEM
+            </div>
+            <button data-share-hide="1" onClick={() => setScreen("season")}
+                    style={{marginTop:12,background:"none",border:"none",color:"#e8ff00",fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:2,cursor:"pointer",padding:0}}>
+              READ THE END OF SEASON REPORT →
+            </button>
+          </div>
+        )}
         {FIXTURES.map((gw, gi) => (
           <div key={gi} style={{marginBottom:24,animation:"fadeUp .4s ease both",animationDelay:`${gi*.08}s`}}>
             <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",letterSpacing:3,color:"#e8ff00",marginBottom:10,paddingBottom:8,borderBottom:"1px solid #e8ff0033"}}>{gw.date}</div>
@@ -1842,6 +1964,217 @@ export default function App() {
         {shareCard.portal}
     </div>
   );
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // END OF SEASON SCREEN
+  // ══════════════════════════════════════════════════════════════════════════
+  if (screen === "season") {
+    const run      = seasonRun();
+    const sfcRow   = LEAGUE_TABLE.find(t => t.team === "SECTION FC");
+    const below    = LEAGUE_TABLE.find(t => t.pos === sfcRow.pos + 1);
+    const finale   = run[run.length - 1];
+
+    // The season splits in two at the night it turned — the 3-2 over Karachi.
+    const turnIdx  = run.findIndex(g => g.date === SEASON_REVIEW.turnDate);
+    const splitAt  = turnIdx > 0 ? turnIdx : Math.floor(run.length / 2);
+    const before   = runTotals(run.slice(0, splitAt));
+    const after    = runTotals(run.slice(splitAt));
+
+    // Unbeaten streak the season finished on.
+    let unbeaten = 0;
+    for (let i = run.length - 1; i >= 0 && run[i].res !== "L"; i--) unbeaten++;
+
+    // Season awards read the live Firestore totals so they stay honest.
+    const topBy = key => {
+      const ranked = [...allStatPlayers].filter(p => (stats[p]?.[key] || 0) > 0)
+        .sort((a, b) => (stats[b][key] || 0) - (stats[a][key] || 0));
+      if (!ranked.length) return null;
+      const best = stats[ranked[0]][key];
+      return { names: ranked.filter(p => stats[p][key] === best), value: best };
+    };
+
+    const resColor = { W:"#22aa44", D:"#cc8800", L:"#cc3333" };
+
+    const Split = ({ label, sub, t, accent }) => (
+      <div style={{flex:"1 1 160px",background:"#ffffff05",border:`1px solid ${accent}33`,padding:"14px 14px 12px"}}>
+        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:3,color:accent,marginBottom:2}}>{label}</div>
+        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:1,color:"#ffffff35",marginBottom:10}}>{sub}</div>
+        <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:6}}>
+          <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"2.1rem",lineHeight:1,color:accent}}>{t.pts}</span>
+          <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:2,color:"#ffffff45"}}>PTS FROM {t.pl * 3}</span>
+        </div>
+        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".72rem",letterSpacing:1,color:"#ffffffaa"}}>{t.w}W {t.d}D {t.l}L</div>
+        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".72rem",letterSpacing:1,color:"#ffffff55"}}>{t.gf}–{t.ga} goals</div>
+      </div>
+    );
+
+    const AwardRow = ({ icon, label, statKey, suffix }) => {
+      const top = topBy(statKey);
+      if (!top) return null;
+      return (
+        <div style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:"1px solid #ffffff0a"}}>
+          <span style={{fontSize:"1.1rem",width:24,textAlign:"center",flexShrink:0}}>{icon}</span>
+          <div style={{width:96,fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:2,color:"#ffffff45",flexShrink:0}}>{label}</div>
+          <div style={{flex:1,display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
+            {top.names.map(n => (
+              <span key={n} style={{display:"flex",alignItems:"center",gap:6}}>
+                <Avatar name={n} size={24} />
+                <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem"}}>{n}</span>
+              </span>
+            ))}
+          </div>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".95rem",color:"#e8ff00",flexShrink:0}}>{top.value}<span style={{fontSize:".55rem",letterSpacing:1,color:"#ffffff40",marginLeft:3}}>{suffix}</span></div>
+        </div>
+      );
+    };
+
+    return (
+      <div style={{minHeight:"100vh",background:"#060608",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+        <style>{CSS}</style>
+        <Header {...sharedProps} />
+        <main style={{padding:"22px 14px 60px",maxWidth:680,margin:"0 auto"}}>
+
+          {/* ── HERO ── */}
+          <div ref={refSeason} style={{background:"radial-gradient(ellipse at 50% 0%, #e8ff0018, transparent 70%)",border:"1px solid #e8ff0033",padding:"26px 20px 22px",textAlign:"center",marginBottom:14}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:5,color:"#e8ff00",marginBottom:6}}>◆ END OF SEASON {SEASON_REVIEW.season} · {SEASON_REVIEW.division.toUpperCase()}</div>
+            <h1 style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1.5rem,6vw,2.6rem)",letterSpacing:-1,lineHeight:1,marginBottom:12}}>{SEASON_REVIEW.title}</h1>
+            <div style={{display:"inline-block",padding:"6px 18px",background:"#22aa4418",border:"1px solid #22aa4455",marginBottom:14}}>
+              <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1.6rem,7vw,2.6rem)",letterSpacing:2,color:"#44dd88",lineHeight:1}}>{SEASON_REVIEW.verdict}</span>
+            </div>
+            <div style={{fontSize:".95rem",color:"#ffffffaa",lineHeight:1.45,maxWidth:440,margin:"0 auto 18px"}}>{SEASON_REVIEW.standfirst}</div>
+
+            <div style={{display:"flex",justifyContent:"center",gap:0,flexWrap:"wrap",borderTop:"1px solid #ffffff12",paddingTop:16}}>
+              {[
+                ["FINISHED", `${sfcRow.pos}TH`],
+                ["POINTS",   sfcRow.pts],
+                ["RECORD",   `${sfcRow.w}-${sfcRow.d}-${sfcRow.l}`],
+                ["GOALS",    `${sfcRow.gf}–${sfcRow.ga}`],
+              ].map(([k, v]) => (
+                <div key={k} style={{flex:"1 1 80px",padding:"0 6px"}}>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1.1rem,4.5vw,1.6rem)",color:"#e8ff00",lineHeight:1.1}}>{v}</div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:2,color:"#ffffff40",marginTop:3}}>{k}</div>
+                </div>
+              ))}
+            </div>
+            {below && (
+              <div style={{marginTop:14,fontFamily:"'Oswald',sans-serif",fontSize:".66rem",letterSpacing:2,color:"#44dd88"}}>
+                ↑ {sfcRow.pts - below.pts} PT{sfcRow.pts - below.pts !== 1 ? "S" : ""} ABOVE {below.team.toUpperCase()}
+              </div>
+            )}
+          </div>
+
+          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:22}}>
+            <ShareButton
+              label="SHARE SEASON"
+              getNode={() => refSeason.current}
+              caption={`SECTION FC — ${SEASON_REVIEW.season} season: ${sfcRow.pos}th in ${SEASON_REVIEW.division}, ${sfcRow.pts} points. ${SEASON_REVIEW.verdict}.`}
+              filename="section-fc-season-2026.png"
+              urlPath="/"
+            />
+          </div>
+
+          {/* ── TWO SEASONS IN ONE ── */}
+          <SectionHead kicker="◆ TWO SEASONS IN ONE" title="THE TURNAROUND" />
+          <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:12}}>
+            <Split label="FIRST" sub={`${before.pl} GAMES`} t={before} accent="#ff5555" />
+            <Split label="THEN"  sub={`LAST ${after.pl} GAMES`} t={after} accent="#44dd88" />
+          </div>
+          {unbeaten >= 2 && (
+            <div style={{background:"#44dd8810",border:"1px solid #44dd8833",padding:"11px 14px",marginBottom:26,fontFamily:"'Oswald',sans-serif",fontSize:".72rem",letterSpacing:2,color:"#44dd88"}}>
+              ✓ FINISHED THE SEASON UNBEATEN IN {unbeaten}
+            </div>
+          )}
+
+          {/* ── THE WHOLE RUN ── */}
+          <SectionHead kicker="◆ EVERY GAME" title="THE RUN" />
+          <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:10}}>
+            {run.map((g, i) => (
+              <div key={i} title={`${g.date} — ${g.home ? "v" : "@"} ${g.opp} ${g.gf}-${g.ga}`}
+                   style={{width:30,height:30,background:`${resColor[g.res]}22`,border:`1px solid ${resColor[g.res]}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".7rem",color:resColor[g.res]}}>
+                {g.res}
+              </div>
+            ))}
+          </div>
+          {finale && (
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:2,color:"#ffffff35",marginBottom:26}}>
+              LAST GAME · {finale.date.toUpperCase()} · {finale.home ? "V" : "@"} {finale.opp.toUpperCase()} {finale.gf}–{finale.ga}
+            </div>
+          )}
+
+          {/* ── THE STORY ── */}
+          <SectionHead kicker="◆ HOW IT HAPPENED" title="THE SEASON" />
+          <div style={{marginBottom:26}}>
+            {SEASON_REVIEW.story.map((para, i) => (
+              <p key={i} style={{fontSize:"1rem",lineHeight:1.62,color:"#ffffffc0",marginBottom:14}}>{para}</p>
+            ))}
+          </div>
+
+          {/* ── AWARDS FROM THE NUMBERS ── */}
+          <SectionHead kicker="◆ THE NUMBERS" title="SEASON LEADERS" />
+          <div style={{background:"#ffffff05",border:"1px solid #ffffff12",padding:"6px 14px 10px",marginBottom:26}}>
+            <AwardRow icon="⚽"  label="TOP SCORER"   statKey="goals"       suffix="gls"  />
+            <AwardRow icon="👑"  label="ASSISTS"      statKey="assists"     suffix="ast"  />
+            <AwardRow icon="🛡️" label="APPEARANCES"  statKey="apps"        suffix="apps" />
+            <AwardRow icon="🧤"  label="CLEAN SHEETS" statKey="cleanSheets" suffix="cs"   />
+            <AwardRow icon="🌟"  label="MOTM"         statKey="motm"        suffix="motm" />
+            {!["goals","assists","apps","cleanSheets","motm"].some(k => topBy(k)) && (
+              <div style={{padding:"16px 0",textAlign:"center",fontFamily:"'Oswald',sans-serif",fontSize:".7rem",letterSpacing:2,color:"#ffffff30"}}>
+                SEASON TOTALS NOT LOADED YET
+              </div>
+            )}
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".54rem",letterSpacing:1.5,color:"#ffffff28",paddingTop:10}}>
+              LIVE SEASON TOTALS · FULL TABLE ON THE SQUAD STATS PAGE
+            </div>
+          </div>
+
+          {/* ── PROPS TO THE PLAYERS ── */}
+          <SectionHead kicker="◆ EVERY ONE OF YOU" title="PROPS TO THE PLAYERS" />
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:26}}>
+            {SEASON_REVIEW.props.map((p, i) => (
+              <div key={p.name} style={{background:i%2===0?"#ffffff05":"#ffffff03",border:"1px solid #ffffff0e",padding:"13px 14px",animation:"fadeUp .4s ease both",animationDelay:`${i*.03}s`}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                  <Avatar name={p.name} size={38} />
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1rem",letterSpacing:.5}}>{p.name}</div>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:2,color:"#e8ff00"}}>{p.tag.toUpperCase()}</div>
+                  </div>
+                </div>
+                <div style={{fontSize:".95rem",lineHeight:1.55,color:"#ffffffaa"}}>{p.text}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── THE GAFFA ── */}
+          <SectionHead kicker="◆ AND THE MAN WHO PICKED THE TEAM" title="THE GAFFA" />
+          <div style={{background:"radial-gradient(ellipse at 50% 0%, #FFD70012, transparent 70%)",border:"1px solid #FFD70044",padding:"20px 18px",marginBottom:26}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+              <Avatar name={SEASON_REVIEW.manager.name} size={56} border="#FFD700" />
+              <div>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1.35rem",letterSpacing:.5}}>{SEASON_REVIEW.manager.name}</div>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:3,color:"#FFD700"}}>{SEASON_REVIEW.manager.tag.toUpperCase()}</div>
+              </div>
+            </div>
+            {SEASON_REVIEW.manager.text.map((para, i) => (
+              <p key={i} style={{fontSize:"1rem",lineHeight:1.6,color:"#ffffffb5",marginBottom:12}}>{para}</p>
+            ))}
+          </div>
+
+          {/* ── SIGN OFF ── */}
+          <div style={{textAlign:"center",padding:"24px 14px",borderTop:"1px solid #ffffff12"}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(1rem,3.6vw,1.3rem)",lineHeight:1.4,color:"#e8ff00",letterSpacing:.5}}>
+              {SEASON_REVIEW.signoff}
+            </div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff28",marginTop:12}}>
+              SECTION FC · {SEASON_REVIEW.season} · SEE YOU NEXT SEASON
+            </div>
+          </div>
+
+        </main>
+        {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+        {shareCard.portal}
+      </div>
+    );
+  }
 
   // ══════════════════════════════════════════════════════════════════════════
   // HALL OF FAME SCREEN
