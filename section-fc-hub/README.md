@@ -81,15 +81,15 @@ Takes about 30 seconds.
 
 League data lives in `src/seasons/`, one file per season:
 
-- `2026-27.js` is the live season. Each week's results go at the top of
-  `RESULTS`, and fixtures go in `FIXTURES` once the league publishes them.
-  The league table is worked out from the results.
+- `autumn-2026.js` is the live season, ten gameweeks to Mon 30 Nov. Each
+  week, move the gameweek from `FIXTURES` to the top of `RESULTS` and add
+  the scores. The league table is worked out from the results.
 - `2026.js` is last season, closed: its results, final table, final player
   totals and the words on the 2026 Review page.
 
 Player stats, form and match reports live in Firestore and come in through
 the post-match report on the Matchday Squad page. `new-season.mjs` is the
-script that rolled Firestore over to 2026/27; it archived 2026 to
+script that rolled Firestore over to Autumn 2026; it archived 2026 to
 `seasonArchive/2026` first.
 
 ---

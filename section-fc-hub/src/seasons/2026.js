@@ -3,7 +3,7 @@
 //
 // This season is closed, so nothing in here changes again. The 2026 Review
 // screen and the 2026 views on Results, Table and Squad Stats read from this
-// file rather than from the live data, which belongs to 2026/27 now.
+// file rather than from the live data, which belongs to Autumn 2026 now.
 
 // Final Division 1 table, 2026 season.
 // Mon 21 Sep 2026 was the last gameweek. We have our own result and we know
@@ -155,8 +155,8 @@ const PAST_RESULTS = [
 
 // Final season totals for everyone who made an appearance, copied out of the
 // live Firestore `stats` collection on Sun 4 Oct 2026 before it was zeroed for
-// 2026/27. They only count what went into match reports, which is why the 56
-// goals here fall short of the 76 in the table above.
+// Autumn 2026. They only count what went into match reports, which is why the
+// 56 goals here fall short of the 76 in the table above.
 const FINAL_STATS = {
   "George Mcnulty": { apps:15, goals: 8, assists:3, yellows:0, reds:0, cleanSheets:0, motm:4 },
   "Hayden Hunter":  { apps:13, goals: 9, assists:3, yellows:0, reds:0, cleanSheets:0, motm:2 },

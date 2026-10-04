@@ -5,7 +5,7 @@ import {
 } from 'firebase/firestore';
 import { ShareButton, useShareableCard } from './share';
 import { SEASON_2026 } from './seasons/2026';
-import { SEASON_2026_27 } from './seasons/2026-27';
+import { SEASON_AUTUMN_2026 } from './seasons/autumn-2026';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const ADMIN_PIN = 'sfc2024'; // Change this to your own PIN
@@ -39,7 +39,7 @@ const PLAYER_IMGS = {
   // they never showed up on the stats table or in Player Form. No photos yet.
   "Josh Allenby":    null,
   "Archie Bayliss":  null,
-  // Debut in the 6-6 with Drew Peacock on the opening night of 2026/27.
+  // Debut in the 6-6 with Drew Peacock on the opening night of Autumn 2026.
   "Lee Trundle":     null,
 };
 
@@ -64,7 +64,7 @@ const playerTag = name => {
 // one, and that's the file the weekly results go in. ARCHIVE is every closed
 // season, newest first, for the season switches on Results, Table and Squad
 // Stats.
-const SEASON  = SEASON_2026_27;
+const SEASON  = SEASON_AUTUMN_2026;
 const ARCHIVE = [SEASON_2026];
 const SEASONS = [SEASON, ...ARCHIVE];
 
@@ -264,7 +264,7 @@ const CSS = `
   input:focus,select:focus { outline:2px solid #e8ff0055;outline-offset:-1px; }
   select { background:#0f0f14;border:1px solid #ffffff22;color:#fff;font-family:'Oswald',sans-serif;font-size:.85rem;padding:8px 12px;cursor:pointer; }
   .seg { display:inline-flex;gap:2px;padding:2px;background:#ffffff06;border:1px solid #ffffff1a; }
-  .seg button { background:transparent;border:none;cursor:pointer;font-family:'Oswald',sans-serif;font-weight:600;font-size:.64rem;letter-spacing:2px;color:#ffffff66;padding:6px 12px;transition:all .15s; }
+  .seg button { background:transparent;border:none;cursor:pointer;font-family:'Oswald',sans-serif;font-weight:600;font-size:.64rem;letter-spacing:2px;text-transform:uppercase;color:#ffffff66;padding:6px 12px;transition:all .15s; }
   .seg button.on { background:#e8ff00;color:#0a0a0f; }
   .seg button:not(.on):hover { color:#fff;background:#ffffff0c; }
   .link-btn { background:none;border:none;cursor:pointer;padding:0;font-family:'Oswald',sans-serif;font-size:.6rem;letter-spacing:2px;color:#ffffff55;transition:color .15s; }
@@ -1063,18 +1063,23 @@ export default function App() {
   };
 
   // ── Dashboard helpers ────────────────────────────────────────────────────────
+  // Built from its parts in local time: handing "5 Oct 2026 19:10" to the
+  // Date parser works in some browsers and not others.
   const parseMatchDateTime = (dateStr, timeStr) => {
-    const datePart = dateStr.replace(/^\w+ /, ''); // strip "Mon "
-    const [timePart, period] = timeStr.split(' ');
-    let [h, m] = timePart.split(':').map(Number);
+    const d = String(dateStr || "").match(/(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/);
+    const t = String(timeStr || "").match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    const mon = d && MONTHS[d[2].toLowerCase()];
+    if (!d || !t || mon == null) return new Date(NaN);
+    let h = +t[1];
+    const period = (t[3] || "").toUpperCase();
     if (period === 'PM' && h !== 12) h += 12;
     if (period === 'AM' && h === 12) h = 0;
-    return new Date(`${datePart} ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+    return new Date(+d[3], mon, +d[1], h, +t[2]);
   };
 
   const getCountdown = (match) => {
     const diff = parseMatchDateTime(match.date, match.time) - new Date();
-    if (diff <= 0) return null;
+    if (!(diff > 0)) return null; // also covers a date that wouldn't parse
     return {
       days:  Math.floor(diff / 86400000),
       hours: Math.floor((diff % 86400000) / 3600000),
@@ -1180,7 +1185,7 @@ export default function App() {
               <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:24}}>
                 <img src="/crest-512.jpg" alt="Section FC crest" style={{width:62,height:62,objectFit:"contain",mixBlendMode:"lighten",flexShrink:0}} />
                 <div style={{minWidth:0}}>
-                  <Kicker color="#e8ff00" style={{fontSize:".55rem",marginBottom:5}}>◆ {SEASON.label} · {SEASON.division.toUpperCase()}</Kicker>
+                  <Kicker color="#e8ff00" style={{fontSize:".55rem",marginBottom:5}}>◆ {SEASON.label.toUpperCase()} · {SEASON.division.toUpperCase()}</Kicker>
                   <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(1.8rem,8.5vw,2.5rem)",letterSpacing:3,lineHeight:1}}>SECTION FC</div>
                   <div style={{fontFamily:"'Oswald',sans-serif",fontStyle:"italic",fontSize:".55rem",letterSpacing:2.5,color:"#ffffff80",marginTop:7}}>PLAY WITH YOUR HEART ON YOUR SLEEVE</div>
                 </div>
@@ -1420,7 +1425,7 @@ export default function App() {
           {topScorers.length > 0 && (
             <div style={card}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,gap:8}}>
-                <Kicker>◆ TOP SCORERS · {SEASON.label}</Kicker>
+                <Kicker>◆ TOP SCORERS · {SEASON.label.toUpperCase()}</Kicker>
                 <button className="link-btn" onClick={() => setScreen("stats")}>ALL STATS →</button>
               </div>
               {topScorers.map((p, i) => (
@@ -1496,7 +1501,7 @@ export default function App() {
           {lastSeason && lastSeasonRow && (
             <button className="tap-card" onClick={() => setScreen("season")}
                     style={{...card,textAlign:"left",width:"100%",cursor:"pointer",color:"#fff",fontFamily:"inherit",background:"radial-gradient(ellipse at 0% 0%, #44dd880f, transparent 70%)"}}>
-              <Kicker style={{marginBottom:8}}>◆ LAST SEASON · {lastSeason.label} · {lastSeason.division.toUpperCase()}</Kicker>
+              <Kicker style={{marginBottom:8}}>◆ LAST SEASON · {lastSeason.label.toUpperCase()} · {lastSeason.division.toUpperCase()}</Kicker>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:6}}>
                 <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1.05rem,4.4vw,1.35rem)",letterSpacing:-.3,lineHeight:1.1}}>{lastSeason.review.title}</div>
                 <div style={{flexShrink:0,fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".62rem",letterSpacing:2,padding:"4px 10px",background:"#44dd8814",border:"1px solid #44dd8855",color:"#44dd88"}}>{lastSeason.review.verdict}</div>
@@ -1504,7 +1509,7 @@ export default function App() {
               <div style={{fontSize:".92rem",color:"#ffffff99",lineHeight:1.45,marginBottom:10}}>
                 {ordinal(lastSeasonRow.pos)}, {lastSeasonRow.pts} points. {lastSeason.review.standfirst}
               </div>
-              <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:2,color:"#e8ff00"}}>READ THE {lastSeason.label} REVIEW →</span>
+              <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:2,color:"#e8ff00"}}>READ THE {lastSeason.label.toUpperCase()} REVIEW →</span>
             </button>
           )}
 
@@ -1725,7 +1730,7 @@ export default function App() {
                     const sorted = [...allP].sort(byStat(stats, sortStat));
                     const rows = sorted.map(p => ({ name: p, [sortStat]: stats[p][sortStat]||0 }));
                     return shareCard.share(
-                      <LeaderboardShareCard title={`${SEASON.label} SEASON · TOP ${STAT_LABELS[sortStat]}`} subtitle="Section FC" rows={rows} valueKey={sortStat} valueSuffix="" />,
+                      <LeaderboardShareCard title={`${SEASON.label.toUpperCase()} SEASON · TOP ${STAT_LABELS[sortStat]}`} subtitle="Section FC" rows={rows} valueKey={sortStat} valueSuffix="" />,
                       { filename:"section-fc-season-leaders.png", caption:`Section FC — ${SEASON.label} season ${STAT_LABELS[sortStat]} leaders`, urlPath:"/" }
                     );
                   }}
@@ -1765,7 +1770,7 @@ export default function App() {
           {ARCHIVE.filter(a => statsTab === a.id).map(a => (
             <div key={a.id}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:9,flexWrap:"wrap"}}>
-                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".56rem",letterSpacing:3,color:"#ffffff45"}}>FINAL {a.label} TOTALS · {a.division.toUpperCase()} · CLICK HEADER TO SORT</div>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".56rem",letterSpacing:3,color:"#ffffff45"}}>FINAL {a.label.toUpperCase()} TOTALS · {a.division.toUpperCase()} · CLICK HEADER TO SORT</div>
                 <ShareButton
                   label="SHARE TABLE"
                   onShare={() => {
@@ -1773,7 +1778,7 @@ export default function App() {
                       .sort(byStat(a.stats, sortStat))
                       .map(n => ({ name: n, [sortStat]: a.stats[n][sortStat]||0 }));
                     return shareCard.share(
-                      <LeaderboardShareCard title={`${a.label} SEASON · TOP ${STAT_LABELS[sortStat]}`} subtitle={`Section FC · ${a.division}`} rows={rows} valueKey={sortStat} valueSuffix="" />,
+                      <LeaderboardShareCard title={`${a.label.toUpperCase()} SEASON · TOP ${STAT_LABELS[sortStat]}`} subtitle={`Section FC · ${a.division}`} rows={rows} valueKey={sortStat} valueSuffix="" />,
                       { filename:`section-fc-${a.id}-leaders.png`, caption:`Section FC — ${a.label} season ${STAT_LABELS[sortStat]} leaders`, urlPath:"/" }
                     );
                   }}
@@ -1804,7 +1809,7 @@ export default function App() {
         <main style={{padding:"22px 14px",maxWidth:700,margin:"0 auto"}}>
           <div style={{marginBottom:18,display:"flex",alignItems:"flex-end",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
             <div>
-              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ {view.division.toUpperCase()} · {view.label}{live ? "" : " · FINAL"}</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ {view.division.toUpperCase()} · {view.label.toUpperCase()}{live ? "" : " · FINAL"}</div>
               <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>POWERLEAGUE TABLE</h1>
             </div>
             <SeasonSwitch value={view.id} onChange={setViewSeason} />
@@ -1852,7 +1857,7 @@ export default function App() {
           </div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,marginTop:16,flexWrap:"wrap"}}>
             {!live && view.review
-              ? <button className="link-btn" onClick={() => setScreen("season")} style={{color:"#e8ff00"}}>READ THE {view.label} REVIEW →</button>
+              ? <button className="link-btn" onClick={() => setScreen("season")} style={{color:"#e8ff00"}}>READ THE {view.label.toUpperCase()} REVIEW →</button>
               : <span />}
             <ShareButton
               label="SHARE TABLE"
@@ -1885,7 +1890,7 @@ export default function App() {
 
           <div style={{marginBottom:20,display:"flex",alignItems:"flex-end",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
             <div>
-              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ {view.division.toUpperCase()} · {view.label}</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ {view.division.toUpperCase()} · {view.label.toUpperCase()}</div>
               <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>{live ? "FIXTURES & RESULTS" : "RESULTS"}</h1>
             </div>
             <SeasonSwitch value={view.id} onChange={setViewSeason} />
@@ -2008,7 +2013,7 @@ export default function App() {
           )}
 
           {!live && view.review && (
-            <button className="link-btn" onClick={() => setScreen("season")} style={{color:"#e8ff00",marginTop:6}}>READ THE {view.label} REVIEW →</button>
+            <button className="link-btn" onClick={() => setScreen("season")} style={{color:"#e8ff00",marginTop:6}}>READ THE {view.label.toUpperCase()} REVIEW →</button>
           )}
 
         </main>
@@ -2175,7 +2180,7 @@ export default function App() {
             <AwardRow icon="🌟"  label="MOTM"         statKey="motm"        suffix="motm" />
             <button className="link-btn" onClick={() => { setStatsTab(SEASON_2026.id); setScreen("stats"); }}
                     style={{fontSize:".54rem",letterSpacing:1.5,color:"#ffffff40",paddingTop:10,textAlign:"left"}}>
-              FINAL SEASON TOTALS · SEE THE FULL {SEASON_2026.label} TABLE →
+              FINAL SEASON TOTALS · SEE THE FULL {SEASON_2026.label.toUpperCase()} TABLE →
             </button>
           </div>
 

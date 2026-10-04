@@ -1,4 +1,4 @@
-// Rolls Firestore over from the 2026 season to 2026/27 and puts the opening
+// Rolls Firestore over from the 2026 season to Autumn 2026 and puts the opening
 // night in: SECTION FC 6-6 Drew Peacock FC, Mon 28 Sep 2026.
 //
 // 1. Archives everything season-scoped to seasonArchive/2026: season stats,
