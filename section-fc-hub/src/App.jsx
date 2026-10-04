@@ -151,7 +151,8 @@ const mergeOppRoster = saved => {
     return { name: n, pos };
   });
 };
-const lastWord  = n => n.split(" ").pop();
+// Brackets go, so "Ade ( Cole)" reads "Cole" on the pitch, not "Cole)".
+const lastWord  = n => String(n || "").replace(/[()]/g, " ").trim().split(/\s+/).pop();
 const firstWord = n => n.split(" ")[0];
 const avatar    = n => PLAYER_IMGS[n] || null;
 const isSFC     = t => t === "SECTION FC";
@@ -3129,11 +3130,12 @@ export default function App() {
   if (screen === "report") {
     // Determine which data to show in editing form
     const draft = reportDraft || (matchReport && !matchReport.applied ? matchReport : null);
-    // Posting the next squad clears the live report for the new game. Players
-    // (and anyone following a /report link) still get the latest one from the
-    // archive; the admin gets the start-a-new-report flow instead.
+    // Posting the next squad clears the live report for the new game, and a
+    // saved draft stands in for it until it's published. Players (and anyone
+    // following a /report link) still get the latest published one; only the
+    // admin gets the draft or the start-a-new-report flow.
     const latest = matchReport?.applied ? matchReport : (!isAdmin ? reportArchive[0] || null : null);
-    const published = (latest && !reportDraft) ? latest : null;
+    const published = (latest && !(isAdmin && reportDraft)) ? latest : null;
     const isCorrection = !!matchReport?.applied && !!reportDraft;
 
     // ── Shared: small number input ─────────────────────────────────────────
