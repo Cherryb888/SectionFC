@@ -11,15 +11,19 @@
     <link rel="icon" type="image/png" href="/crest-180.png" />
     <link rel="apple-touch-icon" href="/crest-180.png" />
 
-    <!-- Open Graph / social share -->
+    <!-- Open Graph / social share. Link previews (WhatsApp included) need the
+         image as a full address, not a path. -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Section FC" />
     <meta property="og:title" content="Section FC" />
     <meta property="og:description" content="Play with your heart on your sleeve." />
-    <meta property="og:image" content="/banner.png" />
+    <meta property="og:image" content="https://section-fc.web.app/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Section FC" />
     <meta name="twitter:description" content="Play with your heart on your sleeve." />
-    <meta name="twitter:image" content="/banner.png" />
+    <meta name="twitter:image" content="https://section-fc.web.app/og-image.jpg" />
   </head>
   <body style="margin:0;background:#0a0a0f;">
     <div id="root"></div>

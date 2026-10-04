@@ -282,6 +282,22 @@ const ALL_TABS = ["home","squad","report","table","fixtures","stats","predictor"
 const matchdayScreens = ["setup","spin","pitch"];
 const TAB_LABELS = {home:"Home",squad:"⚽ Matchday Squad",report:"Report",season:`${SEASON_2026.label} Review`,stats:"Squad Stats",table:"Table",fixtures:"Results",halloffame:"🏆 Hall",predictor:"Predictor"};
 
+// Every public screen has its own address, so a shared link opens the right
+// page and the back button steps through the site. The admin matchday screens
+// aren't linkable.
+const SCREEN_PATHS = {
+  home:"/", squad:"/squad", report:"/report", table:"/table", fixtures:"/results",
+  stats:"/stats", predictor:"/predictor", halloffame:"/hall-of-fame", season:`/review-${SEASON_2026.id}`,
+};
+const SCREEN_TITLES = {
+  squad:"Matchday Squad", report:"Match Report", table:"Table", fixtures:"Fixtures & Results",
+  stats:"Squad Stats", predictor:"Predictor", halloffame:"Hall of Fame", season:`${SEASON_2026.label} Review`,
+};
+const screenFromPath = path => {
+  const clean = String(path || "/").replace(/\/+$/, "") || "/";
+  return Object.keys(SCREEN_PATHS).find(k => SCREEN_PATHS[k] === clean) || "home";
+};
+
 function Header({ screen, setScreen, isAdmin, onAdminClick }) {
   const activeTab = matchdayScreens.includes(screen) ? null : screen;
   return (
@@ -346,6 +362,37 @@ function Avatar({ name, size=38, border="#e8ff0055" }) {
     </div>
   );
   return <img src={src} alt={name} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",border:`2px solid ${border}`,flexShrink:0}} />;
+}
+
+// The 5-a-side pitch with both line-ups. idPrefix keeps the photo clip-paths
+// unique when two pitches are on the page at once (a screen and a share card).
+function PitchSVG({ sTeam, oTeam, idPrefix }) {
+  const sfcP = sTeam.map((p,i) => ({...p, x:SFC_XY[i][0], y:SFC_XY[i][1], img:avatar(p.name)}));
+  const oppP = oTeam.map((p,i) => ({...p, x:OPP_XY[i][0], y:OPP_XY[i][1]}));
+  return (
+    <svg viewBox={`0 0 ${PW} ${PH}`} style={{width:"100%",display:"block",borderRadius:6}}>
+      <defs>
+        {sfcP.map((_,i) => <clipPath key={i} id={`${idPrefix}${i}`}><circle cx={ptX(sfcP[i].x)} cy={ptY(sfcP[i].y)} r={17}/></clipPath>)}
+      </defs>
+      {Array.from({length:16}).map((_,i) => <rect key={i} x={0} y={i*(PH/16)} width={PW} height={PH/16} fill={i%2===0?"#1b6627":"#1e6e2a"}/>)}
+      <rect x={10} y={10} width={PW-20} height={PH-20} fill="none" stroke="rgba(255,255,255,.62)" strokeWidth={2}/>
+      <line x1={10} y1={PH/2} x2={PW-10} y2={PH/2} stroke="rgba(255,255,255,.5)" strokeWidth={1.5}/>
+      <circle cx={PW/2} cy={PH/2} r={36} fill="none" stroke="rgba(255,255,255,.5)" strokeWidth={1.5}/>
+      <circle cx={PW/2} cy={PH/2} r={3} fill="rgba(255,255,255,.65)"/>
+      <rect x={PW/2-50} y={10} width={100} height={58} fill="none" stroke="rgba(255,255,255,.44)" strokeWidth={1.5}/>
+      <rect x={PW/2-25} y={10} width={50} height={26} fill="none" stroke="rgba(255,255,255,.34)" strokeWidth={1}/>
+      <circle cx={PW/2} cy={46} r={2.5} fill="rgba(255,255,255,.55)"/>
+      <rect x={PW/2-50} y={PH-68} width={100} height={58} fill="none" stroke="rgba(255,255,255,.44)" strokeWidth={1.5}/>
+      <rect x={PW/2-25} y={PH-36} width={50} height={26} fill="none" stroke="rgba(255,255,255,.34)" strokeWidth={1}/>
+      <circle cx={PW/2} cy={PH-46} r={2.5} fill="rgba(255,255,255,.55)"/>
+      <rect x={PW/2-19} y={3} width={38} height={7} fill="none" stroke="rgba(255,255,255,.7)" strokeWidth={2}/>
+      <rect x={PW/2-19} y={PH-10} width={38} height={7} fill="none" stroke="rgba(255,255,255,.7)" strokeWidth={2}/>
+      <text x={PW-12} y={PH/2-8}  textAnchor="end" fill="rgba(255,100,68,.4)"  fontSize={6.5} fontFamily="sans-serif" fontWeight="bold">1-1-2-1</text>
+      <text x={PW-12} y={PH/2+15} textAnchor="end" fill="rgba(232,255,0,.4)"  fontSize={6.5} fontFamily="sans-serif" fontWeight="bold">1-2-2</text>
+      {oppP.map((p,i) => { const cx=ptX(p.x),cy=ptY(p.y); return (<g key={`o${i}`}><circle cx={cx} cy={cy} r={17} fill="#aa1e00" stroke="#ff6644" strokeWidth={2.5}/><text x={cx} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={8} fontWeight="bold" fontFamily="sans-serif">{p.pos}</text><rect x={cx-27} y={cy+19} width={54} height={13} rx={2} fill="rgba(0,0,0,.62)"/><text x={cx} y={cy+26} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={7} fontFamily="sans-serif">{lastWord(p.name)}</text></g>); })}
+      {sfcP.map((p,i) => { const cx=ptX(p.x),cy=ptY(p.y); return (<g key={`s${i}`}><circle cx={cx} cy={cy} r={17} fill="#9eb400" stroke="#e8ff00" strokeWidth={2.5}/>{p.img?<image href={p.img} x={cx-17} y={cy-17} width={34} height={34} clipPath={`url(#${idPrefix}${i})`} preserveAspectRatio="xMidYMid slice"/>:<text x={cx} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="#0a0a0f" fontSize={8} fontWeight="bold" fontFamily="sans-serif">{p.pos}</text>}<rect x={cx-27} y={cy+19} width={54} height={13} rx={2} fill="rgba(0,0,0,.72)"/><text x={cx} y={cy+26} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={7} fontFamily="sans-serif">{firstWord(p.name)}</text></g>); })}
+    </svg>
+  );
 }
 
 // ── Share cards ──────────────────────────────────────────────────────────────
@@ -517,6 +564,118 @@ function LeaderboardShareCard({ title, subtitle, rows, valueKey = 'pts', valueSu
   );
 }
 
+// WhatsApp crops anything much taller than 4:5 in the chat, so the cards for
+// the squad, the report and the fixtures are drawn roughly square instead of
+// photographing the (long) page.
+
+function SquadShareCard({ sq, fixture }) {
+  const bench = sq.benchTeam || [];
+  const where = fixture && [fixture.date, fixture.time, fixture.pitch, isSFC(fixture.home) ? "HOME" : "AWAY"].filter(Boolean).join(" · ");
+  return (
+    <ShareCardFrame width={600}>
+      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#e8ff0099",marginBottom:6}}>◆ MATCHDAY SQUAD</div>
+      <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1.55rem",letterSpacing:.5,lineHeight:1.1}}>
+        <span style={{color:"#e8ff00"}}>SECTION FC</span>
+        <span style={{color:"#ffffff30",margin:"0 10px",fontWeight:300}}>vs</span>
+        <span style={{color:"#ff6644"}}>{sq.oppName}</span>
+      </div>
+      {where && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".72rem",letterSpacing:2,color:"#ffffffaa",marginTop:6}}>{where.toUpperCase()}</div>}
+      <div style={{display:"flex",gap:18,alignItems:"flex-start",marginTop:14}}>
+        <div style={{width:262,flexShrink:0}}>
+          <PitchSVG sTeam={sq.sTeam} oTeam={sq.oTeam} idPrefix="share-ps" />
+        </div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:3,color:"#ffffff55",marginBottom:8}}>STARTING FIVE</div>
+          {sq.sTeam.map(p => (
+            <div key={p.pos + p.name} style={{display:"flex",alignItems:"center",gap:9,padding:"6px 0",borderBottom:"1px solid #ffffff0c"}}>
+              <Avatar name={p.name} size={30} border="#e8ff0066" />
+              <div style={{flex:1,minWidth:0,fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".92rem",lineHeight:1.15}}>{p.name}</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".55rem",letterSpacing:2,color:"#e8ff00",padding:"2px 6px",border:"1px solid #e8ff0044"}}>{p.pos}</div>
+            </div>
+          ))}
+          {bench.length > 0 && (
+            <>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:3,color:"#ffffff55",margin:"14px 0 6px"}}>BENCH</div>
+              {bench.map(n => (
+                <div key={n} style={{display:"flex",alignItems:"center",gap:9,padding:"4px 0"}}>
+                  <Avatar name={n} size={26} border="#ffffff33" />
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".85rem",color:"#ffffffcc"}}>{n}</div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </div>
+    </ShareCardFrame>
+  );
+}
+
+function ReportShareCard({ r }) {
+  const players = (r.players || []).filter(p => p.played !== false);
+  const won = r.sfcScore > r.oppScore, lost = r.sfcScore < r.oppScore;
+  const tag = won ? {label:"WIN",col:"#44dd88"} : lost ? {label:"LOSS",col:"#ff5544"} : {label:"DRAW",col:"#e8ff00"};
+  // The gaffa's opening line, not the whole write-up: the link has the rest.
+  const first = String(r.reportText || "").split(/\n\s*\n/)[0].trim();
+  const excerpt = first.length > 170 ? first.slice(0, 170).replace(/\s+\S*$/, "") + "…" : first;
+  return (
+    <ShareCardFrame width={600}>
+      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#e8ff0099",marginBottom:8}}>◆ MATCH REPORT · {String(r.date || "").toUpperCase()}</div>
+      <div style={{display:"flex",alignItems:"center",gap:14}}>
+        <div style={{flex:1,minWidth:0,fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1.45rem",lineHeight:1.15}}>
+          <span style={{color:"#e8ff00"}}>SECTION FC {r.sfcScore}</span>
+          <span style={{color:"#ffffff30",margin:"0 8px",fontWeight:300}}>–</span>
+          <span style={{color:"#ff6644"}}>{r.oppScore} {r.opponent}</span>
+        </div>
+        <div style={{flexShrink:0,padding:"4px 12px",background:`${tag.col}1c`,border:`1px solid ${tag.col}66`,fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".7rem",letterSpacing:3,color:tag.col}}>{tag.label}</div>
+      </div>
+      {excerpt && <div style={{fontSize:".98rem",fontStyle:"italic",color:"#ffffffbb",lineHeight:1.45,margin:"10px 0 4px"}}>“{excerpt}”</div>}
+      {players.length > 0 && (
+        <div style={{marginTop:10}}>
+          {players.map(p => {
+            const rating = p.rating !== "" && p.rating != null ? parseFloat(p.rating) : null;
+            const rc = rating != null ? getRatingColor(rating) : "#ffffff22";
+            return (
+              <div key={p.name} style={{display:"flex",alignItems:"center",gap:10,padding:"5px 0",borderBottom:"1px solid #ffffff0c"}}>
+                <Avatar name={p.name} size={28} border={p.motm ? "#e8ff00" : "#ffffff33"} />
+                <div style={{flex:1,minWidth:0,fontFamily:"'Oswald',sans-serif",fontWeight:p.motm ? 800 : 600,fontSize:".9rem"}}>{p.name}</div>
+                <div style={{display:"flex",gap:8,alignItems:"center",fontFamily:"'Oswald',sans-serif",fontSize:".72rem",color:"#ffffffcc"}}>
+                  {p.goals > 0   && <span>⚽ {p.goals}</span>}
+                  {p.assists > 0 && <span>🅰 {p.assists}</span>}
+                  {p.motm        && <span style={{color:"#e8ff00",fontWeight:800,letterSpacing:1}}>★ MOTM</span>}
+                </div>
+                {rating != null && (
+                  <div style={{width:38,height:28,borderRadius:4,background:`${rc}22`,border:`2px solid ${rc}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".8rem",color:rc,flexShrink:0}}>{rating.toFixed(1)}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </ShareCardFrame>
+  );
+}
+
+function FixturesShareCard({ fixtures, season }) {
+  return (
+    <ShareCardFrame width={600}>
+      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:3,color:"#e8ff0099",marginBottom:10}}>◆ OUR FIXTURES · {season.label.toUpperCase()} · {season.division.toUpperCase()}</div>
+      {fixtures.map(f => {
+        const home = isSFC(f.home);
+        return (
+          <div key={f.date + f.time} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 0",borderBottom:"1px solid #ffffff0c",fontFamily:"'Oswald',sans-serif"}}>
+            <div style={{width:92,flexShrink:0,fontWeight:700,fontSize:".85rem",color:"#e8ff00",letterSpacing:.5}}>{f.date.replace(/\s+\d{4}$/, "")}</div>
+            <div style={{width:58,flexShrink:0,fontSize:".78rem",color:"#ffffffaa"}}>{f.time}</div>
+            <div style={{flex:1,minWidth:0,fontWeight:600,fontSize:".95rem"}}>
+              <span style={{display:"inline-block",width:22,color:"#ffffff55"}}>{home ? "v" : "@"}</span>{home ? f.away : f.home}
+            </div>
+            <div style={{flexShrink:0,fontSize:".62rem",letterSpacing:1.5,color:"#ffffff66"}}>{f.pitch ? f.pitch.toUpperCase() : ""}</div>
+          </div>
+        );
+      })}
+    </ShareCardFrame>
+  );
+}
+
 // ── Admin PIN Modal ───────────────────────────────────────────────────────────
 function AdminModal({ isAdmin, onClose, onLogin, onLogout }) {
   const [pin, setPin] = useState("");
@@ -567,7 +726,7 @@ export default function App() {
   const [showPinModal, setShowPinModal] = useState(false);
 
   // Navigation
-  const [screen, setScreen] = useState("home");
+  const [screen, setScreen] = useState(() => screenFromPath(window.location.pathname));
   const [viewSeason, setViewSeason] = useState(SEASON.id); // Results / Table season switch
   const [loading, setLoading] = useState(true);
 
@@ -646,13 +805,10 @@ export default function App() {
   const shareCard          = useShareableCard();
   const refHomeLastResult  = useRef(null);
   const refHomeNextMatch   = useRef(null);
-  const refReport          = useRef(null);
-  const refSquad           = useRef(null);
   const refHallOfFame      = useRef(null);
   const refStatsTable      = useRef(null);
   const refPlayerForm      = useRef(null);
   const refPredictorBoard  = useRef(null);
-  const refFixtures        = useRef(null);
   const refTable           = useRef(null);
   const refSeason          = useRef(null);
 
@@ -727,6 +883,24 @@ export default function App() {
     }));
 
     return () => unsubs.forEach(u => u());
+  }, []);
+
+  // Keep the address bar on the screen being shown, so a link can be copied
+  // and the back button steps through the site. The first sync replaces the
+  // entry rather than adding one, which also tidies an unknown address.
+  const firstSync = useRef(true);
+  useEffect(() => {
+    const path = SCREEN_PATHS[screen];
+    if (path && window.location.pathname !== path) {
+      window.history[firstSync.current ? "replaceState" : "pushState"](null, "", path);
+    }
+    firstSync.current = false;
+    document.title = SCREEN_TITLES[screen] ? `${SCREEN_TITLES[screen]} · Section FC` : "Section FC · Play With Your Heart On Your Sleeve";
+  }, [screen]);
+  useEffect(() => {
+    const onBack = () => setScreen(screenFromPath(window.location.pathname));
+    window.addEventListener("popstate", onBack);
+    return () => window.removeEventListener("popstate", onBack);
   }, []);
 
   // Opening a report from the Results page lands on that report, not the top.
@@ -1111,6 +1285,11 @@ export default function App() {
     return reportArchive.find(r => teamKey(r.opponent) === key && Math.abs((dayOf(r.date) ?? Infinity) - day) <= 2) || null;
   };
   const sfcFixtures = FIXTURES.flatMap(gw => gw.matches.filter(m => isSFC(m.home)||isSFC(m.away)).map(m => ({...m, date:gw.date})));
+  const squadFixture = sq => {
+    const key = teamKey(sq.oppName);
+    const posted = sq.publishedAt ? Math.floor(sq.publishedAt / 86400000) : -Infinity;
+    return sfcFixtures.find(m => teamKey(isSFC(m.home) ? m.away : m.home) === key && (dayOf(m.date) ?? -Infinity) >= posted) || null;
+  };
 
   // ── Loading ──────────────────────────────────────────────────────────────────
   if (loading) return (
@@ -1218,7 +1397,7 @@ export default function App() {
                     {
                       filename:"section-fc-next-match.png",
                       caption:`Next up: SECTION FC ${isSFC(nextMatch.home)?"vs":"@"} ${isSFC(nextMatch.home)?nextMatch.away:nextMatch.home} — ${nextMatch.date} ${nextMatch.time}`,
-                      urlPath:"/",
+                      urlPath:SCREEN_PATHS.fixtures,
                     }
                   )}
                 />
@@ -1301,7 +1480,7 @@ export default function App() {
                     {
                       filename:"section-fc-result.png",
                       caption:`SECTION FC ${lastResult.sfcScore}–${lastResult.oppScore} ${lastResult.opponent}${motmPlayer?` · MOTM: ${motmPlayer.name}`:""}`,
-                      urlPath:"/",
+                      urlPath:SCREEN_PATHS.report,
                     }
                   )}
                 />
@@ -1614,7 +1793,7 @@ export default function App() {
                           size={26}
                           onShare={() => shareCard.share(
                             <PlayerFormShareCard name={player} games={games} />,
-                            { filename:`section-fc-${firstWord(player).toLowerCase()}-form.png`, caption:`${player} — recent form`, urlPath:"/" }
+                            { filename:`section-fc-${firstWord(player).toLowerCase()}-form.png`, caption:`${player} — recent form`, urlPath:SCREEN_PATHS.stats }
                           )}
                         />
                       )}
@@ -1731,7 +1910,7 @@ export default function App() {
                     const rows = sorted.map(p => ({ name: p, [sortStat]: stats[p][sortStat]||0 }));
                     return shareCard.share(
                       <LeaderboardShareCard title={`${SEASON.label.toUpperCase()} SEASON · TOP ${STAT_LABELS[sortStat]}`} subtitle="Section FC" rows={rows} valueKey={sortStat} valueSuffix="" />,
-                      { filename:"section-fc-season-leaders.png", caption:`Section FC — ${SEASON.label} season ${STAT_LABELS[sortStat]} leaders`, urlPath:"/" }
+                      { filename:"section-fc-season-leaders.png", caption:`Section FC — ${SEASON.label} season ${STAT_LABELS[sortStat]} leaders`, urlPath:SCREEN_PATHS.stats }
                     );
                   }}
                 />
@@ -1779,7 +1958,7 @@ export default function App() {
                       .map(n => ({ name: n, [sortStat]: a.stats[n][sortStat]||0 }));
                     return shareCard.share(
                       <LeaderboardShareCard title={`${a.label.toUpperCase()} SEASON · TOP ${STAT_LABELS[sortStat]}`} subtitle={`Section FC · ${a.division}`} rows={rows} valueKey={sortStat} valueSuffix="" />,
-                      { filename:`section-fc-${a.id}-leaders.png`, caption:`Section FC — ${a.label} season ${STAT_LABELS[sortStat]} leaders`, urlPath:"/" }
+                      { filename:`section-fc-${a.id}-leaders.png`, caption:`Section FC — ${a.label} season ${STAT_LABELS[sortStat]} leaders`, urlPath:SCREEN_PATHS.stats }
                     );
                   }}
                 />
@@ -1864,7 +2043,7 @@ export default function App() {
               getNode={() => refTable.current}
               caption={`${view.division} table · ${view.label}`}
               filename={`section-fc-table-${view.id}.png`}
-              urlPath="/"
+              urlPath={SCREEN_PATHS.table}
             />
           </div>
         </main>
@@ -1904,14 +2083,14 @@ export default function App() {
                 {fixtures.length > 0 && (
                   <ShareButton
                     label="SHARE FIXTURES"
-                    getNode={() => refFixtures.current}
-                    caption="SECTION FC — upcoming fixtures"
-                    filename="section-fc-fixtures.png"
-                    urlPath="/"
+                    onShare={() => shareCard.share(
+                      <FixturesShareCard fixtures={sfcFixtures} season={SEASON} />,
+                      { filename:"section-fc-fixtures.png", caption:`SECTION FC fixtures — ${SEASON.label}`, urlPath:SCREEN_PATHS.fixtures }
+                    )}
                   />
                 )}
               </div>
-              <div ref={refFixtures}>
+              <div>
               {fixtures.length === 0 && (
                 <div style={{background:"#ffffff05",border:"1px dashed #ffffff1c",padding:"20px",textAlign:"center",marginBottom:8}}>
                   <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".95rem",letterSpacing:3,color:"#ffffffcc",marginBottom:6}}>FIXTURES TBC</div>
@@ -1944,7 +2123,7 @@ export default function App() {
                                 {
                                   filename:"section-fc-fixture.png",
                                   caption:`SECTION FC ${isSFC(m.home)?"vs":"@"} ${isSFC(m.home)?m.away:m.home} — ${gw.date} ${m.time}`,
-                                  urlPath:"/",
+                                  urlPath:SCREEN_PATHS.fixtures,
                                 }
                               )}
                             />
@@ -2130,7 +2309,7 @@ export default function App() {
               getNode={() => refSeason.current}
               caption={`SECTION FC — ${SEASON_REVIEW.season} season: ${ordinal(sfcRow.pos)} in ${SEASON_REVIEW.division}, ${sfcRow.pts} points. ${SEASON_REVIEW.verdict}.`}
               filename="section-fc-season-2026.png"
-              urlPath="/"
+              urlPath={SCREEN_PATHS.season}
             />
           </div>
 
@@ -2292,7 +2471,7 @@ export default function App() {
                 getNode={() => refHallOfFame.current}
                 caption={`${winner} — ${aw.name} 🏆`}
                 filename={`section-fc-${aw.id}.png`}
-                urlPath="/"
+                urlPath={SCREEN_PATHS.halloffame}
               />
             </div>
           )}
@@ -2725,7 +2904,7 @@ export default function App() {
                 variant="icon"
                 onShare={() => shareCard.share(
                   <LeaderboardShareCard title="PREDICTOR · SEASON LEADERBOARD" subtitle="Section FC" rows={seasonPreds.map(p => ({ name:p.player, pts:p.pts }))} valueKey="pts" valueSuffix="pts" />,
-                  { filename:"section-fc-predictor-leaderboard.png", caption:"Section FC Predictor — season leaderboard", urlPath:"/" }
+                  { filename:"section-fc-predictor-leaderboard.png", caption:"Section FC Predictor — season leaderboard", urlPath:SCREEN_PATHS.predictor }
                 )}
               />
             </div>
@@ -2889,9 +3068,7 @@ export default function App() {
   }
 
   if (screen === "pitch") {
-    const sfcP = sTeam.map((p,i) => ({...p, x:SFC_XY[i][0], y:SFC_XY[i][1], img:avatar(p.name)}));
     const oppFilled = mergeOppRoster(oTeam.map(p => ({ name: (p.name||"").trim(), pos: p.pos })));
-    const oppP = oppFilled.map((p,i) => ({...p, x:OPP_XY[i][0], y:OPP_XY[i][1]}));
     return (
       <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
         <style>{CSS}</style>
@@ -2904,28 +3081,7 @@ export default function App() {
             </div>
           </div>
           <div className="pitch-in" style={{width:"100%",maxWidth:520,margin:"0 auto 12px"}}>
-            <svg viewBox={`0 0 ${PW} ${PH}`} style={{width:"100%",display:"block",borderRadius:6}}>
-              <defs>
-                {sfcP.map((_,i) => <clipPath key={i} id={`cs${i}`}><circle cx={ptX(sfcP[i].x)} cy={ptY(sfcP[i].y)} r={17}/></clipPath>)}
-              </defs>
-              {Array.from({length:16}).map((_,i) => <rect key={i} x={0} y={i*(PH/16)} width={PW} height={PH/16} fill={i%2===0?"#1b6627":"#1e6e2a"}/>)}
-              <rect x={10} y={10} width={PW-20} height={PH-20} fill="none" stroke="rgba(255,255,255,.62)" strokeWidth={2}/>
-              <line x1={10} y1={PH/2} x2={PW-10} y2={PH/2} stroke="rgba(255,255,255,.5)" strokeWidth={1.5}/>
-              <circle cx={PW/2} cy={PH/2} r={36} fill="none" stroke="rgba(255,255,255,.5)" strokeWidth={1.5}/>
-              <circle cx={PW/2} cy={PH/2} r={3} fill="rgba(255,255,255,.65)"/>
-              <rect x={PW/2-50} y={10} width={100} height={58} fill="none" stroke="rgba(255,255,255,.44)" strokeWidth={1.5}/>
-              <rect x={PW/2-25} y={10} width={50} height={26} fill="none" stroke="rgba(255,255,255,.34)" strokeWidth={1}/>
-              <circle cx={PW/2} cy={46} r={2.5} fill="rgba(255,255,255,.55)"/>
-              <rect x={PW/2-50} y={PH-68} width={100} height={58} fill="none" stroke="rgba(255,255,255,.44)" strokeWidth={1.5}/>
-              <rect x={PW/2-25} y={PH-36} width={50} height={26} fill="none" stroke="rgba(255,255,255,.34)" strokeWidth={1}/>
-              <circle cx={PW/2} cy={PH-46} r={2.5} fill="rgba(255,255,255,.55)"/>
-              <rect x={PW/2-19} y={3} width={38} height={7} fill="none" stroke="rgba(255,255,255,.7)" strokeWidth={2}/>
-              <rect x={PW/2-19} y={PH-10} width={38} height={7} fill="none" stroke="rgba(255,255,255,.7)" strokeWidth={2}/>
-              <text x={PW-12} y={PH/2-8}  textAnchor="end" fill="rgba(255,100,68,.4)"  fontSize={6.5} fontFamily="sans-serif" fontWeight="bold">1-1-2-1</text>
-              <text x={PW-12} y={PH/2+15} textAnchor="end" fill="rgba(232,255,0,.4)"  fontSize={6.5} fontFamily="sans-serif" fontWeight="bold">1-2-2</text>
-              {oppP.map((p,i) => { const cx=ptX(p.x),cy=ptY(p.y); return (<g key={`o${i}`}><circle cx={cx} cy={cy} r={17} fill="#aa1e00" stroke="#ff6644" strokeWidth={2.5}/><text x={cx} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={8} fontWeight="bold" fontFamily="sans-serif">{p.pos}</text><rect x={cx-27} y={cy+19} width={54} height={13} rx={2} fill="rgba(0,0,0,.62)"/><text x={cx} y={cy+26} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={7} fontFamily="sans-serif">{lastWord(p.name)}</text></g>); })}
-              {sfcP.map((p,i) => { const cx=ptX(p.x),cy=ptY(p.y); return (<g key={`s${i}`}><circle cx={cx} cy={cy} r={17} fill="#9eb400" stroke="#e8ff00" strokeWidth={2.5}/>{p.img?<image href={p.img} x={cx-17} y={cy-17} width={34} height={34} clipPath={`url(#cs${i})`} preserveAspectRatio="xMidYMid slice"/>:<text x={cx} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="#0a0a0f" fontSize={8} fontWeight="bold" fontFamily="sans-serif">{p.pos}</text>}<rect x={cx-27} y={cy+19} width={54} height={13} rx={2} fill="rgba(0,0,0,.72)"/><text x={cx} y={cy+26} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={7} fontFamily="sans-serif">{firstWord(p.name)}</text></g>); })}
-            </svg>
+            <PitchSVG sTeam={sTeam} oTeam={oppFilled} idPrefix="cs" />
           </div>
           {benchTeam.length > 0 && (
             <div style={{marginBottom:14}}>
@@ -2973,7 +3129,11 @@ export default function App() {
   if (screen === "report") {
     // Determine which data to show in editing form
     const draft = reportDraft || (matchReport && !matchReport.applied ? matchReport : null);
-    const published = (matchReport?.applied && !reportDraft) ? matchReport : null;
+    // Posting the next squad clears the live report for the new game. Players
+    // (and anyone following a /report link) still get the latest one from the
+    // archive; the admin gets the start-a-new-report flow instead.
+    const latest = matchReport?.applied ? matchReport : (!isAdmin ? reportArchive[0] || null : null);
+    const published = (latest && !reportDraft) ? latest : null;
     const isCorrection = !!matchReport?.applied && !!reportDraft;
 
     // ── Shared: small number input ─────────────────────────────────────────
@@ -3004,8 +3164,7 @@ export default function App() {
       const motm = r.players?.find(p => p.motm && p.played);
       return (
       <div style={{animation:"fadeUp .4s ease"}}>
-        {/* Share whole report */}
-        <div ref={refReport}>
+        <div>
         <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10,gap:8}} data-share-hide="1">
           <ShareButton
             label="SHARE RESULT"
@@ -3014,16 +3173,20 @@ export default function App() {
               {
                 filename:"section-fc-result.png",
                 caption:`SECTION FC ${r.sfcScore}–${r.oppScore} ${r.opponent}${motm?` · MOTM: ${motm.name}`:""}`,
-                urlPath:"/",
+                urlPath:SCREEN_PATHS.report,
               }
             )}
           />
           <ShareButton
             label="SHARE REPORT"
-            getNode={() => refReport.current}
-            caption={`Match report: SECTION FC ${r.sfcScore}–${r.oppScore} ${r.opponent}`}
-            filename="section-fc-match-report.png"
-            urlPath="/"
+            onShare={() => shareCard.share(
+              <ReportShareCard r={r} />,
+              {
+                filename:"section-fc-match-report.png",
+                caption:`Match report: SECTION FC ${r.sfcScore}–${r.oppScore} ${r.opponent}`,
+                urlPath:SCREEN_PATHS.report,
+              }
+            )}
           />
         </div>
         {/* Match result header */}
@@ -3079,7 +3242,7 @@ export default function App() {
                     {
                       filename:`section-fc-${firstWord(p.name).toLowerCase()}-rating.png`,
                       caption:`${p.name}${ratingTxt} vs ${r.opponent} (${r.sfcScore}–${r.oppScore})`,
-                      urlPath:"/",
+                      urlPath:SCREEN_PATHS.report,
                     }
                   )}
                 />
@@ -3337,8 +3500,6 @@ export default function App() {
   // ══════════════════════════════════════════════════════════════════════════
   if (screen === "squad") {
     const renderPitch = (sq) => {
-      const sfcP = sq.sTeam.map((p,i) => ({...p, x:SFC_XY[i][0], y:SFC_XY[i][1], img:avatar(p.name)}));
-      const oppP = sq.oTeam.map((p,i) => ({...p, x:OPP_XY[i][0], y:OPP_XY[i][1]}));
       const bench = sq.benchTeam || [];
       const published = new Date(sq.publishedAt).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
       return (
@@ -3346,13 +3507,20 @@ export default function App() {
           <div data-share-hide="1" style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
             <ShareButton
               label="SHARE SQUAD"
-              getNode={() => refSquad.current}
-              caption={`SECTION FC vs ${sq.oppName} — squad`}
-              filename="section-fc-squad.png"
-              urlPath="/"
+              onShare={() => {
+                const fx = squadFixture(sq);
+                return shareCard.share(
+                  <SquadShareCard sq={sq} fixture={fx} />,
+                  {
+                    filename:"section-fc-squad.png",
+                    caption:`Matchday squad: SECTION FC vs ${sq.oppName}${fx ? ` — ${fx.date}${fx.time ? `, ${fx.time}` : ""}` : ""}`,
+                    urlPath:SCREEN_PATHS.squad,
+                  }
+                );
+              }}
             />
           </div>
-          <div ref={refSquad}>
+          <div>
           <div style={{textAlign:"center",marginBottom:14}}>
             <div style={{display:"inline-flex",alignItems:"center",gap:8,background:"#00cc5518",border:"1px solid #00cc5544",padding:"5px 14px",borderRadius:3,marginBottom:10}}>
               <div style={{width:7,height:7,borderRadius:"50%",background:"#00cc55",boxShadow:"0 0 6px #00cc55"}} />
@@ -3366,28 +3534,7 @@ export default function App() {
             <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",color:"#ffffff35",letterSpacing:2,marginTop:6}}>POSTED {published.toUpperCase()}</div>
           </div>
           <div className="pitch-in" style={{width:"100%",maxWidth:520,margin:"0 auto 12px"}}>
-            <svg viewBox={`0 0 ${PW} ${PH}`} style={{width:"100%",display:"block",borderRadius:6}}>
-              <defs>
-                {sfcP.map((_,i) => <clipPath key={i} id={`ps${i}`}><circle cx={ptX(sfcP[i].x)} cy={ptY(sfcP[i].y)} r={17}/></clipPath>)}
-              </defs>
-              {Array.from({length:16}).map((_,i) => <rect key={i} x={0} y={i*(PH/16)} width={PW} height={PH/16} fill={i%2===0?"#1b6627":"#1e6e2a"}/>)}
-              <rect x={10} y={10} width={PW-20} height={PH-20} fill="none" stroke="rgba(255,255,255,.62)" strokeWidth={2}/>
-              <line x1={10} y1={PH/2} x2={PW-10} y2={PH/2} stroke="rgba(255,255,255,.5)" strokeWidth={1.5}/>
-              <circle cx={PW/2} cy={PH/2} r={36} fill="none" stroke="rgba(255,255,255,.5)" strokeWidth={1.5}/>
-              <circle cx={PW/2} cy={PH/2} r={3} fill="rgba(255,255,255,.65)"/>
-              <rect x={PW/2-50} y={10} width={100} height={58} fill="none" stroke="rgba(255,255,255,.44)" strokeWidth={1.5}/>
-              <rect x={PW/2-25} y={10} width={50} height={26} fill="none" stroke="rgba(255,255,255,.34)" strokeWidth={1}/>
-              <circle cx={PW/2} cy={46} r={2.5} fill="rgba(255,255,255,.55)"/>
-              <rect x={PW/2-50} y={PH-68} width={100} height={58} fill="none" stroke="rgba(255,255,255,.44)" strokeWidth={1.5}/>
-              <rect x={PW/2-25} y={PH-36} width={50} height={26} fill="none" stroke="rgba(255,255,255,.34)" strokeWidth={1}/>
-              <circle cx={PW/2} cy={PH-46} r={2.5} fill="rgba(255,255,255,.55)"/>
-              <rect x={PW/2-19} y={3} width={38} height={7} fill="none" stroke="rgba(255,255,255,.7)" strokeWidth={2}/>
-              <rect x={PW/2-19} y={PH-10} width={38} height={7} fill="none" stroke="rgba(255,255,255,.7)" strokeWidth={2}/>
-              <text x={PW-12} y={PH/2-8}  textAnchor="end" fill="rgba(255,100,68,.4)"  fontSize={6.5} fontFamily="sans-serif" fontWeight="bold">1-1-2-1</text>
-              <text x={PW-12} y={PH/2+15} textAnchor="end" fill="rgba(232,255,0,.4)"  fontSize={6.5} fontFamily="sans-serif" fontWeight="bold">1-2-2</text>
-              {oppP.map((p,i) => { const cx=ptX(p.x),cy=ptY(p.y); return (<g key={`o${i}`}><circle cx={cx} cy={cy} r={17} fill="#aa1e00" stroke="#ff6644" strokeWidth={2.5}/><text x={cx} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={8} fontWeight="bold" fontFamily="sans-serif">{p.pos}</text><rect x={cx-27} y={cy+19} width={54} height={13} rx={2} fill="rgba(0,0,0,.62)"/><text x={cx} y={cy+26} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={7} fontFamily="sans-serif">{lastWord(p.name)}</text></g>); })}
-              {sfcP.map((p,i) => { const cx=ptX(p.x),cy=ptY(p.y); return (<g key={`s${i}`}><circle cx={cx} cy={cy} r={17} fill="#9eb400" stroke="#e8ff00" strokeWidth={2.5}/>{p.img?<image href={p.img} x={cx-17} y={cy-17} width={34} height={34} clipPath={`url(#ps${i})`} preserveAspectRatio="xMidYMid slice"/>:<text x={cx} y={cy+.5} textAnchor="middle" dominantBaseline="middle" fill="#0a0a0f" fontSize={8} fontWeight="bold" fontFamily="sans-serif">{p.pos}</text>}<rect x={cx-27} y={cy+19} width={54} height={13} rx={2} fill="rgba(0,0,0,.72)"/><text x={cx} y={cy+26} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={7} fontFamily="sans-serif">{firstWord(p.name)}</text></g>); })}
-            </svg>
+            <PitchSVG sTeam={sq.sTeam} oTeam={sq.oTeam} idPrefix="ps" />
           </div>
           <div style={{display:"flex",justifyContent:"center",flexWrap:"wrap",gap:14,marginBottom:16}}>
             {[["#9eb400","#e8ff00","SECTION FC · 1-2-2"],["#aa1e00","#ff6644",`${sq.oppName} · 1-1-2-1`]]
