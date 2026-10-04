@@ -3,8 +3,9 @@ import { db } from './firebase';
 import {
   doc, collection, onSnapshot, setDoc, updateDoc, getDoc, deleteDoc, increment
 } from 'firebase/firestore';
-import Metrics from './Metrics';
 import { ShareButton, useShareableCard } from './share';
+import { SEASON_2026 } from './seasons/2026';
+import { SEASON_2026_27 } from './seasons/2026-27';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const ADMIN_PIN = 'sfc2024'; // Change this to your own PIN
@@ -38,159 +39,68 @@ const PLAYER_IMGS = {
   // they never showed up on the stats table or in Player Form. No photos yet.
   "Josh Allenby":    null,
   "Archie Bayliss":  null,
+  // Debut in the 6-6 with Drew Peacock on the opening night of 2026/27.
+  "Lee Trundle":     null,
 };
 
-// Final Division 1 table, 2026 season.
-// Mon 21 Sep 2026 was the last gameweek. We have our own result and we know
-// Pigs beat Karachi Athletic; that scoreline and the other two ties
-// (Youre getting 5% v RBCC, WSOPC v Drew Peacock) weren't posted, so those
-// teams still read 20 games and Pigs/Karachi keep their GF-GA from GW20.
-// Nothing outstanding can change the order.
-const LEAGUE_TABLE = [
-  { pos:1, team:"Pigs", pl:21, w:20, d:1, l:0, gf:135, ga:25, gd:110, pts:61 },
-  { pos:2, team:"Youre getting 5%", pl:20, w:12, d:1, l:7, gf:118, ga:74, gd:44, pts:37 },
-  { pos:3, team:"Drew Peacock FC", pl:20, w:11, d:1, l:8, gf:97, ga:86, gd:11, pts:34 },
-  { pos:4, team:"RBCC FC", pl:20, w:10, d:2, l:8, gf:74, ga:60, gd:14, pts:32 },
-  { pos:5, team:"Booty & Boys", pl:21, w:8, d:1, l:12, gf:87, ga:106, gd:-19, pts:25 },
-  { pos:6, team:"SECTION FC", pl:21, w:7, d:3, l:11, gf:76, ga:94, gd:-18, pts:24 },
-  { pos:7, team:"Karachi Athletic FC", pl:21, w:7, d:2, l:12, gf:93, ga:100, gd:-7, pts:23 },
-  { pos:8, team:"WSOPC FC", pl:20, w:1, d:1, l:18, gf:44, ga:179, gd:-135, pts:4 },
+// Who runs the side. Hayden Hunter is assistant manager while Dani Griffiths
+// is out injured; shown on the home screen and against their names on the
+// stats tables.
+const STAFF = [
+  { role:"Manager",           name:"Guy Horton" },
+  { role:"Assistant Manager", name:"Hayden Hunter", note:"Stepping up while Dani Griffiths is out injured" },
 ];
+const INJURED = ["Dani Griffiths"];
+const STAFF_SHORT = { "Manager":"MANAGER", "Assistant Manager":"ASST MANAGER" };
+const playerTag = name => {
+  const s = STAFF.find(x => x.name === name);
+  if (s) return { label: STAFF_SHORT[s.role] || s.role.toUpperCase(), color: "#e8ff00" };
+  if (INJURED.includes(name)) return { label: "INJURED", color: "#ff8866" };
+  return null;
+};
 
-const PAST_RESULTS = [
-  { date:"Mon 21 Sep 2026", matches:[
-    // Final day. Only our tie is listed — Pigs beat Karachi Athletic but the
-    // score never came through, and the other two results aren't in either.
-    { time:"7:50 PM", home:"Booty & Boys", away:"SECTION FC", hg:2, ag:6, pitch:"Pitch 2" },
-  ]},
-  { date:"Mon 14 Sep 2026", matches:[
-    { time:"6:30 PM", home:"WSOPC FC", away:"Booty & Boys", hg:0, ag:5, pitch:"Pitch 2" },
-    // The league's results page has this one down as 4-2. The gaffa's report
-    // says 5-2 and names five scorers, so 5-2 it is — same as the 6-6 at
-    // Karachi, which the results page also had wrong.
-    { time:"7:10 PM", home:"SECTION FC", away:"Youre getting 5%", hg:5, ag:2, pitch:"Pitch 1" },
-    { time:"7:10 PM", home:"Drew Peacock FC", away:"Pigs", hg:0, ag:7, pitch:"Pitch 2" },
-    { time:"7:50 PM", home:"RBCC FC", away:"Karachi Athletic FC", hg:5, ag:1, pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 7 Sep 2026", matches:[
-    { time:"6:30 PM", home:"RBCC FC", away:"Drew Peacock FC", hg:1, ag:3, pitch:"Pitch 1" },
-    { time:"6:30 PM", home:"Karachi Athletic FC", away:"SECTION FC", hg:6, ag:6, pitch:"Pitch 2" },
-    { time:"7:50 PM", home:"Booty & Boys", away:"Youre getting 5%", hg:2, ag:5, pitch:"Pitch 2" },
-    { time:"8:30 PM", home:"Pigs", away:"WSOPC FC", hg:17, ag:0, pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 31 Aug 2026", matches:[
-    { time:"6:30 PM", home:"Pigs", away:"Booty & Boys", hg:4, ag:1, pitch:"Pitch 2" },
-    { time:"7:10 PM", home:"Youre getting 5%", away:"Karachi Athletic FC", hg:11, ag:5, pitch:"Pitch 1" },
-    { time:"7:10 PM", home:"WSOPC FC", away:"RBCC FC", hg:0, ag:5, pitch:"Pitch 2" },
-    { time:"7:50 PM", home:"SECTION FC", away:"Drew Peacock FC", hg:6, ag:4, pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 24 Aug 2026", matches:[
-    { time:"6:30 PM", home:"SECTION FC", away:"WSOPC FC", hg:6, ag:2, pitch:"Pitch 1" },
-    { time:"7:10 PM", home:"Drew Peacock FC", away:"Youre getting 5%", hg:4, ag:9, pitch:"Pitch 2" },
-    { time:"7:50 PM", home:"Booty & Boys", away:"Karachi Athletic FC", hg:0, ag:5, pitch:"Pitch 2" },
-    { time:"8:30 PM", home:"RBCC FC", away:"Pigs", hg:0, ag:7, pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 17 Aug 2026", matches:[
-    { time:"6:30 PM", home:"RBCC FC", away:"Booty & Boys", hg:4, ag:2, pitch:"Pitch 2" },
-    { time:"7:10 PM", home:"Karachi Athletic FC", away:"Drew Peacock FC", hg:10, ag:4, pitch:"Pitch 1" },
-    { time:"7:10 PM", home:"Pigs", away:"SECTION FC", hg:4, ag:1, pitch:"Pitch 2" },
-    { time:"7:50 PM", home:"Youre getting 5%", away:"WSOPC FC", hg:12, ag:4, pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 10 Aug 2026", matches:[
-    { time:"6:30 PM", home:"Youre getting 5%", away:"Pigs", hg:2, ag:3, pitch:"Pitch 1" },
-    { time:"7:50 PM", home:"Booty & Boys", away:"Drew Peacock FC", hg:7, ag:4, pitch:"Pitch 2" },
-    { time:"7:50 PM", home:"WSOPC FC", away:"Karachi Athletic FC", hg:6, ag:10, pitch:"Pitch 1" },
-    { time:"8:30 PM", home:"SECTION FC", away:"RBCC FC", hg:5, ag:0, pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 3 Aug 2026", matches:[
-    { time:"6:30 PM", home:"SECTION FC", away:"Booty & Boys", hg:5, ag:5, pitch:"Pitch 2" },
-    { time:"7:10 PM", home:"RBCC FC", away:"Youre getting 5%", hg:7, ag:4, pitch:"Pitch 2" },
-    { time:"7:10 PM", home:"Drew Peacock FC", away:"WSOPC FC", hg:11, ag:5, pitch:"Pitch 1" },
-    { time:"7:50 PM", home:"Karachi Athletic FC", away:"Pigs", hg:1, ag:6, pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 27 Jul 2026", matches:[
-    { time:"6:30 PM", home:"Karachi Athletic FC", away:"RBCC FC", hg:3, ag:3, pitch:"Pitch 1" },
-    { time:"7:10 PM", home:"Pigs", away:"Drew Peacock FC", hg:5, ag:0, pitch:"Pitch 1" },
-    { time:"7:50 PM", home:"Booty & Boys", away:"WSOPC FC", hg:13, ag:3, pitch:"Pitch 2" },
-    { time:"8:30 PM", home:"Youre getting 5%", away:"SECTION FC", hg:9, ag:4, pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 20 Jul 2026", matches:[
-    { time:"6:30 PM", home:"Youre getting 5%", away:"Booty & Boys", hg:12, ag:4, pitch:"Pitch 2" },
-    { time:"7:10 PM", home:"WSOPC FC", away:"Pigs", hg:2, ag:18, pitch:"Pitch 1" },
-    { time:"7:10 PM", home:"SECTION FC", away:"Karachi Athletic FC", hg:3, ag:2, pitch:"Pitch 2" },
-    { time:"7:50 PM", home:"Drew Peacock FC", away:"RBCC FC", hg:2, ag:2, pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 13 Jul 2026", matches:[
-    { time:"", home:"Drew Peacock FC", away:"SECTION FC", hg:4, ag:1, pitch:"" },
-    { time:"", home:"Booty & Boys", away:"Pigs", hg:2, ag:5, pitch:"" },
-    { time:"", home:"Karachi Athletic FC", away:"Youre getting 5%", hg:2, ag:7, pitch:"" },
-    { time:"", home:"RBCC FC", away:"WSOPC FC", hg:7, ag:0, pitch:"" },
-  ]},
-  { date:"Mon 6 Jul 2026", matches:[
-    { time:"", home:"Karachi Athletic FC", away:"Booty & Boys", hg:3, ag:11, pitch:"" },
-    { time:"", home:"Pigs", away:"RBCC FC", hg:3, ag:1, pitch:"" },
-    { time:"", home:"WSOPC FC", away:"SECTION FC", hg:3, ag:2, pitch:"" },
-    { time:"", home:"Youre getting 5%", away:"Drew Peacock FC", hg:3, ag:5, pitch:"" },
-  ]},
-  { date:"Mon 29 Jun 2026", matches:[
-    { time:"6:30 PM", home:"WSOPC FC", away:"Youre getting 5%", hg:0, ag:5, pitch:"Pitch 1" },
-    { time:"7:50 PM", home:"Booty & Boys", away:"RBCC FC", hg:4, ag:7, pitch:"Pitch 2" },
-    { time:"7:50 PM", home:"Drew Peacock FC", away:"Karachi Athletic FC", hg:4, ag:1, pitch:"Pitch 1" },
-    { time:"8:30 PM", home:"SECTION FC", away:"Pigs", hg:2, ag:6, pitch:"Pitch 2" },
-  ]},
-  { date:"Mon 22 Jun 2026", matches:[
-    { time:"6:30 PM", home:"Drew Peacock FC", away:"Booty & Boys", hg:4, ag:7, pitch:"Pitch 2" },
-    { time:"7:10 PM", home:"RBCC FC", away:"SECTION FC", hg:6, ag:5, pitch:"Pitch 1" },
-    { time:"7:10 PM", home:"Karachi Athletic FC", away:"WSOPC FC", hg:6, ag:3, pitch:"Pitch 2" },
-    { time:"7:50 PM", home:"Pigs", away:"Youre getting 5%", hg:4, ag:4, pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 15 Jun 2026", matches:[
-    { time:"6:30 PM", home:"Pigs", away:"Karachi Athletic FC", hg:5, ag:4, pitch:"Pitch 1" },
-    { time:"7:10 PM", home:"Youre getting 5%", away:"RBCC FC", hg:6, ag:1, pitch:"Pitch 2" },
-    { time:"7:50 PM", home:"Booty & Boys", away:"SECTION FC", hg:0, ag:5, pitch:"Pitch 2" },
-    { time:"8:30 PM", home:"WSOPC FC", away:"Drew Peacock FC", hg:5, ag:11, pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 8 Jun 2026", matches:[
-    { time:"6:30 PM", home:"WSOPC FC", away:"Booty & Boys", hg:5, ag:7, pitch:"Pitch 2" },
-    { time:"7:10 PM", home:"Drew Peacock FC", away:"Pigs", hg:2, ag:4, pitch:"Pitch 2" },
-    { time:"7:10 PM", home:"SECTION FC", away:"Youre getting 5%", hg:2, ag:6, pitch:"Pitch 1" },
-    { time:"7:50 PM", home:"RBCC FC", away:"Karachi Athletic FC", hg:2, ag:3, pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 1 Jun 2026", matches:[
-    { time:"6:30 PM", home:"RBCC FC", away:"Drew Peacock FC", hg:3, ag:5, pitch:"Pitch 1" },
-    { time:"6:30 PM", home:"Karachi Athletic FC", away:"SECTION FC", hg:6, ag:4, pitch:"Pitch 2" },
-    { time:"7:50 PM", home:"Booty & Boys", away:"Youre getting 5%", hg:7, ag:5, pitch:"Pitch 2" },
-    { time:"8:30 PM", home:"Pigs", away:"WSOPC FC", hg:13, ag:0, pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 25 May 2026", matches:[
-    { time:"6:30 PM", home:"Pigs", away:"Booty & Boys", hg:5, ag:0, pitch:"Pitch 2" },
-    { time:"7:10 PM", home:"Youre getting 5%", away:"Karachi Athletic FC", hg:6, ag:3, pitch:"Pitch 1" },
-    { time:"7:10 PM", home:"WSOPC FC", away:"RBCC FC", hg:0, ag:5, pitch:"Pitch 2" },
-    { time:"7:50 PM", home:"SECTION FC", away:"Drew Peacock FC", hg:3, ag:10, pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 18 May 2026", matches:[
-    { time:"6:30 PM", home:"Booty & Boys", away:"Karachi Athletic FC", hg:4, ag:3, pitch:"Pitch 1" },
-    { time:"7:10 PM", home:"Drew Peacock FC", away:"Youre getting 5%", hg:3, ag:1, pitch:"Pitch 2" },
-    { time:"7:50 PM", home:"SECTION FC", away:"WSOPC FC", hg:3, ag:3, pitch:"Pitch 2" },
-    { time:"8:30 PM", home:"RBCC FC", away:"Pigs", hg:2, ag:3, pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 11 May 2026", matches:[
-    { time:"6:30 PM", home:"RBCC FC", away:"Booty & Boys", hg:8, ag:2, pitch:"Pitch 2" },
-    { time:"7:10 PM", home:"Pigs", away:"SECTION FC", hg:9, ag:0, pitch:"Pitch 2" },
-    { time:"7:10 PM", home:"Karachi Athletic FC", away:"Drew Peacock FC", hg:4, ag:9, pitch:"Pitch 1" },
-    { time:"7:50 PM", home:"Youre getting 5%", away:"WSOPC FC", hg:8, ag:2, pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 4 May 2026", matches:[
-    { time:"6:30 PM", home:"Youre getting 5%", away:"Pigs", hg:1, ag:7, pitch:"Pitch 1" },
-    { time:"7:50 PM", home:"Booty & Boys", away:"Drew Peacock FC", hg:2, ag:8, pitch:"Pitch 2" },
-    { time:"7:50 PM", home:"WSOPC FC", away:"Karachi Athletic FC", hg:1, ag:15, pitch:"Pitch 1" },
-    { time:"8:30 PM", home:"SECTION FC", away:"RBCC FC", hg:2, ag:5, pitch:"Pitch 1" },
-  ]},
-];
+// ── Seasons ──────────────────────────────────────────────────────────────────
+// League data lives in src/seasons/, one file per season. SEASON is the live
+// one, and that's the file the weekly results go in. ARCHIVE is every closed
+// season, newest first, for the season switches on Results, Table and Squad
+// Stats.
+const SEASON  = SEASON_2026_27;
+const ARCHIVE = [SEASON_2026];
+const SEASONS = [SEASON, ...ARCHIVE];
 
-// Season's done — Mon 21 Sep 2026 was the last gameweek. Next season's
-// fixtures go back in here when the league publishes them.
-const FIXTURES = [];
+// Works a league table out from a season's results: points, then goal
+// difference, then goals scored. Teams level on all three share a position.
+const buildTable = results => {
+  const rows = {};
+  const row = team => (rows[team] ??= { team, pl:0, w:0, d:0, l:0, gf:0, ga:0 });
+  results.forEach(gw => gw.matches.forEach(m => {
+    const h = row(m.home), a = row(m.away);
+    h.pl++; a.pl++;
+    h.gf += m.hg; h.ga += m.ag;
+    a.gf += m.ag; a.ga += m.hg;
+    if (m.hg > m.ag)      { h.w++; a.l++; }
+    else if (m.hg < m.ag) { a.w++; h.l++; }
+    else                  { h.d++; a.d++; }
+  }));
+  const sorted = Object.values(rows)
+    .map(r => ({ ...r, gd: r.gf - r.ga, pts: r.w * 3 + r.d }))
+    .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.team.localeCompare(b.team));
+  let pos = 0;
+  return sorted.map((r, i) => {
+    const prev = sorted[i - 1];
+    if (!prev || prev.pts !== r.pts || prev.gd !== r.gd || prev.gf !== r.gf) pos = i + 1;
+    return { pos, ...r };
+  });
+};
+// A closed season keeps the league's own final table; the live one is built.
+const tableFor = s => s.table || buildTable(s.results);
+// "=3" when another team shares the position.
+const posLabel = (row, table) => `${table.some(t => t !== row && t.pos === row.pos) ? "=" : ""}${row.pos}`;
+const ordinal  = n => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th","st","nd","rd"][n % 10] || "th");
+
+const PAST_RESULTS = SEASON.results;
+const FIXTURES     = SEASON.fixtures;
+const LEAGUE_TABLE = tableFor(SEASON);
 
 const AWARDS = [
   { id:"golden_boot", name:"Golden Boot",  icon:"⚽", color:"#FFD700", glow:"#FFD70055", desc:"Top Scorer of the Season"       },
@@ -199,64 +109,6 @@ const AWARDS = [
   { id:"danger_man",  name:"Danger Man",   icon:"🟨", color:"#ff5544", glow:"#ff554444", desc:"Most Cards — Living Dangerously" },
   { id:"safe_hands",  name:"Safe Hands",   icon:"🧤", color:"#44dd88", glow:"#44dd8844", desc:"Most Clean Sheets"              },
 ];
-
-// ── End of season 2026 ───────────────────────────────────────────────────────
-// Powers the Season screen. The numbers on that page are derived from
-// PAST_RESULTS / LEAGUE_TABLE and the live Firestore stats — only the words
-// live here, so the page can't drift out of step with the results.
-const SEASON_REVIEW = {
-  season:   "2026",
-  division: "Division 1",
-  title:    "SECTION FC v THE WORLD",
-  verdict:  "SURVIVED",
-  // The night it turned: SECTION FC 3-2 Karachi Athletic FC, "we are back".
-  // The Season screen splits the campaign here.
-  turnDate: "Mon 20 Jul 2026",
-  standfirst: "One win in the first eleven. Twenty points from the last ten. Division 1 football next season.",
-
-  story: [
-    "For three months this season looked finished. Nine defeats in the first eleven, nine conceded at the Pigs, ten shipped to Drew Peacock, and a squad that some weeks could barely put five on the pitch, never mind a sub. Every table you looked at had us in the bottom two and every neutral had us down for the drop.",
-    "Then it turned. Karachi beaten 3-2 in July — \"we are back\" — and from that night on this was a different team. Five past RBCC. Six past WSOPC. Six past Drew Peacock in the most savage performance the club has put in. Six at Karachi to claw back a point when the season was on the line. Five past Youre getting 5% when we had to win. And six at Booty & Boys on the final day to finish it.",
-    "Four points from the first eleven games. Twenty from the last ten. Karachi were five clear with three to play and finished a point behind us. That is not a run of form — that is a group of players deciding, collectively, that they were not going down.",
-    "It came down to the last night with everything still live, and only one combination did it: beat Booty & Boys and have Karachi lose to the Pigs. A draw for them would have been enough to finish above us on goal difference. We won 6-2. Karachi lost. Sixth in Division 1, a point clear of them, safe — on the only result in the league that would have done it.",
-  ],
-
-  // Written by hand — one for everyone who pulled on the shirt this season.
-  props: [
-    { name:"Jeven Dhillon",  tag:"🧤 The last line",         text:"Finished with a 9.5 in a 6-2, and that is the easy one to remember. The ones that mattered came in the worst of the summer, standing in a defence that was getting overrun, taking the scoreline on the chin and coming back the next Monday for more of it. Commanded his box all night on the last day." },
-    { name:"Tom Goldsby",    tag:"⭐ Ever-present",           text:"In every squad sheet from the July wreckage to the last kick of the season. A 9.5 and Man of the Match in the finale, a goal in the 6-6 at Karachi, assists in the big wins. You do not make a run like this without someone who is simply there, at the same level, every week. That was Goldsby." },
-    { name:"George Mcnulty", tag:"Never missed",             text:"More appearances than anyone in the squad, more Man of the Match awards than anyone, and not one of them phoned in. Two in the 6-4 against Drew Peacock, Man of the Match in the 6-6 at Karachi, another 9 in the finale. Played in the 1-4 at the Pigs and played in the six-goal win over Booty & Boys, at the same level in both." },
-    { name:"Mooney",         tag:"⚽ The goals",              text:"Thirteen goals in seven games, including a hat-trick and two assists in the 6-4 that convinced everyone this was actually on. Walked into a losing side and turned us into a team other sides had to defend against. Plenty of people can claim a piece of this turnaround. Only one of them scored thirteen." },
-    { name:"Josh Allenby",   tag:"Defender, allegedly",      text:"Four goals and two assists in five games from the back, Man of the Match in the Drew Peacock demolition, and 9s in games we lost. Came in when the squad was at its thinnest and played like he had been here all season." },
-    { name:"Ben Higgs",      tag:"⚽ Big game man",           text:"Scored in the thick of the bad run and scored twice in the must-win against Youre getting 5%. Man of the Match in a 1-4 at the Pigs, which tells you everything — a 9 in a beating, because he does not stop. On the sheet again on the last day." },
-    { name:"Hayden Hunter",  tag:"⚽ In the right place",      text:"Two in the 6-6 at Karachi when we were chasing it and a point was worth its weight, and one more in the finale. One of the few who was there through the worst of it and still there to see the job finished." },
-    { name:"Mo",             tag:"⚽⚽ Ruthless",              text:"Man of the Match on debut with a goal and two assists in the 3-2 that started the whole thing. Two in the 5-2. Two more on the last day. A record that reads like a typo. Whatever we did to get him here, do it again next season." },
-    { name:"Chiz",           tag:"⚽ Instant impact",         text:"Debut at Karachi in September with the season hanging by a thread, and scored. Then scored in the 5-2. Then scored in the finale. Three games, three goals — and all three of them games we could not afford to lose." },
-    { name:"Rohan Naal",     tag:"Wherever you need him",    text:"Went in goal against Youre getting 5% because there was nobody else — \"beaten down but we've found a new keeper.\" Then played out at the back against Drew Peacock and came away with an assist and a 9.5. Two completely different jobs, no fuss about either." },
-    { name:"Freddie Palmer", tag:"⚽ Played once",            text:"Played once, in the 5-5 with Booty & Boys, and scored." },
-    { name:"Tom Beeston",    tag:"Played once",              text:"Played once, away at WSOPC on 6 July." },
-    { name:"Akiat",          tag:"Played once",              text:"Played once, away at Karachi on 7 September." },
-    { name:"Evan Von",       tag:"Played twice",             text:"Played twice this season." },
-    { name:"Max Murray",     tag:"⚽ Played once",            text:"Played once, and scored." },
-    { name:"Josh Treharne",  tag:"Played once",              text:"Played once in Division 1 this season, away at RBCC on 4 May." },
-    { name:"Dani Griffiths", tag:"Played once",              text:"Played once this season." },
-    { name:"Hugo Hansen",    tag:"Played once",              text:"Played once this season." },
-    { name:"Archie Bayliss", tag:"Played once",              text:"Played once this season." },
-    { name:"Guy Horton",     tag:"The gaffa in boots",       text:"Easy to forget he played nearly every week as well as picking the side. Centre half most of the season, in goal against Drew Peacock because we had no keeper, and a goal in the 3-2 at Karachi that got all of this moving. A 9 on the last day, in a report he wrote himself." },
-  ],
-
-  manager: {
-    name: "Guy Horton",
-    tag:  "🏅 Manager of the Month",
-    text: [
-      "Four points from eleven games. An emergency board meeting into his own contract after the 6-6 at Karachi. No bench, no settled keeper, and a results column that had been red since May. Most managers would have been gone by August, and plenty would have walked long before that.",
-      "Instead he kept naming a team every Monday, kept the group together through 0-9 and 3-10, found Mo, found Chiz, found Mooney, put Rohan in goal when there was no keeper and went in goal himself when there still was not one. Changed how we set up, and a side that had been conceding at will took twenty points from the last ten.",
-      "He did all of it while playing centre half, and finished the season with a 9 of his own. Sixth, above Karachi, and Division 1 again next year. Manager of the Month, and the gaffa who got us over the line.",
-    ],
-  },
-
-  signoff: "The comeback to end all comebacks. Section FC v the world — and the world blinked. 🟡⚫",
-};
 
 const OPP_POOL = {
   GK:  ["Buffon","Schmeichel","Casillas","Neuer","Yashin","Kahn","Banks","Barthez","Zoff"],
@@ -271,6 +123,12 @@ const OPP_XY   = [[50,11],[50,25],[28,38],[72,38],[50,49]];
 const KNOWN_PLAYERS = Object.keys(PLAYER_IMGS);
 const STAT_KEYS   = ["apps","goals","assists","yellows","reds","cleanSheets","motm"];
 const STAT_LABELS = {apps:"Apps",goals:"Goals",assists:"Assists",yellows:"Yellows",reds:"Reds",cleanSheets:"Clean Sheets",motm:"MOTM"};
+// Sorts players by one stat; ties fall back to goals, then MOTM, then name.
+const byStat = (data, key) => (a, b) =>
+  (data[b][key] || 0) - (data[a][key] || 0) ||
+  (data[b].goals || 0) - (data[a].goals || 0) ||
+  (data[b].motm || 0) - (data[a].motm || 0) ||
+  a.localeCompare(b);
 const initStats   = () => Object.fromEntries(KNOWN_PLAYERS.map(p => [p, {apps:0,goals:0,assists:0,yellows:0,reds:0,cleanSheets:0,motm:0}]));
 const getRatingColor = r => r>=9.9?'#00d4ff':r>=8.8?'#22aa44':r>=7.6?'#55dd66':r>=6.6?'#e8d060':r>=5.6?'#cc8800':r>=4.6?'#ff8800':'#ff3333';
 const PW=300, PH=460, BX=338;
@@ -298,9 +156,9 @@ const firstWord = n => n.split(" ")[0];
 const avatar    = n => PLAYER_IMGS[n] || null;
 const isSFC     = t => t === "SECTION FC";
 
-// Every SECTION FC result of the season, oldest first, pulled straight out of
-// PAST_RESULTS so the Season screen can never disagree with the results page.
-const seasonRun = () => [...PAST_RESULTS].reverse().flatMap(gw =>
+// Every SECTION FC result of a season, oldest first, pulled straight out of
+// its results so the review screen can never disagree with the results page.
+const seasonRun = results => [...results].reverse().flatMap(gw =>
   gw.matches
     .filter(m => isSFC(m.home) || isSFC(m.away))
     .map(m => {
@@ -315,6 +173,17 @@ const seasonRun = () => [...PAST_RESULTS].reverse().flatMap(gw =>
       };
     })
 );
+
+// Day number for dates written like "Mon 28 Sep 2026" or "Tue, 9 Jun 2026".
+// Parsed by hand: browsers don't agree on how to read that format.
+const MONTHS = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+const dayOf = str => {
+  const m = String(str || "").match(/(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/);
+  const mon = m && MONTHS[m[2].toLowerCase()];
+  return m && mon != null ? Date.UTC(+m[3], mon, +m[1]) / 86400000 : null;
+};
+// "YOU’RE GETTING 5%" and "Youre getting 5%" are the same team.
+const teamKey = t => String(t || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
 // Sums a slice of that run into a W/D/L + goals + points block.
 const runTotals = games => games.reduce((a, g) => ({
@@ -351,7 +220,7 @@ const CSS = `
     position:fixed;
     inset:auto 0 0 0;
     height:60vh;
-    background: url('/crest.png') no-repeat center 110%;
+    background: url('/crest-512.jpg') no-repeat center 110%;
     background-size: 78vmin auto;
     opacity:.035;
     pointer-events:none;
@@ -394,15 +263,24 @@ const CSS = `
   .admin-badge { background:#e8ff00;color:#0a0a0f;font-family:'Oswald',sans-serif;font-size:.55rem;font-weight:800;letter-spacing:2px;padding:2px 7px;border-radius:2px; }
   input:focus,select:focus { outline:2px solid #e8ff0055;outline-offset:-1px; }
   select { background:#0f0f14;border:1px solid #ffffff22;color:#fff;font-family:'Oswald',sans-serif;font-size:.85rem;padding:8px 12px;cursor:pointer; }
+  .seg { display:inline-flex;gap:2px;padding:2px;background:#ffffff06;border:1px solid #ffffff1a; }
+  .seg button { background:transparent;border:none;cursor:pointer;font-family:'Oswald',sans-serif;font-weight:600;font-size:.64rem;letter-spacing:2px;color:#ffffff66;padding:6px 12px;transition:all .15s; }
+  .seg button.on { background:#e8ff00;color:#0a0a0f; }
+  .seg button:not(.on):hover { color:#fff;background:#ffffff0c; }
+  .link-btn { background:none;border:none;cursor:pointer;padding:0;font-family:'Oswald',sans-serif;font-size:.6rem;letter-spacing:2px;color:#ffffff55;transition:color .15s; }
+  .link-btn:hover { color:#e8ff00; }
+  .tap-card { transition:border-color .15s,background .15s; }
+  .tap-card:hover { border-color:#e8ff0055!important;background:#e8ff000a!important; }
+  @media (max-width:480px) { .hide-sm { display:none; } }
   ::-webkit-scrollbar { width:4px;height:4px; }
   ::-webkit-scrollbar-track { background:#0a0a0f; }
   ::-webkit-scrollbar-thumb { background:#ffffff22;border-radius:2px; }
 `;
 
 // ── Shared components ─────────────────────────────────────────────────────────
-const ALL_TABS = ["home","squad","report","season","stats","table","fixtures","halloffame","predictor","metrics"];
+const ALL_TABS = ["home","squad","report","table","fixtures","stats","predictor","halloffame","season"];
 const matchdayScreens = ["setup","spin","pitch"];
-const TAB_LABELS = {home:"Home",squad:"⚽ Matchday Squad",report:"Report",season:"🏁 Season",stats:"Squad Stats",table:"Table",fixtures:"Results",halloffame:"🏆 Hall",predictor:"Predictor",metrics:"🎯 Metrics"};
+const TAB_LABELS = {home:"Home",squad:"⚽ Matchday Squad",report:"Report",season:`${SEASON_2026.label} Review`,stats:"Squad Stats",table:"Table",fixtures:"Results",halloffame:"🏆 Hall",predictor:"Predictor"};
 
 function Header({ screen, setScreen, isAdmin, onAdminClick }) {
   const activeTab = matchdayScreens.includes(screen) ? null : screen;
@@ -410,7 +288,7 @@ function Header({ screen, setScreen, isAdmin, onAdminClick }) {
     <div style={{background:"#0a0a0f",borderBottom:"1px solid #ffffff14",position:"sticky",top:0,zIndex:20}}>
       <div style={{height:50,padding:"0 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div onClick={() => setScreen(isAdmin ? "setup" : "home")} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
-          <img src="/crest.png" alt="Section FC crest" style={{width:36,height:36,objectFit:"contain",filter:"drop-shadow(0 0 8px #e8ff0099) drop-shadow(0 0 3px #e8ff00cc)"}} />
+          <img src="/crest-512.jpg" alt="Section FC crest" style={{width:36,height:36,objectFit:"contain",filter:"drop-shadow(0 0 8px #e8ff0099) drop-shadow(0 0 3px #e8ff00cc)"}} />
           <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:600,letterSpacing:3,fontSize:".8rem",color:"#ffffffcc"}}>SECTION FC</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -445,6 +323,21 @@ function SectionHead({ kicker, title }) {
   );
 }
 
+function Kicker({ children, color="#ffffff40", style }) {
+  return <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color,...style}}>{children}</div>;
+}
+
+// Live season / closed seasons, for Results and Table.
+function SeasonSwitch({ value, onChange }) {
+  return (
+    <div className="seg" data-share-hide="1">
+      {SEASONS.map(s => (
+        <button key={s.id} className={value === s.id ? "on" : ""} onClick={() => onChange(s.id)}>{s.label}</button>
+      ))}
+    </div>
+  );
+}
+
 function Avatar({ name, size=38, border="#e8ff0055" }) {
   const src = avatar(name);
   if (!src) return (
@@ -463,7 +356,7 @@ function ShareCardFrame({ width=560, children }) {
   return (
     <div style={{width,padding:"22px 22px 18px",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",border:"1px solid #e8ff0033",boxSizing:"border-box"}}>
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,paddingBottom:10,borderBottom:"1px solid #ffffff14"}}>
-        <img src="/crest.png" alt="" style={{width:34,height:34,objectFit:"contain",filter:"drop-shadow(0 0 6px #e8ff0099)"}} />
+        <img src="/crest-512.jpg" alt="" style={{width:34,height:34,objectFit:"contain",filter:"drop-shadow(0 0 6px #e8ff0099)"}} />
         <div>
           <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:4,fontSize:".85rem",color:"#e8ff00"}}>SECTION FC</div>
           <div style={{fontFamily:"'Oswald',sans-serif",fontStyle:"italic",letterSpacing:2,fontSize:".55rem",color:"#ffffff55"}}>PLAY WITH YOUR HEART ON YOUR SLEEVE</div>
@@ -675,6 +568,7 @@ export default function App() {
 
   // Navigation
   const [screen, setScreen] = useState("home");
+  const [viewSeason, setViewSeason] = useState(SEASON.id); // Results / Table season switch
   const [loading, setLoading] = useState(true);
 
   // Squad / Matchday (admin only)
@@ -740,17 +634,13 @@ export default function App() {
   const [resultAnytimeScorer, setResultAnytimeScorer] = useState("");
   const [propResult,        setPropResult]        = useState(null);
 
-  // Team form / dashboard
-  const [teamForm,  setTeamForm]  = useState([]); // [{sfcScore,oppScore,opp,date}]
+  // Dashboard
   const [clockTick, setClockTick] = useState(0);  // bumped every minute to refresh countdown
 
   // Report archive
   const [reportArchive,   setReportArchive]   = useState([]);
   const [expandedArchive, setExpandedArchive] = useState(null);
-
-  // Home screen admin seed form
-  const [showSeedForm, setShowSeedForm] = useState(false);
-  const [seedInput,    setSeedInput]    = useState('');
+  const [scrollToReport,  setScrollToReport]  = useState(null); // archive id to bring into view
 
   // Share — off-screen card renderer + per-screen capture refs.
   const shareCard          = useShareableCard();
@@ -763,6 +653,7 @@ export default function App() {
   const refPlayerForm      = useRef(null);
   const refPredictorBoard  = useRef(null);
   const refFixtures        = useRef(null);
+  const refTable           = useRef(null);
   const refSeason          = useRef(null);
 
   // ── Firebase listeners ─────────────────────────────────────────────────────
@@ -827,11 +718,6 @@ export default function App() {
       }
     }));
 
-    // Team form (for dashboard)
-    unsubs.push(onSnapshot(doc(db, "team", "form"), snap => {
-      setTeamForm(snap.exists() ? (snap.data().results || []) : []);
-    }));
-
     // Report archive
     unsubs.push(onSnapshot(collection(db, "reportArchive"), snap => {
       const items = [];
@@ -842,6 +728,15 @@ export default function App() {
 
     return () => unsubs.forEach(u => u());
   }, []);
+
+  // Opening a report from the Results page lands on that report, not the top.
+  useEffect(() => {
+    if (screen !== "report" || !scrollToReport) return;
+    const el = document.getElementById(`report-${scrollToReport}`);
+    if (!el) return; // archive still loading; runs again when it arrives
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    setScrollToReport(null);
+  }, [screen, scrollToReport, reportArchive]);
 
   // Clock: tick every minute so the countdown stays live
   useEffect(() => {
@@ -968,16 +863,6 @@ export default function App() {
       await setDoc(doc(db, "team", "form"), { results: existing });
     }
     setReportDraft(null);
-  };
-
-  const fixFormFromReport = async () => {
-    if (!matchReport?.applied) return;
-    const formSnap = await getDoc(doc(db, "team", "form"));
-    const existing = formSnap.exists() ? (formSnap.data().results || []) : [];
-    const idx = existing.findIndex(e => e.opp === matchReport.opponent);
-    if (idx === -1) return;
-    existing[idx] = { sfcScore: parseInt(matchReport.sfcScore), oppScore: parseInt(matchReport.oppScore), opp: matchReport.opponent, date: matchReport.date };
-    await setDoc(doc(db, "team", "form"), { results: existing });
   };
 
   const applyReport = async () => {
@@ -1215,8 +1100,11 @@ export default function App() {
   };
 
   // ── Derived ─────────────────────────────────────────────────────────────────
-  const allStatPlayers = [...new Set([...KNOWN_PLAYERS, ...squad])].filter(p => stats[p]);
-  const sortedStats = [...allStatPlayers].sort((a,b) => (stats[b][sortStat]||0) - (stats[a][sortStat]||0));
+  const findReport = (date, opp) => {
+    const day = dayOf(date), key = teamKey(opp);
+    if (day == null) return null;
+    return reportArchive.find(r => teamKey(r.opponent) === key && Math.abs((dayOf(r.date) ?? Infinity) - day) <= 2) || null;
+  };
   const sfcFixtures = FIXTURES.flatMap(gw => gw.matches.filter(m => isSFC(m.home)||isSFC(m.away)).map(m => ({...m, date:gw.date})));
 
   // ── Loading ──────────────────────────────────────────────────────────────────
@@ -1241,27 +1129,42 @@ export default function App() {
     const countdown  = nextMatch ? getCountdown(nextMatch) : null;
     const isMatchDay = countdown && countdown.diff < 24 * 60 * 60 * 1000;
 
-    const lastResult = matchReport?.applied ? matchReport : null;
-    const motmPlayer = lastResult?.players?.find(p => p.motm);
+    // The live report, or failing that the newest one in the archive — posting
+    // the next squad clears matchday/report, and the last result shouldn't
+    // vanish off the home page on matchday because of it.
+    const lastResult = matchReport?.applied ? matchReport : (reportArchive[0] || null);
+    const motmPlayer = lastResult?.players?.find(p => p.motm && p.played !== false);
     const resultType = lastResult
       ? (lastResult.sfcScore > lastResult.oppScore ? 'W' : lastResult.sfcScore < lastResult.oppScore ? 'L' : 'D')
       : null;
+    const scorers = (lastResult?.players || [])
+      .filter(p => p.played !== false && (parseInt(p.goals) || 0) > 0)
+      .sort((a, b) => b.goals - a.goals);
 
-    const sfcRow    = LEAGUE_TABLE.find(t => t.team === "SECTION FC");
-    const rowAbove  = LEAGUE_TABLE.find(t => t.pos === sfcRow.pos - 1);
-    const rowBelow  = LEAGUE_TABLE.find(t => t.pos === sfcRow.pos + 1);
+    const sfcRow     = LEAGUE_TABLE.find(t => isSFC(t.team));
+    const sfcIdx     = LEAGUE_TABLE.indexOf(sfcRow);
+    // The whole division fits on the card; a bigger one gets five rows around us.
+    const winStart   = Math.max(0, Math.min(sfcIdx - 2, LEAGUE_TABLE.length - 5));
+    const tableRows  = LEAGUE_TABLE.length <= 8 || sfcIdx < 0 ? LEAGUE_TABLE : LEAGUE_TABLE.slice(winStart, winStart + 5);
+    const levelWith  = sfcRow ? LEAGUE_TABLE.filter(t => t !== sfcRow && t.pos === sfcRow.pos) : [];
+    const ptsOffTop  = sfcRow ? LEAGUE_TABLE[0].pts - sfcRow.pts : 0;
 
-    const last5Form  = teamForm.slice(-5);
-    const formText   = getFormText(teamForm);
+    // Form comes from this season's results, so it always matches the table.
+    const run        = seasonRun(PAST_RESULTS);
+    const last5Form  = run.slice(-5);
+    const formText   = getFormText(run.map(g => ({ sfcScore: g.gf, oppScore: g.ga })));
+
+    const topScorers = KNOWN_PLAYERS
+      .filter(p => (stats[p]?.goals || 0) > 0)
+      .sort((a, b) => stats[b].goals - stats[a].goals || (stats[b].motm || 0) - (stats[a].motm || 0) || a.localeCompare(b))
+      .slice(0, 3);
+
+    const lastSeason    = ARCHIVE[0];
+    const lastSeasonRow = lastSeason && tableFor(lastSeason).find(t => isSFC(t.team));
 
     const resultColor = { W:'#44dd88', D:'#e8ff00', L:'#ff4444' };
-
-    // ── Admin: seed historical form ────────────────────────────────────────
-    const seedForm = async (entries) => {
-      await setDoc(doc(db, "team", "form"), { results: entries });
-    };
-
-
+    const card = { background:"#ffffff06", border:"1px solid #ffffff14", padding:"18px 20px" };
+    const gdText = n => n > 0 ? `+${n}` : `${n}`;
 
     return (
       <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
@@ -1269,18 +1172,39 @@ export default function App() {
         <Header {...sharedProps} />
         <main style={{padding:"16px 14px",maxWidth:640,margin:"0 auto",display:"flex",flexDirection:"column",gap:12}}>
 
-          {/* ── HERO BANNER ── */}
-          <div style={{overflow:"hidden",border:"1px solid #e8ff0022",background:"#0a0a0f",boxShadow:"0 0 40px #e8ff0010 inset"}}>
-            <img src="/banner.png" alt="Section FC — Play With Your Heart On Your Sleeve"
-                 style={{display:"block",width:"100%",height:"auto"}} />
+          {/* ── MASTHEAD ── */}
+          <div style={{position:"relative",overflow:"hidden",border:"1px solid #e8ff0026",background:"#0a0a0f",animation:"fadeUp .4s ease both"}}>
+            <div aria-hidden="true" style={{position:"absolute",inset:0,background:"url('/stadium.jpg') center 35% / cover no-repeat",opacity:.85}} />
+            <div aria-hidden="true" style={{position:"absolute",inset:0,background:"linear-gradient(180deg, #0a0a0f00 0%, #0a0a0f8c 48%, #0a0a0f 100%)"}} />
+            <div style={{position:"relative",padding:"30px 18px 16px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:24}}>
+                <img src="/crest-512.jpg" alt="Section FC crest" style={{width:62,height:62,objectFit:"contain",mixBlendMode:"lighten",flexShrink:0}} />
+                <div style={{minWidth:0}}>
+                  <Kicker color="#e8ff00" style={{fontSize:".55rem",marginBottom:5}}>◆ {SEASON.label} · {SEASON.division.toUpperCase()}</Kicker>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(1.8rem,8.5vw,2.5rem)",letterSpacing:3,lineHeight:1}}>SECTION FC</div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontStyle:"italic",fontSize:".55rem",letterSpacing:2.5,color:"#ffffff80",marginTop:7}}>PLAY WITH YOUR HEART ON YOUR SLEEVE</div>
+                </div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",borderTop:"1px solid #ffffff1c",paddingTop:13}}>
+                {[
+                  ["POSITION",  sfcRow ? `${levelWith.length ? "=" : ""}${ordinal(sfcRow.pos).toUpperCase()}` : "—"],
+                  ["POINTS",    sfcRow ? sfcRow.pts : "—"],
+                  ["PLAYED",    sfcRow ? sfcRow.pl  : 0],
+                  ["GOAL DIFF", sfcRow ? gdText(sfcRow.gd) : "—"],
+                ].map(([k, v], i) => (
+                  <div key={k} style={{textAlign:"center",borderLeft:i ? "1px solid #ffffff12" : "none",padding:"0 4px"}}>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(1.25rem,5.8vw,1.7rem)",lineHeight:1.05,color:i === 0 ? "#e8ff00" : "#fff"}}>{v}</div>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".5rem",letterSpacing:2,color:"#ffffff60",marginTop:5}}>{k}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* ── NEXT MATCH ── */}
-          <div ref={refHomeNextMatch} style={{background: isMatchDay ? "#e8ff0010" : "#ffffff06", border:`1px solid ${isMatchDay?"#e8ff0044":"#ffffff14"}`,padding:"20px 20px 18px"}}>
+          <div ref={refHomeNextMatch} style={{...card, background: isMatchDay ? "#e8ff0010" : card.background, border:`1px solid ${isMatchDay?"#e8ff0044":"#ffffff14"}`}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,gap:8}}>
-              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff40"}}>
-                {isMatchDay ? "⚡ MATCHDAY" : "◆ NEXT MATCH"}
-              </div>
+              <Kicker>{isMatchDay ? "⚡ MATCHDAY" : "◆ NEXT MATCH"}</Kicker>
               {nextMatch && (
                 <ShareButton
                   variant="icon"
@@ -1329,7 +1253,7 @@ export default function App() {
                       {isSFC(nextMatch.home) ? `vs ${nextMatch.away}` : `@ ${nextMatch.home}`}
                     </div>
                     <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffff60",marginTop:4,letterSpacing:.5}}>
-                      {nextMatch.date} · {nextMatch.time} · {nextMatch.pitch}
+                      {[nextMatch.date, nextMatch.time, nextMatch.pitch].filter(Boolean).join(" · ")}
                     </div>
                   </div>
                   <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".6rem",letterSpacing:2,padding:"4px 10px",border:`1px solid ${isSFC(nextMatch.home)?"#e8ff0066":"#ffffff33"}`,color:isSFC(nextMatch.home)?"#e8ff00":"#ffffffaa"}}>
@@ -1349,15 +1273,22 @@ export default function App() {
                 )}
               </>
             ) : (
-              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".8rem",color:"#ffffff30",letterSpacing:2}}>NO MORE FIXTURES</div>
+              <div>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(1.15rem,4.5vw,1.4rem)",letterSpacing:1,color:"#ffffffcc",lineHeight:1.1}}>
+                  {FIXTURES.length ? "NO MORE FIXTURES" : "FIXTURE TBC"}
+                </div>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:2,color:"#ffffff45",marginTop:7,lineHeight:1.6}}>
+                  {FIXTURES.length ? "THAT'S THE LOT FOR THIS SEASON" : "MONDAY NIGHTS · IT GOES UP AS SOON AS THE LEAGUE PUBLISHES IT"}
+                </div>
+              </div>
             )}
           </div>
 
           {/* ── LAST RESULT ── */}
           {lastResult ? (
-            <div ref={refHomeLastResult} style={{background:"#ffffff06",border:"1px solid #ffffff14",padding:"18px 20px"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,gap:8}}>
-                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff40"}}>◆ LAST RESULT</div>
+            <div ref={refHomeLastResult} style={card}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,gap:8}}>
+                <Kicker>◆ LAST RESULT</Kicker>
                 <ShareButton
                   variant="icon"
                   onShare={() => shareCard.share(
@@ -1370,23 +1301,40 @@ export default function App() {
                   )}
                 />
               </div>
-              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"}}>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:900,fontSize:"clamp(1.8rem,6vw,2.6rem)",color:"#fff",lineHeight:1}}>{lastResult.sfcScore}</div>
-                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:400,fontSize:"1.2rem",color:"#ffffff30"}}>–</div>
-                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:900,fontSize:"clamp(1.8rem,6vw,2.6rem)",color:"#ff6644",lineHeight:1}}>{lastResult.oppScore}</div>
-                </div>
-                <div style={{flex:1}}>
-                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1rem",color:"#ff6644",lineHeight:1}}>{lastResult.opponent}</div>
-                  <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",color:"#ffffff40",marginTop:3}}>{lastResult.date}</div>
-                </div>
-                <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".7rem",letterSpacing:2,padding:"5px 12px",background:`${resultColor[resultType]}18`,border:`1px solid ${resultColor[resultType]}55`,color:resultColor[resultType]}}>
+              {/* Scoreboard */}
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
+                {[
+                  { name:"SECTION FC",         score:lastResult.sfcScore, sfc:true  },
+                  { name:lastResult.opponent,  score:lastResult.oppScore, sfc:false },
+                ].map(t => (
+                  <div key={t.sfc ? "sfc" : "opp"} style={{display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{width:3,height:26,background:t.sfc ? "#e8ff00" : "#ff6644",flexShrink:0}} />
+                    <div style={{flex:1,minWidth:0,fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(1.05rem,4.6vw,1.3rem)",letterSpacing:.5,color:t.sfc ? "#fff" : "#ffffffcc",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.name}</div>
+                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1.7rem,7.5vw,2.2rem)",lineHeight:1,minWidth:36,textAlign:"right",color:t.sfc ? "#e8ff00" : "#fff"}}>{t.score}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:14}}>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".62rem",letterSpacing:2,padding:"4px 10px",background:`${resultColor[resultType]}18`,border:`1px solid ${resultColor[resultType]}55`,color:resultColor[resultType]}}>
                   {resultType === 'W' ? '✓ WIN' : resultType === 'L' ? '✗ LOSS' : '= DRAW'}
                 </div>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:2,color:"#ffffff50"}}>{String(lastResult.date || "").toUpperCase()}</div>
               </div>
+              {/* Scorers */}
+              {scorers.length > 0 && (
+                <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
+                  {scorers.map(p => (
+                    <div key={p.name} style={{display:"flex",alignItems:"center",gap:7,padding:"3px 11px 3px 3px",background:"#ffffff08",border:"1px solid #ffffff14",borderRadius:20}}>
+                      <Avatar name={p.name} size={24} border="#ffffff33" />
+                      <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".78rem",letterSpacing:.3}}>{p.name}</span>
+                      <span style={{fontSize:".7rem",letterSpacing:-1}}>{p.goals <= 3 ? "⚽".repeat(p.goals) : `⚽×${p.goals}`}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               {/* MOTM */}
               {motmPlayer && (
-                <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"#e8ff0008",border:"1px solid #e8ff0020",marginBottom:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"#e8ff0008",border:"1px solid #e8ff0020",marginBottom:12}}>
                   <Avatar name={motmPlayer.name} size={34} border="#e8ff0055" />
                   <div>
                     <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:3,color:"#e8ff0088",marginBottom:1}}>★ MAN OF THE MATCH</div>
@@ -1401,133 +1349,123 @@ export default function App() {
               )}
               {/* Report teaser */}
               {lastResult.reportText && (
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:".9rem",color:"#ffffffaa",lineHeight:1.5,marginBottom:10}}>
-                  {lastResult.reportText.length > 120 ? lastResult.reportText.slice(0,120).trimEnd() + '…' : lastResult.reportText}
+                <div style={{fontSize:".95rem",color:"#ffffffaa",lineHeight:1.5,marginBottom:10}}>
+                  {lastResult.reportText.length > 140 ? lastResult.reportText.slice(0,140).replace(/\s+\S*$/, "") + '…' : lastResult.reportText}
                 </div>
               )}
-              <button onClick={() => setScreen("report")} style={{background:"none",border:"none",color:"#ffffff55",fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:2,cursor:"pointer",padding:0}}>
-                READ FULL REPORT →
-              </button>
+              <button className="link-btn" onClick={() => setScreen("report")}>READ FULL REPORT →</button>
             </div>
           ) : (
-            <div style={{background:"#ffffff04",border:"1px solid #ffffff0a",padding:"18px 20px"}}>
-              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff25",marginBottom:6}}>◆ LAST RESULT</div>
+            <div style={{...card, background:"#ffffff04", border:"1px solid #ffffff0a"}}>
+              <Kicker color="#ffffff25" style={{marginBottom:6}}>◆ LAST RESULT</Kicker>
               <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".75rem",color:"#ffffff25",letterSpacing:2}}>NO RESULT YET THIS SEASON</div>
             </div>
           )}
 
-          {/* ── SEASON OVER ── */}
-          {FIXTURES.length === 0 && (
-            <button onClick={() => setScreen("season")}
-                    style={{textAlign:"left",width:"100%",cursor:"pointer",background:"radial-gradient(ellipse at 0% 0%, #e8ff0016, transparent 70%)",border:"1px solid #e8ff0044",padding:"18px 20px"}}>
-              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#e8ff00",marginBottom:6}}>◆ SEASON COMPLETE</div>
-              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1.1rem,4.5vw,1.6rem)",letterSpacing:-.5,color:"#fff",lineHeight:1.1,marginBottom:6}}>
-                {SEASON_REVIEW.title}
-              </div>
-              <div style={{fontSize:".92rem",color:"#ffffffaa",lineHeight:1.45,marginBottom:10}}>{SEASON_REVIEW.standfirst}</div>
-              <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:2,color:"#e8ff00"}}>READ THE END OF SEASON REPORT →</span>
-            </button>
-          )}
-
-          {/* ── LEAGUE POSITION ── */}
-          <div style={{background:"#ffffff06",border:"1px solid #ffffff14",padding:"18px 20px"}}>
-            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff40",marginBottom:12}}>◆ LEAGUE POSITION</div>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}>
-              {[rowAbove, sfcRow, rowBelow].filter(Boolean).map((row, i) => {
-                const isSFCRow = row.team === "SECTION FC";
-                return (
-                  <div key={row.pos} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:isSFCRow?"#e8ff0010":"transparent",border:isSFCRow?"1px solid #e8ff0030":"1px solid transparent",borderRadius:2}}>
-                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",width:18,color:isSFCRow?"#e8ff00":"#ffffff50",textAlign:"center"}}>{row.pos}</div>
-                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:isSFCRow?700:400,fontSize:isSFCRow?".95rem":".85rem",flex:1,color:isSFCRow?"#fff":"#ffffffaa"}}>{row.team}</div>
-                    <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem",color:isSFCRow?"#e8ff00":"#ffffff50"}}>{row.pts}<span style={{fontFamily:"'Oswald',sans-serif",fontWeight:400,fontSize:".55rem",letterSpacing:1,color:"#ffffff30",marginLeft:2}}>PTS</span></div>
-                  </div>
-                );
-              })}
+          {/* ── TABLE + FORM ── */}
+          <div style={card}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,gap:8}}>
+              <Kicker>◆ {SEASON.division.toUpperCase()} TABLE</Kicker>
+              <button className="link-btn" onClick={() => setScreen("table")}>FULL TABLE →</button>
             </div>
-            {/* Context line */}
-            <div style={{marginTop:10,fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:2,color:"#ffffff40"}}>
-              {sfcRow.pl === 0
-                ? 'SEASON NOT YET STARTED'
-                : sfcRow.pos === 1
-                  ? (rowBelow && rowBelow.pts === sfcRow.pts ? `TOP OF TABLE ON GOAL DIFFERENCE (+${sfcRow.gd})` : `TOP OF TABLE · ${rowBelow ? sfcRow.pts - rowBelow.pts + ' PTS CLEAR' : 'UNCONTESTED'}`)
-                  : `${sfcRow.pos === 2 ? '1 PT' : `${(LEAGUE_TABLE[0].pts - sfcRow.pts)} PTS`} OFF TOP · GD ${sfcRow.gd > 0 ? '+' : ''}${sfcRow.gd}`
-              }
+            {tableRows.length > 0 ? (
+              <>
+                <div style={{display:"grid",gridTemplateColumns:"30px 1fr 24px 36px 34px",alignItems:"center",padding:"0 8px 6px",fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:2,color:"#ffffff35"}}>
+                  <div>#</div><div>TEAM</div><div style={{textAlign:"center"}}>P</div><div style={{textAlign:"center"}}>GD</div><div style={{textAlign:"right"}}>PTS</div>
+                </div>
+                {tableRows.map(row => {
+                  const us = isSFC(row.team);
+                  return (
+                    <div key={row.team} style={{display:"grid",gridTemplateColumns:"30px 1fr 24px 36px 34px",alignItems:"center",padding:"7px 8px",background:us ? "#e8ff0010" : "transparent",borderLeft:`2px solid ${us ? "#e8ff00" : "transparent"}`,fontFamily:"'Oswald',sans-serif"}}>
+                      <div style={{fontWeight:700,fontSize:".75rem",color:us ? "#e8ff00" : "#ffffff55"}}>{posLabel(row, LEAGUE_TABLE)}</div>
+                      <div style={{fontWeight:us ? 700 : 400,fontSize:us ? ".92rem" : ".86rem",color:us ? "#fff" : "#ffffffaa",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{row.team}</div>
+                      <div style={{textAlign:"center",fontSize:".78rem",color:"#ffffff70"}}>{row.pl}</div>
+                      <div style={{textAlign:"center",fontSize:".78rem",color:row.gd > 0 ? "#44dd88" : row.gd < 0 ? "#ff6644" : "#ffffff70"}}>{gdText(row.gd)}</div>
+                      <div style={{textAlign:"right",fontWeight:700,fontSize:".88rem",color:us ? "#e8ff00" : "#fff"}}>{row.pts}</div>
+                    </div>
+                  );
+                })}
+                {sfcRow && (
+                  <div style={{marginTop:9,padding:"0 8px",fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:2,color:"#ffffff45",lineHeight:1.6}}>
+                    {ptsOffTop === 0 && !levelWith.length
+                      ? "TOP OF THE TABLE"
+                      : ptsOffTop === 0 ? "JOINT TOP" : `${ptsOffTop} PT${ptsOffTop !== 1 ? "S" : ""} OFF TOP`}
+                    {levelWith.length > 0 && ` · LEVEL WITH ${levelWith.map(t => t.team.toUpperCase()).join(" & ")}`}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".72rem",color:"#ffffff30",letterSpacing:2}}>NO GAMES PLAYED YET</div>
+            )}
+
+            {/* Form */}
+            <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid #ffffff0c",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+              <Kicker style={{letterSpacing:3}}>FORM</Kicker>
+              <div style={{display:"flex",gap:5}}>
+                {last5Form.map((g, i) => (
+                  <div key={i} title={`${g.date} — ${g.home ? "v" : "@"} ${g.opp} ${g.gf}-${g.ga}`}
+                    style={{width:30,height:30,borderRadius:4,background:`${resultColor[g.res]}18`,border:`2px solid ${resultColor[g.res]}66`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".75rem",color:resultColor[g.res]}}>{g.res}</span>
+                  </div>
+                ))}
+                {Array.from({length: Math.max(0, 5 - last5Form.length)}).map((_, i) => (
+                  <div key={`e${i}`} style={{width:30,height:30,borderRadius:4,background:"#ffffff05",border:"1px dashed #ffffff15"}} />
+                ))}
+              </div>
+              {formText && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:2,color:"#ffffff55"}}>{formText.toUpperCase()}</div>}
             </div>
           </div>
 
-          {/* ── FORM GUIDE ── */}
-          <div style={{background:"#ffffff06",border:"1px solid #ffffff14",padding:"18px 20px"}}>
-            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff40",marginBottom:12}}>◆ FORM GUIDE</div>
-            {last5Form.length > 0 ? (
-              <>
-                <div style={{display:"flex",gap:6,marginBottom:10}}>
-                  {last5Form.map((r,i) => {
-                    const t = r.sfcScore > r.oppScore ? 'W' : r.sfcScore < r.oppScore ? 'L' : 'D';
-                    return (
-                      <div key={i} title={`${r.sfcScore}–${r.oppScore} vs ${r.opp}`}
-                        style={{width:36,height:36,borderRadius:4,background:`${resultColor[t]}18`,border:`2px solid ${resultColor[t]}66`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"default"}}>
-                        <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".85rem",color:resultColor[t]}}>{t}</span>
-                      </div>
-                    );
-                  })}
-                  {/* Empty slots up to 5 */}
-                  {Array.from({length: Math.max(0, 5 - last5Form.length)}).map((_,i) => (
-                    <div key={`e${i}`} style={{width:36,height:36,borderRadius:4,background:"#ffffff05",border:"1px dashed #ffffff15",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                      <span style={{color:"#ffffff15",fontSize:".7rem"}}>–</span>
-                    </div>
-                  ))}
-                </div>
-                {formText && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".72rem",letterSpacing:2,color:"#ffffff60"}}>{formText.toUpperCase()}</div>}
-              </>
-            ) : (
-              <div>
-                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".72rem",color:"#ffffff25",letterSpacing:2,marginBottom:10}}>NO RESULTS LOGGED YET</div>
-                {isAdmin && !showSeedForm && (
-                  <button onClick={() => setShowSeedForm(true)} style={{background:"none",border:"none",color:"#ffffff35",fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:2,cursor:"pointer",padding:0}}>
-                    + SEED FORM DATA
-                  </button>
-                )}
+          {/* ── TOP SCORERS ── */}
+          {topScorers.length > 0 && (
+            <div style={card}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,gap:8}}>
+                <Kicker>◆ TOP SCORERS · {SEASON.label}</Kicker>
+                <button className="link-btn" onClick={() => setScreen("stats")}>ALL STATS →</button>
               </div>
-            )}
-            {/* Admin: seed form */}
-            {isAdmin && last5Form.length > 0 && !showSeedForm && (
-              <div style={{display:"flex",gap:12,marginTop:8,flexWrap:"wrap"}}>
-                <button onClick={() => setShowSeedForm(true)} style={{background:"none",border:"none",color:"#ffffff25",fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,cursor:"pointer",padding:0}}>
-                  ✏️ EDIT FORM DATA
-                </button>
-                {matchReport?.applied && (
-                  <button onClick={fixFormFromReport} style={{background:"none",border:"none",color:"#e8ff0044",fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,cursor:"pointer",padding:0}}>
-                    ↻ SYNC FROM REPORT
-                  </button>
-                )}
-              </div>
-            )}
-            {isAdmin && showSeedForm && (
-              <div style={{marginTop:10,padding:"12px",background:"#ffffff08",border:"1px solid #e8ff0022"}}>
-                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:3,color:"#e8ff0077",marginBottom:6}}>PASTE RESULTS — one per line: SFC-OPP OPP_NAME DATE (eg: 4-2 Seymour Mon 6 Apr)</div>
-                <textarea value={seedInput} onChange={e => setSeedInput(e.target.value)} rows={5}
-                  placeholder={"4-2 Seymour Dodgers Mon 6 Apr\n2-1 Unfit 5 Mon 30 Mar\n3-3 WSOPC FC Mon 23 Mar"}
-                  style={{width:"100%",padding:"8px",background:"#0f0f14",border:"1px solid #ffffff1e",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:".85rem",resize:"vertical",outline:"none",boxSizing:"border-box"}}
-                />
-                <div style={{display:"flex",gap:8,marginTop:8}}>
-                  <button className="btn btn-y btn-sm" onClick={() => {
-                    const entries = seedInput.trim().split('\n').filter(Boolean).map(line => {
-                      const m = line.match(/^(\d+)-(\d+)\s+(.+?)\s+([\w\s]+\d{1,2}\s+\w+)$/);
-                      if (!m) return null;
-                      return { sfcScore: parseInt(m[1]), oppScore: parseInt(m[2]), opp: m[3].trim(), date: m[4].trim() };
-                    }).filter(Boolean);
-                    if (entries.length) { seedForm(entries); setShowSeedForm(false); setSeedInput(''); }
-                  }}>SAVE</button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => { setShowSeedForm(false); setSeedInput(''); }}>CANCEL</button>
+              {topScorers.map((p, i) => (
+                <div key={p} style={{display:"flex",alignItems:"center",gap:11,padding:"7px 0",borderBottom:i < topScorers.length - 1 ? "1px solid #ffffff08" : "none"}}>
+                  <div style={{width:14,fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",color:i === 0 ? "#e8ff00" : "#ffffff45"}}>{i + 1}</div>
+                  <Avatar name={p} size={32} border={i === 0 ? "#e8ff0088" : "#ffffff22"} />
+                  <div style={{flex:1,minWidth:0,fontFamily:"'Oswald',sans-serif",fontWeight:i === 0 ? 700 : 500,fontSize:".92rem"}}>{p}</div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"1.05rem",color:i === 0 ? "#e8ff00" : "#fff"}}>
+                    {stats[p].goals}<span style={{fontWeight:400,fontSize:".52rem",letterSpacing:1,color:"#ffffff40",marginLeft:3}}>GLS</span>
+                  </div>
                 </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── THE DUGOUT ── */}
+          <div style={card}>
+            <Kicker style={{marginBottom:6}}>◆ THE DUGOUT</Kicker>
+            {STAFF.map(s => (
+              <div key={s.role} style={{display:"flex",alignItems:"center",gap:13,padding:"9px 0"}}>
+                <Avatar name={s.name} size={48} border="#e8ff0088" />
+                <div style={{minWidth:0}}>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:3,color:"#e8ff00",marginBottom:2}}>{s.role.toUpperCase()}</div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"1.05rem",lineHeight:1.15}}>{s.name}</div>
+                  {s.note && <div style={{fontSize:".88rem",color:"#ffffff80",lineHeight:1.35,marginTop:2}}>{s.note}</div>}
+                </div>
+              </div>
+            ))}
+            {INJURED.length > 0 && (
+              <div style={{marginTop:8,paddingTop:12,borderTop:"1px solid #ffffff0c",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                <Kicker color="#ff8866" style={{letterSpacing:3}}>INJURY LIST</Kicker>
+                {INJURED.map(n => (
+                  <div key={n} style={{display:"flex",alignItems:"center",gap:7,padding:"3px 11px 3px 3px",background:"#ff88660d",border:"1px solid #ff886633",borderRadius:20}}>
+                    <Avatar name={n} size={24} border="#ff886666" />
+                    <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".78rem"}}>{n}</span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
 
           {/* ── PREDICTION TEASER ── */}
           {(predSetup || (predResult && predictions.length > 0)) && (
-            <div style={{background:"#ffffff06",border:"1px solid #ffffff14",padding:"18px 20px"}}>
-              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:4,color:"#ffffff40",marginBottom:10}}>◆ PREDICTOR</div>
+            <div style={card}>
+              <Kicker style={{marginBottom:10}}>◆ PREDICTOR</Kicker>
               {predSetup && !predResult ? (
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
                   <div>
@@ -1548,15 +1486,31 @@ export default function App() {
                       <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".8rem",color:"#e8ff00"}}>{p.pts}<span style={{fontFamily:"'Oswald',sans-serif",fontWeight:400,fontSize:".55rem",color:"#ffffff40",marginLeft:2}}>PTS</span></div>
                     </div>
                   ))}
-                  <button onClick={() => setScreen("predictor")} style={{background:"none",border:"none",color:"#ffffff35",fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:2,cursor:"pointer",padding:0,marginTop:8}}>SEE FULL LEADERBOARD →</button>
+                  <button className="link-btn" onClick={() => setScreen("predictor")} style={{marginTop:8}}>SEE FULL LEADERBOARD →</button>
                 </div>
               )}
             </div>
           )}
 
+          {/* ── LAST SEASON ── */}
+          {lastSeason && lastSeasonRow && (
+            <button className="tap-card" onClick={() => setScreen("season")}
+                    style={{...card,textAlign:"left",width:"100%",cursor:"pointer",color:"#fff",fontFamily:"inherit",background:"radial-gradient(ellipse at 0% 0%, #44dd880f, transparent 70%)"}}>
+              <Kicker style={{marginBottom:8}}>◆ LAST SEASON · {lastSeason.label} · {lastSeason.division.toUpperCase()}</Kicker>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:6}}>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:"clamp(1.05rem,4.4vw,1.35rem)",letterSpacing:-.3,lineHeight:1.1}}>{lastSeason.review.title}</div>
+                <div style={{flexShrink:0,fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".62rem",letterSpacing:2,padding:"4px 10px",background:"#44dd8814",border:"1px solid #44dd8855",color:"#44dd88"}}>{lastSeason.review.verdict}</div>
+              </div>
+              <div style={{fontSize:".92rem",color:"#ffffff99",lineHeight:1.45,marginBottom:10}}>
+                {ordinal(lastSeasonRow.pos)}, {lastSeasonRow.pts} points. {lastSeason.review.standfirst}
+              </div>
+              <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:2,color:"#e8ff00"}}>READ THE {lastSeason.label} REVIEW →</span>
+            </button>
+          )}
+
           {/* ── CLUB FOOTER ── */}
           <div style={{marginTop:12,padding:"20px 16px 24px",borderTop:"1px solid #ffffff0c",display:"flex",flexDirection:"column",alignItems:"center",gap:10,textAlign:"center"}}>
-            <img src="/crest.png" alt="Section FC" style={{width:72,height:72,opacity:1,filter:"drop-shadow(0 0 14px #e8ff0088) drop-shadow(0 0 4px #e8ff00bb)"}} />
+            <img src="/crest-512.jpg" alt="Section FC" style={{width:72,height:72,opacity:1,filter:"drop-shadow(0 0 14px #e8ff0088) drop-shadow(0 0 4px #e8ff00bb)"}} />
             <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:6,fontSize:".85rem",color:"#e8ff00"}}>SECTION FC</div>
             <div style={{fontFamily:"'Oswald',sans-serif",fontStyle:"italic",letterSpacing:3,fontSize:".62rem",color:"#ffffff55"}}>PLAY WITH YOUR HEART ON YOUR SLEEVE</div>
           </div>
@@ -1573,7 +1527,8 @@ export default function App() {
   // ══════════════════════════════════════════════════════════════════════════
   if (screen === "stats") {
     const StatCell = ({ player, statKey, data, updateFn }) => {
-      const isEdit = isAdmin && editCell?.player === player && editCell?.stat === statKey;
+      const canEdit = isAdmin && !!updateFn;
+      const isEdit = canEdit && editCell?.player === player && editCell?.stat === statKey;
       const val = data[player]?.[statKey] ?? 0;
       const color = statKey==="yellows"&&val>0?"#f5c518":statKey==="reds"&&val>0?"#ff4444":statKey==="motm"&&val>0?"#e8ff00":"inherit";
       if (isEdit) return (
@@ -1586,7 +1541,7 @@ export default function App() {
       );
       return (
         <td style={{textAlign:"center",padding:"3px 2px"}}>
-          <button className={`stat-cell${isAdmin?" editable":""}`} onClick={() => isAdmin && setEditCell({player, stat:statKey})}>
+          <button className={`stat-cell${canEdit?" editable":""}`} onClick={() => canEdit && setEditCell({player, stat:statKey})}>
             <span style={{color}}>{val}</span>
           </button>
         </td>
@@ -1595,7 +1550,7 @@ export default function App() {
 
     const StatsTable = ({ data, updateFn, captureRef }) => {
       const allP = [...new Set([...KNOWN_PLAYERS, ...squad])].filter(p => data[p]);
-      const sorted = [...allP].sort((a,b) => (data[b][sortStat]||0) - (data[a][sortStat]||0));
+      const sorted = [...allP].sort(byStat(data, sortStat));
       return (
         <div ref={captureRef} style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse",minWidth:580}}>
@@ -1617,7 +1572,10 @@ export default function App() {
                       <Avatar name={player} size={32} />
                       <div>
                         <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".88rem"}}>{player}</div>
-                        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",color:"#ffffff38",letterSpacing:1}}>#{ri+1}</div>
+                        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",color:"#ffffff38",letterSpacing:1,whiteSpace:"nowrap"}}>
+                          #{ri+1}
+                          {playerTag(player) && <span style={{marginLeft:6,color:playerTag(player).color,letterSpacing:1.5}}>· {playerTag(player).label}</span>}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -1744,11 +1702,11 @@ export default function App() {
             <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>SECTION FC STATS</h1>
           </div>
           {/* Sub-tabs */}
-          <div style={{display:"flex",borderBottom:"1px solid #ffffff14",marginBottom:18}}>
-            {[["season","Season Stats"],["alltime","All Time Stats"],["form","Player Form"]].map(([key,label]) => (
+          <div style={{display:"flex",borderBottom:"1px solid #ffffff14",marginBottom:18,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+            {[["season",SEASON.label],["alltime","All Time"],["form","Form"],...ARCHIVE.map(a => [a.id, a.label])].map(([key,label]) => (
               <button key={key} onClick={() => { setStatsTab(key); setEditCell(null); setEditFormCell(null); setAddingFormGame(null); }}
-                style={{background:"transparent",border:"none",borderBottom:`2px solid ${statsTab===key?"#e8ff00":"transparent"}`,
-                  color:statsTab===key?"#e8ff00":"#ffffff55",padding:"10px 16px",cursor:"pointer",marginBottom:-1,
+                style={{background:"transparent",border:"none",borderBottom:`2px solid ${statsTab===key?"#e8ff00":"transparent"}`,flexShrink:0,
+                  color:statsTab===key?"#e8ff00":"#ffffff55",padding:"10px 13px",cursor:"pointer",marginBottom:-1,
                   fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".68rem",letterSpacing:2,
                   textTransform:"uppercase",transition:"all .15s",whiteSpace:"nowrap"}}
               >{label}</button>
@@ -1764,11 +1722,11 @@ export default function App() {
                   label="SHARE TABLE"
                   onShare={() => {
                     const allP = [...new Set([...KNOWN_PLAYERS, ...squad])].filter(p => stats[p]);
-                    const sorted = [...allP].sort((a,b) => (stats[b][sortStat]||0) - (stats[a][sortStat]||0));
+                    const sorted = [...allP].sort(byStat(stats, sortStat));
                     const rows = sorted.map(p => ({ name: p, [sortStat]: stats[p][sortStat]||0 }));
                     return shareCard.share(
-                      <LeaderboardShareCard title={`SEASON · TOP ${STAT_LABELS[sortStat]}`} subtitle="Section FC" rows={rows} valueKey={sortStat} valueSuffix="" />,
-                      { filename:"section-fc-season-leaders.png", caption:`Section FC — season ${STAT_LABELS[sortStat]} leaders`, urlPath:"/" }
+                      <LeaderboardShareCard title={`${SEASON.label} SEASON · TOP ${STAT_LABELS[sortStat]}`} subtitle="Section FC" rows={rows} valueKey={sortStat} valueSuffix="" />,
+                      { filename:"section-fc-season-leaders.png", caption:`Section FC — ${SEASON.label} season ${STAT_LABELS[sortStat]} leaders`, urlPath:"/" }
                     );
                   }}
                 />
@@ -1804,6 +1762,26 @@ export default function App() {
             </>
           )}
           {statsTab === "form" && <PlayerFormView />}
+          {ARCHIVE.filter(a => statsTab === a.id).map(a => (
+            <div key={a.id}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:9,flexWrap:"wrap"}}>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".56rem",letterSpacing:3,color:"#ffffff45"}}>FINAL {a.label} TOTALS · {a.division.toUpperCase()} · CLICK HEADER TO SORT</div>
+                <ShareButton
+                  label="SHARE TABLE"
+                  onShare={() => {
+                    const rows = Object.keys(a.stats)
+                      .sort(byStat(a.stats, sortStat))
+                      .map(n => ({ name: n, [sortStat]: a.stats[n][sortStat]||0 }));
+                    return shareCard.share(
+                      <LeaderboardShareCard title={`${a.label} SEASON · TOP ${STAT_LABELS[sortStat]}`} subtitle={`Section FC · ${a.division}`} rows={rows} valueKey={sortStat} valueSuffix="" />,
+                      { filename:`section-fc-${a.id}-leaders.png`, caption:`Section FC — ${a.label} season ${STAT_LABELS[sortStat]} leaders`, urlPath:"/" }
+                    );
+                  }}
+                />
+              </div>
+              <StatsTable data={a.stats} updateFn={null} />
+            </div>
+          ))}
         </main>
         {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
         {shareCard.portal}
@@ -1814,174 +1792,241 @@ export default function App() {
   // ══════════════════════════════════════════════════════════════════════════
   // TABLE SCREEN
   // ══════════════════════════════════════════════════════════════════════════
-  if (screen === "table") return (
-    <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
-      <style>{CSS}</style>
-      <Header {...sharedProps} />
-      <main style={{padding:"22px 14px",maxWidth:700,margin:"0 auto"}}>
-        <div style={{marginBottom:18}}>
-          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ LEAGUE STANDINGS</div>
-          <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>POWERLEAGUE TABLE</h1>
-        </div>
-        <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",minWidth:420}}>
-            <thead>
-              <tr style={{borderBottom:"2px solid #ffffff20"}}>
-                {["#","TEAM","PL","W","D","L","GF","GA","GD","PTS"].map((h,i) => (
-                  <th key={i} style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:2,color:"#ffffff44",fontWeight:600,padding:"9px 6px",textAlign:i<2?"left":"center",whiteSpace:"nowrap"}}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {LEAGUE_TABLE.map((row, i) => {
-                const sfc = isSFC(row.team);
-                return (
-                  <tr key={i} style={{borderBottom:`1px solid ${sfc?"#e8ff0025":"#ffffff08"}`,background:sfc?"#e8ff0008":i%2===0?"transparent":"#ffffff02"}}>
-                    <td style={{padding:"11px 6px",textAlign:"center"}}>
-                      <div style={{width:22,height:22,borderRadius:2,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",background:row.pos<=2?"#e8ff00":"transparent",color:row.pos<=2?"#0a0a0f":"#ffffffcc"}}>{row.pos}</div>
-                    </td>
-                    <td style={{padding:"11px 6px",fontFamily:"'Oswald',sans-serif",fontWeight:sfc?700:500,fontSize:".9rem",color:sfc?"#e8ff00":"#ffffffcc",whiteSpace:"nowrap"}}>
-                      {sfc && <span style={{marginRight:5}}>★</span>}{row.team}
-                    </td>
-                    {[row.pl,row.w,row.d,row.l,row.gf,row.ga].map((v,j) => (
-                      <td key={j} style={{padding:"11px 5px",textAlign:"center",fontFamily:"'Oswald',sans-serif",fontWeight:500,fontSize:".88rem",color:"#ffffffaa"}}>{v}</td>
-                    ))}
-                    <td style={{padding:"11px 5px",textAlign:"center",fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".88rem",color:row.gd>0?"#44dd88":row.gd<0?"#ff6644":"#ffffffaa"}}>{row.gd>0?"+":""}{row.gd}</td>
-                    <td style={{padding:"11px 5px",textAlign:"center",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".95rem",color:sfc?"#e8ff00":"#fff"}}>{row.pts}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </main>
-      {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+  if (screen === "table") {
+    const view    = SEASONS.find(x => x.id === viewSeason) || SEASON;
+    const live    = view === SEASON;
+    const table   = tableFor(view);
+    const hasTies = table.some(r => posLabel(r, table).startsWith("="));
+    return (
+      <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+        <style>{CSS}</style>
+        <Header {...sharedProps} />
+        <main style={{padding:"22px 14px",maxWidth:700,margin:"0 auto"}}>
+          <div style={{marginBottom:18,display:"flex",alignItems:"flex-end",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+            <div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ {view.division.toUpperCase()} · {view.label}{live ? "" : " · FINAL"}</div>
+              <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>POWERLEAGUE TABLE</h1>
+            </div>
+            <SeasonSwitch value={view.id} onChange={setViewSeason} />
+          </div>
+          <div ref={refTable}>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr style={{borderBottom:"2px solid #ffffff20"}}>
+                  {["#","TEAM","PL","W","D","L","GF","GA","GD","PTS"].map((h,i) => (
+                    <th key={i} className={h==="GF"||h==="GA"?"hide-sm":undefined} style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:2,color:"#ffffff44",fontWeight:600,padding:"9px 5px",textAlign:i<2?"left":"center",whiteSpace:"nowrap"}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {table.map((row, i) => {
+                  const sfc = isSFC(row.team);
+                  return (
+                    <tr key={row.team} style={{borderBottom:`1px solid ${sfc?"#e8ff0025":"#ffffff08"}`,background:sfc?"#e8ff0008":i%2===0?"transparent":"#ffffff02",animation:"fadeUp .35s ease both",animationDelay:`${i*.03}s`}}>
+                      <td style={{padding:"11px 4px",textAlign:"center"}}>
+                        <div style={{minWidth:22,height:22,padding:"0 3px",borderRadius:2,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",background:row.pos<=2?"#e8ff00":"transparent",color:row.pos<=2?"#0a0a0f":"#ffffffcc"}}>{posLabel(row, table)}</div>
+                      </td>
+                      <td style={{padding:"11px 5px",fontFamily:"'Oswald',sans-serif",fontWeight:sfc?700:500,fontSize:".9rem",color:sfc?"#e8ff00":"#ffffffcc"}}>
+                        {sfc && <span style={{marginRight:5}}>★</span>}{row.team}
+                      </td>
+                      {[row.pl,row.w,row.d,row.l,row.gf,row.ga].map((v,j) => (
+                        <td key={j} className={j>=4?"hide-sm":undefined} style={{padding:"11px 4px",textAlign:"center",fontFamily:"'Oswald',sans-serif",fontWeight:500,fontSize:".88rem",color:"#ffffffaa"}}>{v}</td>
+                      ))}
+                      <td style={{padding:"11px 4px",textAlign:"center",fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".88rem",color:row.gd>0?"#44dd88":row.gd<0?"#ff6644":"#ffffffaa"}}>{row.gd>0?"+":""}{row.gd}</td>
+                      <td style={{padding:"11px 4px",textAlign:"center",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".95rem",color:sfc?"#e8ff00":"#fff"}}>{row.pts}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {table.length === 0 && (
+              <div style={{padding:"36px",textAlign:"center",color:"#ffffff30",fontFamily:"'Oswald',sans-serif",fontSize:".8rem",letterSpacing:2}}>NO GAMES PLAYED YET</div>
+            )}
+          </div>
+          <div style={{marginTop:12,fontFamily:"'Oswald',sans-serif",fontSize:".56rem",letterSpacing:2,color:"#ffffff40",lineHeight:1.8}}>
+            {live && view.results.length > 0 && <div>AFTER {view.results[0].date.toUpperCase()}</div>}
+            {hasTies && <div>= LEVEL ON POINTS, GOAL DIFFERENCE AND GOALS SCORED</div>}
+            {view.tableNote && <div>{view.tableNote.toUpperCase()}</div>}
+          </div>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,marginTop:16,flexWrap:"wrap"}}>
+            {!live && view.review
+              ? <button className="link-btn" onClick={() => setScreen("season")} style={{color:"#e8ff00"}}>READ THE {view.label} REVIEW →</button>
+              : <span />}
+            <ShareButton
+              label="SHARE TABLE"
+              getNode={() => refTable.current}
+              caption={`${view.division} table · ${view.label}`}
+              filename={`section-fc-table-${view.id}.png`}
+              urlPath="/"
+            />
+          </div>
+        </main>
+        {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
         {shareCard.portal}
-    </div>
-  );
+      </div>
+    );
+  }
 
   // ══════════════════════════════════════════════════════════════════════════
   // FIXTURES SCREEN
   // ══════════════════════════════════════════════════════════════════════════
-  if (screen === "fixtures") return (
-    <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
-      <style>{CSS}</style>
-      <Header {...sharedProps} />
-      <main style={{padding:"22px 14px",maxWidth:680,margin:"0 auto"}}>
+  if (screen === "fixtures") {
+    const view     = SEASONS.find(x => x.id === viewSeason) || SEASON;
+    const live     = view === SEASON;
+    const fixtures = live ? FIXTURES : [];
+    const openReport = r => { setExpandedArchive(r.id); setScrollToReport(r.id); setScreen("report"); };
+    return (
+      <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
+        <style>{CSS}</style>
+        <Header {...sharedProps} />
+        <main style={{padding:"22px 14px",maxWidth:680,margin:"0 auto"}}>
 
-        {/* ── Upcoming Fixtures ── */}
-        <div style={{marginBottom:20,display:"flex",alignItems:"flex-end",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
-          <div>
-            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ UPCOMING FIXTURES</div>
-            <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>FIXTURES & RESULTS</h1>
-          </div>
-          <ShareButton
-            label="SHARE FIXTURES"
-            getNode={() => refFixtures.current}
-            caption="SECTION FC — upcoming fixtures"
-            filename="section-fc-fixtures.png"
-            urlPath="/"
-          />
-        </div>
-        <div ref={refFixtures}>
-        {FIXTURES.length === 0 && (
-          <div style={{background:"#ffffff05",border:"1px solid #e8ff0033",padding:"20px",textAlign:"center"}}>
-            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".95rem",letterSpacing:3,color:"#e8ff00",marginBottom:6}}>SEASON COMPLETE</div>
-            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".68rem",letterSpacing:2,color:"#ffffff45"}}>
-              NO FIXTURES LEFT — NEXT SEASON&apos;S GO UP WHEN THE LEAGUE PUBLISHES THEM
+          <div style={{marginBottom:20,display:"flex",alignItems:"flex-end",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+            <div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ {view.division.toUpperCase()} · {view.label}</div>
+              <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>{live ? "FIXTURES & RESULTS" : "RESULTS"}</h1>
             </div>
-            <button data-share-hide="1" onClick={() => setScreen("season")}
-                    style={{marginTop:12,background:"none",border:"none",color:"#e8ff00",fontFamily:"'Oswald',sans-serif",fontSize:".6rem",letterSpacing:2,cursor:"pointer",padding:0}}>
-              READ THE END OF SEASON REPORT →
-            </button>
+            <SeasonSwitch value={view.id} onChange={setViewSeason} />
           </div>
-        )}
-        {FIXTURES.map((gw, gi) => (
-          <div key={gi} style={{marginBottom:24,animation:"fadeUp .4s ease both",animationDelay:`${gi*.08}s`}}>
-            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",letterSpacing:3,color:"#e8ff00",marginBottom:10,paddingBottom:8,borderBottom:"1px solid #e8ff0033"}}>{gw.date}</div>
-            {gw.matches.map((m, mi) => {
-              const sfcGame = isSFC(m.home) || isSFC(m.away);
-              return (
-                <div key={mi} style={{display:"flex",alignItems:"center",background:sfcGame?"#e8ff0008":"#ffffff05",border:`1px solid ${sfcGame?"#e8ff0030":"#ffffff0e"}`,padding:"10px 12px",marginBottom:5}}>
-                  <div style={{width:56,fontFamily:"'Oswald',sans-serif",fontSize:".7rem",fontWeight:600,color:sfcGame?"#e8ff00":"#ffffff44",letterSpacing:1,flexShrink:0}}>{m.time}</div>
-                  <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-                    <div style={{flex:1,textAlign:"right",fontFamily:"'Oswald',sans-serif",fontWeight:isSFC(m.home)?700:500,fontSize:".9rem",color:isSFC(m.home)?"#e8ff00":"#ffffffbb"}}>{m.home==="VACANCY"?"TBD":m.home}</div>
-                    <div style={{padding:"3px 8px",background:"#ffffff10",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".68rem",color:"#ffffff44",flexShrink:0}}>VS</div>
-                    <div style={{flex:1,fontFamily:"'Oswald',sans-serif",fontWeight:isSFC(m.away)?700:500,fontSize:".9rem",color:isSFC(m.away)?"#e8ff00":"#ffffffbb"}}>{m.away==="VACANCY"?"TBD":m.away}</div>
+
+          {/* ── Upcoming Fixtures ── */}
+          {live && (
+            <>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:12}}>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#ffffff55",letterSpacing:4}}>◆ UPCOMING FIXTURES</div>
+                {fixtures.length > 0 && (
+                  <ShareButton
+                    label="SHARE FIXTURES"
+                    getNode={() => refFixtures.current}
+                    caption="SECTION FC — upcoming fixtures"
+                    filename="section-fc-fixtures.png"
+                    urlPath="/"
+                  />
+                )}
+              </div>
+              <div ref={refFixtures}>
+              {fixtures.length === 0 && (
+                <div style={{background:"#ffffff05",border:"1px dashed #ffffff1c",padding:"20px",textAlign:"center",marginBottom:8}}>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".95rem",letterSpacing:3,color:"#ffffffcc",marginBottom:6}}>FIXTURES TBC</div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:2,color:"#ffffff45",lineHeight:1.7}}>
+                    THEY GO UP HERE AS SOON AS THE LEAGUE PUBLISHES THEM
                   </div>
-                  <div style={{width:52,textAlign:"right",fontFamily:"'Oswald',sans-serif",fontSize:".58rem",color:"#ffffff25",flexShrink:0,marginRight:6}}>{m.pitch}</div>
-                  {sfcGame && (
-                    <span data-share-hide="1">
-                      <ShareButton
-                        variant="icon"
-                        size={26}
-                        onShare={() => shareCard.share(
-                          <FixtureShareCard fixture={{...m, date: gw.date}} label="FIXTURE" />,
-                          {
-                            filename:"section-fc-fixture.png",
-                            caption:`SECTION FC ${isSFC(m.home)?"vs":"@"} ${isSFC(m.home)?m.away:m.home} — ${gw.date} ${m.time}`,
-                            urlPath:"/",
-                          }
+                </div>
+              )}
+              {fixtures.map((gw, gi) => (
+                <div key={gi} style={{marginBottom:24,animation:"fadeUp .4s ease both",animationDelay:`${gi*.08}s`}}>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",letterSpacing:3,color:"#e8ff00",marginBottom:10,paddingBottom:8,borderBottom:"1px solid #e8ff0033"}}>{gw.date}</div>
+                  {gw.matches.map((m, mi) => {
+                    const sfcGame = isSFC(m.home) || isSFC(m.away);
+                    return (
+                      <div key={mi} style={{display:"flex",alignItems:"center",background:sfcGame?"#e8ff0008":"#ffffff05",border:`1px solid ${sfcGame?"#e8ff0030":"#ffffff0e"}`,padding:"10px 12px",marginBottom:5}}>
+                        <div style={{width:56,fontFamily:"'Oswald',sans-serif",fontSize:".7rem",fontWeight:600,color:sfcGame?"#e8ff00":"#ffffff44",letterSpacing:1,flexShrink:0}}>{m.time}</div>
+                        <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                          <div style={{flex:1,textAlign:"right",fontFamily:"'Oswald',sans-serif",fontWeight:isSFC(m.home)?700:500,fontSize:".9rem",color:isSFC(m.home)?"#e8ff00":"#ffffffbb"}}>{m.home==="VACANCY"?"TBD":m.home}</div>
+                          <div style={{padding:"3px 8px",background:"#ffffff10",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".68rem",color:"#ffffff44",flexShrink:0}}>VS</div>
+                          <div style={{flex:1,fontFamily:"'Oswald',sans-serif",fontWeight:isSFC(m.away)?700:500,fontSize:".9rem",color:isSFC(m.away)?"#e8ff00":"#ffffffbb"}}>{m.away==="VACANCY"?"TBD":m.away}</div>
+                        </div>
+                        <div style={{width:52,textAlign:"right",fontFamily:"'Oswald',sans-serif",fontSize:".58rem",color:"#ffffff25",flexShrink:0,marginRight:6}}>{m.pitch}</div>
+                        {sfcGame && (
+                          <span data-share-hide="1">
+                            <ShareButton
+                              variant="icon"
+                              size={26}
+                              onShare={() => shareCard.share(
+                                <FixtureShareCard fixture={{...m, date: gw.date}} label="FIXTURE" />,
+                                {
+                                  filename:"section-fc-fixture.png",
+                                  caption:`SECTION FC ${isSFC(m.home)?"vs":"@"} ${isSFC(m.home)?m.away:m.home} — ${gw.date} ${m.time}`,
+                                  urlPath:"/",
+                                }
+                              )}
+                            />
+                          </span>
                         )}
-                      />
-                    </span>
-                  )}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-        ))}
-        </div>
+              ))}
+              </div>
+            </>
+          )}
 
-        {/* ── Past Results ── */}
-        {PAST_RESULTS.length > 0 && (
-          <div style={{marginTop:36,marginBottom:20,paddingTop:28,borderTop:"1px solid #ffffff12"}}>
-            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ PAST RESULTS</div>
-            <h2 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.3rem,4vw,2rem)",fontWeight:700,lineHeight:1,color:"#fff"}}>RESULTS</h2>
-          </div>
-        )}
-        {PAST_RESULTS.map((gw, gi) => (
-          <div key={gi} style={{marginBottom:24,animation:"fadeUp .4s ease both",animationDelay:`${gi*.05}s`}}>
-            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",letterSpacing:3,color:"#ffffff55",marginBottom:10,paddingBottom:8,borderBottom:"1px solid #ffffff1a"}}>{gw.date}</div>
-            {gw.matches.map((m, mi) => {
-              const sfcGame = isSFC(m.home) || isSFC(m.away);
-              const sfcWon  = sfcGame && (isSFC(m.home) ? m.hg > m.ag : m.ag > m.hg);
-              const sfcDraw = sfcGame && m.hg === m.ag;
-              const sfcLost = sfcGame && !sfcWon && !sfcDraw;
-              const badge   = sfcWon ? {label:"W",bg:"#22aa44"} : sfcDraw ? {label:"D",bg:"#cc8800"} : sfcLost ? {label:"L",bg:"#cc3333"} : null;
-              return (
-                <div key={mi} style={{display:"flex",alignItems:"center",background:sfcGame?"#e8ff0008":"#ffffff04",border:`1px solid ${sfcGame?"#e8ff0020":"#ffffff0a"}`,padding:"9px 12px",marginBottom:5}}>
-                  {badge && (
-                    <div style={{width:22,height:22,background:badge.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".65rem",color:"#fff",flexShrink:0,marginRight:8,letterSpacing:0}}>{badge.label}</div>
-                  )}
-                  {!badge && <div style={{width:22,marginRight:8,flexShrink:0}} />}
-                  <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-                    <div style={{flex:1,textAlign:"right",fontFamily:"'Oswald',sans-serif",fontWeight:isSFC(m.home)?700:400,fontSize:".88rem",color:isSFC(m.home)?"#e8ff00":"#ffffffaa"}}>{m.home}</div>
-                    <div style={{display:"flex",gap:3,flexShrink:0}}>
-                      <div style={{width:26,height:26,background:"#1a1a22",border:"1px solid #ffffff18",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem",color:isSFC(m.home)?"#e8ff00":"#fff"}}>{m.hg}</div>
-                      <div style={{width:26,height:26,background:"#1a1a22",border:"1px solid #ffffff18",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem",color:isSFC(m.away)?"#e8ff00":"#fff"}}>{m.ag}</div>
+          {/* ── Results ── */}
+          {view.results.length > 0 && (
+            <div style={{marginTop:live ? 30 : 0,marginBottom:14,paddingTop:live ? 24 : 0,borderTop:live ? "1px solid #ffffff12" : "none"}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#ffffff55",letterSpacing:4}}>◆ {live ? "RESULTS" : "EVERY GAMEWEEK"}</div>
+            </div>
+          )}
+          {view.results.map((gw, gi) => (
+            <div key={gw.date} style={{marginBottom:22,animation:"fadeUp .4s ease both",animationDelay:`${Math.min(gi,10)*.05}s`}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".75rem",letterSpacing:3,color:"#ffffff55",marginBottom:10,paddingBottom:8,borderBottom:"1px solid #ffffff1a"}}>{gw.date}</div>
+              {gw.matches.map((m, mi) => {
+                const sfcGame = isSFC(m.home) || isSFC(m.away);
+                const sfcWon  = sfcGame && (isSFC(m.home) ? m.hg > m.ag : m.ag > m.hg);
+                const sfcDraw = sfcGame && m.hg === m.ag;
+                const sfcLost = sfcGame && !sfcWon && !sfcDraw;
+                const badge   = sfcWon ? {label:"W",bg:"#22aa44"} : sfcDraw ? {label:"D",bg:"#cc8800"} : sfcLost ? {label:"L",bg:"#cc3333"} : null;
+                const report  = sfcGame ? findReport(gw.date, isSFC(m.home) ? m.away : m.home) : null;
+                const scorers = (report?.players || []).filter(p => p.played !== false && (parseInt(p.goals) || 0) > 0).sort((a, b) => b.goals - a.goals);
+                const Row = report ? "button" : "div";
+                return (
+                  <Row key={mi} {...(report ? { onClick: () => openReport(report), className: "tap-card", title: "Read the match report" } : {})}
+                    style={{display:"block",width:"100%",textAlign:"left",color:"#fff",fontFamily:"inherit",cursor:report ? "pointer" : "default",background:sfcGame?"#e8ff0008":"#ffffff04",border:`1px solid ${sfcGame?"#e8ff0020":"#ffffff0a"}`,padding:"9px 12px",marginBottom:5}}>
+                    <div style={{display:"flex",alignItems:"center"}}>
+                      {badge
+                        ? <div style={{width:22,height:22,background:badge.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".65rem",color:"#fff",flexShrink:0,marginRight:8,letterSpacing:0}}>{badge.label}</div>
+                        : <div style={{width:22,marginRight:8,flexShrink:0}} />}
+                      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,minWidth:0}}>
+                        <div style={{flex:1,textAlign:"right",fontFamily:"'Oswald',sans-serif",fontWeight:isSFC(m.home)?700:400,fontSize:".88rem",color:isSFC(m.home)?"#e8ff00":"#ffffffaa"}}>{m.home}</div>
+                        <div style={{display:"flex",gap:3,flexShrink:0}}>
+                          <div style={{width:26,height:26,background:"#1a1a22",border:"1px solid #ffffff18",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem",color:isSFC(m.home)?"#e8ff00":"#fff"}}>{m.hg}</div>
+                          <div style={{width:26,height:26,background:"#1a1a22",border:"1px solid #ffffff18",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem",color:isSFC(m.away)?"#e8ff00":"#fff"}}>{m.ag}</div>
+                        </div>
+                        <div style={{flex:1,fontFamily:"'Oswald',sans-serif",fontWeight:isSFC(m.away)?700:400,fontSize:".88rem",color:isSFC(m.away)?"#e8ff00":"#ffffffaa"}}>{m.away}</div>
+                      </div>
                     </div>
-                    <div style={{flex:1,fontFamily:"'Oswald',sans-serif",fontWeight:isSFC(m.away)?700:400,fontSize:".88rem",color:isSFC(m.away)?"#e8ff00":"#ffffffaa"}}>{m.away}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ))}
+                    {report && (
+                      <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:10,marginTop:7,paddingLeft:30}}>
+                        <div style={{fontSize:".82rem",color:"#ffffff88",lineHeight:1.45}}>
+                          {scorers.length
+                            ? scorers.map(p => `${p.name}${p.goals > 1 ? ` ${p.goals}` : ""}`).join(", ")
+                            : "No scorers logged"}
+                        </div>
+                        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,color:"#e8ff0099",flexShrink:0}}>REPORT →</div>
+                      </div>
+                    )}
+                  </Row>
+                );
+              })}
+            </div>
+          ))}
+          {view.results.length === 0 && (
+            <div style={{padding:"36px",textAlign:"center",color:"#ffffff30",fontFamily:"'Oswald',sans-serif",fontSize:".8rem",letterSpacing:2}}>NO RESULTS YET</div>
+          )}
 
-      </main>
-      {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
+          {!live && view.review && (
+            <button className="link-btn" onClick={() => setScreen("season")} style={{color:"#e8ff00",marginTop:6}}>READ THE {view.label} REVIEW →</button>
+          )}
+
+        </main>
+        {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
         {shareCard.portal}
-    </div>
-  );
+      </div>
+    );
+  }
 
   // ══════════════════════════════════════════════════════════════════════════
   // END OF SEASON SCREEN
   // ══════════════════════════════════════════════════════════════════════════
   if (screen === "season") {
-    const run      = seasonRun();
-    const sfcRow   = LEAGUE_TABLE.find(t => t.team === "SECTION FC");
-    const below    = LEAGUE_TABLE.find(t => t.pos === sfcRow.pos + 1);
+    // The closed 2026 season, read entirely from src/seasons/2026.js.
+    const SEASON_REVIEW = SEASON_2026.review;
+    const run      = seasonRun(SEASON_2026.results);
+    const sfcRow   = SEASON_2026.table.find(t => t.team === "SECTION FC");
+    const below    = SEASON_2026.table.find(t => t.pos === sfcRow.pos + 1);
     const finale   = run[run.length - 1];
 
     // The season splits in two at the night it turned — the 3-2 over Karachi.
@@ -1994,13 +2039,14 @@ export default function App() {
     let unbeaten = 0;
     for (let i = run.length - 1; i >= 0 && run[i].res !== "L"; i--) unbeaten++;
 
-    // Season awards read the live Firestore totals so they stay honest.
+    // Season leaders come from the final totals frozen at the end of the season.
+    const final = SEASON_2026.stats;
     const topBy = key => {
-      const ranked = [...allStatPlayers].filter(p => (stats[p]?.[key] || 0) > 0)
-        .sort((a, b) => (stats[b][key] || 0) - (stats[a][key] || 0));
+      const ranked = Object.keys(final).filter(p => (final[p][key] || 0) > 0)
+        .sort((a, b) => (final[b][key] || 0) - (final[a][key] || 0));
       if (!ranked.length) return null;
-      const best = stats[ranked[0]][key];
-      return { names: ranked.filter(p => stats[p][key] === best), value: best };
+      const best = final[ranked[0]][key];
+      return { names: ranked.filter(p => final[p][key] === best), value: best };
     };
 
     const resColor = { W:"#22aa44", D:"#cc8800", L:"#cc3333" };
@@ -2055,7 +2101,7 @@ export default function App() {
 
             <div style={{display:"flex",justifyContent:"center",gap:0,flexWrap:"wrap",borderTop:"1px solid #ffffff12",paddingTop:16}}>
               {[
-                ["FINISHED", `${sfcRow.pos}TH`],
+                ["FINISHED", ordinal(sfcRow.pos).toUpperCase()],
                 ["POINTS",   sfcRow.pts],
                 ["RECORD",   `${sfcRow.w}-${sfcRow.d}-${sfcRow.l}`],
                 ["GOALS",    `${sfcRow.gf}–${sfcRow.ga}`],
@@ -2077,7 +2123,7 @@ export default function App() {
             <ShareButton
               label="SHARE SEASON"
               getNode={() => refSeason.current}
-              caption={`SECTION FC — ${SEASON_REVIEW.season} season: ${sfcRow.pos}th in ${SEASON_REVIEW.division}, ${sfcRow.pts} points. ${SEASON_REVIEW.verdict}.`}
+              caption={`SECTION FC — ${SEASON_REVIEW.season} season: ${ordinal(sfcRow.pos)} in ${SEASON_REVIEW.division}, ${sfcRow.pts} points. ${SEASON_REVIEW.verdict}.`}
               filename="section-fc-season-2026.png"
               urlPath="/"
             />
@@ -2127,14 +2173,10 @@ export default function App() {
             <AwardRow icon="🛡️" label="APPEARANCES"  statKey="apps"        suffix="apps" />
             <AwardRow icon="🧤"  label="CLEAN SHEETS" statKey="cleanSheets" suffix="cs"   />
             <AwardRow icon="🌟"  label="MOTM"         statKey="motm"        suffix="motm" />
-            {!["goals","assists","apps","cleanSheets","motm"].some(k => topBy(k)) && (
-              <div style={{padding:"16px 0",textAlign:"center",fontFamily:"'Oswald',sans-serif",fontSize:".7rem",letterSpacing:2,color:"#ffffff30"}}>
-                SEASON TOTALS NOT LOADED YET
-              </div>
-            )}
-            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".54rem",letterSpacing:1.5,color:"#ffffff28",paddingTop:10}}>
-              LIVE SEASON TOTALS · FULL TABLE ON THE SQUAD STATS PAGE
-            </div>
+            <button className="link-btn" onClick={() => { setStatsTab(SEASON_2026.id); setScreen("stats"); }}
+                    style={{fontSize:".54rem",letterSpacing:1.5,color:"#ffffff40",paddingTop:10,textAlign:"left"}}>
+              FINAL SEASON TOTALS · SEE THE FULL {SEASON_2026.label} TABLE →
+            </button>
           </div>
 
           {/* ── PROPS TO THE PLAYERS ── */}
@@ -2278,6 +2320,11 @@ export default function App() {
         {isAdmin && !predSetup && (
           <div style={{marginBottom:20}}>
             <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",letterSpacing:3,color:"#ffffff44",marginBottom:10}}>SELECT MATCH TO OPEN FOR PREDICTIONS</div>
+            {sfcFixtures.length === 0 && (
+              <div style={{padding:"16px",background:"#ffffff05",border:"1px dashed #ffffff1c",fontFamily:"'Oswald',sans-serif",fontSize:".66rem",letterSpacing:1.5,color:"#ffffff55",lineHeight:1.6}}>
+                No fixtures published yet. Our next game shows up here to open once it's in the {SEASON.label} fixture list.
+              </div>
+            )}
             {sfcFixtures.map((m, i) => {
               const opp = isSFC(m.home) ? m.away : m.home;
               return (
@@ -2697,19 +2744,6 @@ export default function App() {
   );
 
   // ══════════════════════════════════════════════════════════════════════════
-  // SECTION METRICS (combine)
-  // ══════════════════════════════════════════════════════════════════════════
-  if (screen === "metrics") return (
-    <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif"}}>
-      <style>{CSS}</style>
-      <Header {...sharedProps} />
-      <Metrics isAdmin={isAdmin} />
-      {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
-        {shareCard.portal}
-    </div>
-  );
-
-  // ══════════════════════════════════════════════════════════════════════════
   // ADMIN ONLY: SETUP / SPIN / PITCH
   // ══════════════════════════════════════════════════════════════════════════
   if (!isAdmin && (screen === "setup" || screen === "spin" || screen === "pitch")) return null;
@@ -2732,6 +2766,7 @@ export default function App() {
               <div key={i} style={{background:"#ffffff0d",border:"1px solid #ffffff1e",padding:"5px 10px 5px 6px",display:"flex",alignItems:"center",gap:7,animation:"fadeUp .2s ease both",animationDelay:`${i*.02}s`}}>
                 <Avatar name={p} size={26} />
                 <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".85rem"}}>{p}</span>
+                {INJURED.includes(p) && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:1.5,color:"#ff8866"}}>INJURED</span>}
                 <button onClick={() => setSquad(s => s.filter(x => x!==p))} style={{background:"none",border:"none",color:"#ff5555",cursor:"pointer",fontSize:".75rem",padding:0}}>✕</button>
               </div>
             ))}
@@ -2776,7 +2811,7 @@ export default function App() {
                     style={{flex:1,padding:"8px 10px",background:"#0f0f14",border:"1px solid #ffffff1e",color:slot.name?"#fff":"#ffffff44",fontFamily:"'Oswald',sans-serif",fontSize:".9rem",cursor:"pointer",outline:"none"}}>
                     <option value="">— Pick player —</option>
                     {slot.name && <option value={slot.name}>{slot.name}</option>}
-                    {opts.map(p => <option key={p} value={p}>{p}</option>)}
+                    {opts.map(p => <option key={p} value={p}>{p}{INJURED.includes(p) ? " (injured)" : ""}</option>)}
                   </select>
                 </div>
               );
@@ -2804,7 +2839,7 @@ export default function App() {
                     style={{flex:1,padding:"8px 10px",background:"#0f0f14",border:"1px solid #ffffff14",color:val?"#fff":"#ffffff33",fontFamily:"'Oswald',sans-serif",fontSize:".9rem",cursor:"pointer",outline:"none"}}>
                     <option value="">— Add substitute —</option>
                     {val && <option value={val}>{val}</option>}
-                    {opts.map(p => <option key={p} value={p}>{p}</option>)}
+                    {opts.map(p => <option key={p} value={p}>{p}{INJURED.includes(p) ? " (injured)" : ""}</option>)}
                   </select>
                   {val && <button onClick={() => setBenchTeam(prev => prev.filter((_,j) => j!==bi))}
                     style={{background:"none",border:"none",color:"#ff555566",cursor:"pointer",fontSize:".8rem",padding:0,flexShrink:0}}>✕</button>}
@@ -3010,11 +3045,20 @@ export default function App() {
             const rc = p.rating!==undefined&&p.rating!=="" ? getRatingColor(parseFloat(p.rating)) : "#ffffff22";
             const ratingTxt = (p.rating!==""&&p.rating!=null) ? ` ${parseFloat(p.rating).toFixed(1)}` : '';
             return (
-              <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:i%2===0?"transparent":"#ffffff04",borderBottom:"1px solid #ffffff07",flexWrap:"wrap"}}>
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:i%2===0?"transparent":"#ffffff04",borderBottom:"1px solid #ffffff07"}}>
                 <Avatar name={p.name} size={34} />
-                <div style={{minWidth:130,flex:1}}>
+                <div style={{flex:1,minWidth:0}}>
                   <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".88rem"}}>{p.name}</div>
-                  <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,color:"#ffffff40"}}>{p.pos}</div>
+                  {/* Position and the night's returns share the line under the name */}
+                  <div style={{display:"flex",alignItems:"center",gap:9,flexWrap:"wrap",marginTop:2}}>
+                    {p.pos && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,color:"#ffffff40"}}>{p.pos}</span>}
+                    {p.goals>0     && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffffcc"}}>⚽ {p.goals}</span>}
+                    {p.assists>0   && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffffcc"}}>🅰 {p.assists}</span>}
+                    {p.yellows>0   && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#f5c518"}}>🟨 {p.yellows}</span>}
+                    {p.reds>0      && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ff4444"}}>🟥 {p.reds}</span>}
+                    {p.cleanSheet  && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#44dd88"}}>🧤 CS</span>}
+                    {p.motm        && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#e8ff00",fontWeight:700}}>★ MOTM</span>}
+                  </div>
                 </div>
                 {/* Rating */}
                 {p.rating!==""&&p.rating!==undefined && (
@@ -3022,15 +3066,6 @@ export default function App() {
                     <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".88rem",color:rc}}>{parseFloat(p.rating).toFixed(1)}</span>
                   </div>
                 )}
-                {/* Stats */}
-                <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-                  {p.goals>0     && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffffcc"}}>⚽ {p.goals}</div>}
-                  {p.assists>0   && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffffcc"}}>🅰 {p.assists}</div>}
-                  {p.yellows>0   && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#f5c518"}}>🟨 {p.yellows}</div>}
-                  {p.reds>0      && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ff4444"}}>🟥 {p.reds}</div>}
-                  {p.cleanSheet  && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#44dd88"}}>🧤 CS</div>}
-                  {p.motm        && <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#e8ff00",fontWeight:700}}>★ MOTM</div>}
-                </div>
                 <ShareButton
                   variant="icon"
                   size={26}
@@ -3216,56 +3251,75 @@ export default function App() {
             </div>
           )}
 
-          {/* Report Archive — visible to all users */}
-          {reportArchive.length > 0 && (
-            <div style={{marginTop:44,borderTop:"1px solid #ffffff0e",paddingTop:28}}>
-              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",color:"#ffffff38",letterSpacing:4,marginBottom:16}}>◆ REPORT ARCHIVE</div>
-              {reportArchive.map(r => {
-                const isExpanded = expandedArchive === r.id;
-                const won = r.sfcScore > r.oppScore;
-                const lost = r.sfcScore < r.oppScore;
-                const rc = won ? "#44dd88" : lost ? "#ff5544" : "#ffffff55";
-                return (
-                  <div key={r.id} style={{marginBottom:5}}>
-                    <button
-                      onClick={() => setExpandedArchive(isExpanded ? null : r.id)}
-                      style={{width:"100%",background:"#ffffff04",border:"1px solid #ffffff0e",color:"#fff",cursor:"pointer",padding:"12px 16px",display:"flex",alignItems:"center",gap:12,textAlign:"left",fontFamily:"inherit"}}
-                    >
-                      <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".72rem",letterSpacing:2,color:rc,minWidth:16}}>{won?"W":lost?"L":"D"}</div>
-                      <div style={{flex:1}}>
-                        <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem"}}>
-                          SECTION FC {r.sfcScore}–{r.oppScore} {r.opponent}
-                        </div>
-                        <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,color:"#ffffff38",marginTop:2}}>{r.date}</div>
-                      </div>
-                      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".65rem",color:"#ffffff28"}}>{isExpanded?"▲":"▼"}</div>
-                    </button>
-                    {isExpanded && (
-                      <div style={{background:"#ffffff03",border:"1px solid #ffffff08",borderTop:"none",padding:"16px 18px"}}>
-                        {r.reportText ? (
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"1rem",lineHeight:1.6,color:"#ffffffcc",whiteSpace:"pre-wrap"}}>{r.reportText}</div>
-                        ) : (
-                          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffff25",letterSpacing:1}}>No written report.</div>
-                        )}
-                        {r.players?.filter(p=>p.played).length > 0 && (
-                          <div style={{marginTop:12}}>
-                            {r.players.filter(p=>p.played).map((p,i) => (
-                              <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid #ffffff06"}}>
-                                <Avatar name={p.name} size={28} />
-                                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".78rem",flex:1}}>{p.name}</div>
-                                {p.motm && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",fontWeight:700}}>★ MOTM</span>}
-                                {p.rating!==""&&p.rating!==undefined && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".72rem",color:"#ffffff55"}}>{parseFloat(p.rating).toFixed(1)}</span>}
+          {/* Report Archive — visible to all users, grouped by season */}
+          {reportArchive.length > 0 && (() => {
+            // Newest season first. Reports from before the first season on the
+            // site are the Division 2 games ahead of promotion.
+            const groups = [
+              ...SEASONS.map(x => ({ key:x.id, label:`${x.label} · ${x.division}`, from:x.startsAt, items:[] })),
+              { key:"div2", label:"Division 2", from:-Infinity, items:[] },
+            ];
+            reportArchive.forEach(r => groups.find(g => (r.publishedAt || 0) >= g.from).items.push(r));
+            return (
+              <div style={{marginTop:44,borderTop:"1px solid #ffffff0e",paddingTop:28}}>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".6rem",color:"#ffffff38",letterSpacing:4,marginBottom:6}}>◆ REPORT ARCHIVE</div>
+                {groups.filter(g => g.items.length).map(g => (
+                  <div key={g.key}>
+                    <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",margin:"18px 0 8px",paddingBottom:6,borderBottom:"1px solid #ffffff10"}}>
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".72rem",letterSpacing:3,color:"#e8ff00"}}>{g.label.toUpperCase()}</div>
+                      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,color:"#ffffff35"}}>{g.items.length} REPORT{g.items.length !== 1 ? "S" : ""}</div>
+                    </div>
+                    {g.items.map(r => {
+                      const isExpanded = expandedArchive === r.id;
+                      const won = r.sfcScore > r.oppScore;
+                      const lost = r.sfcScore < r.oppScore;
+                      const rc = won ? "#44dd88" : lost ? "#ff5544" : "#ffffff55";
+                      return (
+                        <div key={r.id} id={`report-${r.id}`} style={{marginBottom:5,scrollMarginTop:100}}>
+                          <button
+                            onClick={() => setExpandedArchive(isExpanded ? null : r.id)}
+                            style={{width:"100%",background:isExpanded?"#ffffff08":"#ffffff04",border:`1px solid ${isExpanded?"#e8ff0033":"#ffffff0e"}`,color:"#fff",cursor:"pointer",padding:"12px 16px",display:"flex",alignItems:"center",gap:12,textAlign:"left",fontFamily:"inherit"}}
+                          >
+                            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:800,fontSize:".72rem",letterSpacing:2,color:rc,minWidth:16}}>{won?"W":lost?"L":"D"}</div>
+                            <div style={{flex:1}}>
+                              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem"}}>
+                                SECTION FC {r.sfcScore}–{r.oppScore} {r.opponent}
                               </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:2,color:"#ffffff38",marginTop:2}}>{r.date}</div>
+                            </div>
+                            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".65rem",color:"#ffffff28"}}>{isExpanded?"▲":"▼"}</div>
+                          </button>
+                          {isExpanded && (
+                            <div style={{background:"#ffffff03",border:"1px solid #ffffff08",borderTop:"none",padding:"16px 18px"}}>
+                              {r.reportText ? (
+                                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"1rem",lineHeight:1.6,color:"#ffffffcc",whiteSpace:"pre-wrap"}}>{r.reportText}</div>
+                              ) : (
+                                <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".7rem",color:"#ffffff25",letterSpacing:1}}>No written report.</div>
+                              )}
+                              {r.players?.filter(p=>p.played).length > 0 && (
+                                <div style={{marginTop:12}}>
+                                  {r.players.filter(p=>p.played).map((p,i) => (
+                                    <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid #ffffff06"}}>
+                                      <Avatar name={p.name} size={28} />
+                                      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".78rem",flex:1}}>{p.name}</div>
+                                      {p.goals>0   && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".66rem",color:"#ffffffcc"}}>⚽ {p.goals}</span>}
+                                      {p.assists>0 && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".66rem",color:"#ffffffcc"}}>🅰 {p.assists}</span>}
+                                      {p.motm && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",fontWeight:700}}>★ MOTM</span>}
+                                      {p.rating!==""&&p.rating!==undefined && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".72rem",color:"#ffffff55",minWidth:24,textAlign:"right"}}>{parseFloat(p.rating).toFixed(1)}</span>}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-          )}
+                ))}
+              </div>
+            );
+          })()}
         </main>
         {showPinModal && <AdminModal isAdmin={isAdmin} onClose={() => setShowPinModal(false)} onLogin={() => setIsAdmin(true)} onLogout={() => setIsAdmin(false)} />}
         {shareCard.portal}

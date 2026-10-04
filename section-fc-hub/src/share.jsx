@@ -205,7 +205,10 @@ export function useShareableCard() {
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
       if (cancelled) return;
       try {
-        await shareNode(ref.current, state.opts);
+        // Capture the card, not the wrapper: html-to-image copies the captured
+        // element's own styles onto the copy, and the wrapper's left:-10000px
+        // would put the card outside the image and leave it blank.
+        await shareNode(ref.current.firstElementChild || ref.current, state.opts);
         state.resolver?.();
       } catch (err) {
         console.error('shareable card failed', err);
