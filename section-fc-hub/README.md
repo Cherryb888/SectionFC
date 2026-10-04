@@ -8,12 +8,12 @@ Your team management app — built with React + Firebase.
 
 The default admin PIN is: **sfc2024**
 
-To change it, open `src/App.jsx` and edit line 8:
+To change it, open `src/App.jsx` and edit this line near the top:
 ```js
 const ADMIN_PIN = 'sfc2024'; // Change this to your own PIN
 ```
 
-You and Dani use the same PIN. Players don't need one.
+You and your assistant manager use the same PIN. Players don't need one.
 
 ---
 
@@ -62,7 +62,7 @@ firebase deploy
 That's it! Firebase will give you a URL like:
 **https://section-fc.web.app**
 
-Share that link with your squad. You and Dani log in with the admin PIN.
+Share that link with your squad. You and your assistant manager log in with the admin PIN.
 
 ---
 
@@ -77,6 +77,23 @@ Takes about 30 seconds.
 
 ---
 
+## 📅 Seasons
+
+League data lives in `src/seasons/`, one file per season:
+
+- `autumn-2026.js` is the live season, ten gameweeks to Mon 30 Nov. Each
+  week, move the gameweek from `FIXTURES` to the top of `RESULTS` and add
+  the scores. The league table is worked out from the results.
+- `2026.js` is last season, closed: its results, final table, final player
+  totals and the words on the 2026 Review page.
+
+Player stats, form and match reports live in Firestore and come in through
+the post-match report on the Matchday Squad page. `new-season.mjs` is the
+script that rolled Firestore over to Autumn 2026; it archived 2026 to
+`seasonArchive/2026` first.
+
+---
+
 ## 📱 Adding to phone home screen
 
 On iPhone: Open the URL in Safari → Share button → "Add to Home Screen"
@@ -88,7 +105,7 @@ It'll look and feel like a proper app.
 
 ## 👥 Who can do what
 
-| Feature | Players | Admins (you + Dani) |
+| Feature | Players | Admins (you + your assistant manager) |
 |---|---|---|
 | View stats, table, fixtures, Hall of Fame | ✅ | ✅ |
 | Submit score prediction | ✅ | ✅ |
