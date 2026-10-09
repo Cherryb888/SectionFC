@@ -280,7 +280,7 @@ const CSS = `
 // ── Shared components ─────────────────────────────────────────────────────────
 const ALL_TABS = ["home","squad","report","table","fixtures","stats","predictor","halloffame","season"];
 const matchdayScreens = ["setup","spin","pitch"];
-const TAB_LABELS = {home:"Home",squad:"⚽ Matchday Squad",report:"Report",season:`${SEASON_2026.label} Review`,stats:"Squad Stats",table:"Table",fixtures:"Results",halloffame:"🏆 Hall",predictor:"Predictor"};
+const TAB_LABELS = {home:"Home",squad:"⚽ Matchday Squad",report:"Report",season:`${SEASON_2026.label} Review`,stats:"Squad Stats",table:"Table",fixtures:"Matches",halloffame:"🏆 Hall",predictor:"Predictor"};
 
 function Header({ screen, setScreen, isAdmin, onAdminClick }) {
   const activeTab = matchdayScreens.includes(screen) ? null : screen;
@@ -1891,7 +1891,7 @@ export default function App() {
           <div style={{marginBottom:20,display:"flex",alignItems:"flex-end",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
             <div>
               <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ {view.division.toUpperCase()} · {view.label.toUpperCase()}</div>
-              <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>{live ? "FIXTURES & RESULTS" : "RESULTS"}</h1>
+              <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>MATCHES</h1>
             </div>
             <SeasonSwitch value={view.id} onChange={setViewSeason} />
           </div>
@@ -2492,12 +2492,12 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Prop: Anytime scorer */}
+                {/* Prop: first SFC scorer (stored as anytimeScorer, the name it had before) */}
                 {predMatch.goalsLine != null && squadPlayers.length > 0 && (
                   <div style={{marginBottom:10,background:"#ffffff06",border:"1px solid #ffffff14",padding:"14px 14px 12px"}}>
                     <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:3,color:"#e8ff0077",marginBottom:8}}>◆ PROP BET — +1 PT IF CORRECT</div>
                     <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(.95rem,3.5vw,1.1rem)",marginBottom:12}}>
-                      <span style={{color:"#e8ff00"}}>Anytime scorer</span> for SFC?
+                      <span style={{color:"#e8ff00"}}>First scorer</span> for SFC?
                     </div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
                       {squadPlayers.map(name => {
@@ -2586,7 +2586,7 @@ export default function App() {
                     p.overUnder      && `${p.overUnder.toUpperCase()} ${predMatch.goalsLine ?? ""}`.trim(),
                     p.cleanSheet     && `CS: ${p.cleanSheet.toUpperCase()}`,
                     p.htLeader       && `HT: ${p.htLeader === "sfc" ? "SFC" : p.htLeader === "opp" ? (predMatch.opp ? predMatch.opp.split(" ")[0].toUpperCase() : "OPP") : "DRAW"}`,
-                    p.anytimeScorer  && `Scorer: ${firstWord(p.anytimeScorer)}`,
+                    p.anytimeScorer  && `1st scorer: ${firstWord(p.anytimeScorer)}`,
                     p.motmPick       && `MOTM: ${firstWord(p.motmPick)}`,
                     p.firstScorer    && `First: ${p.firstScorer.toUpperCase()}`,
                   ].filter(Boolean);
@@ -2665,7 +2665,7 @@ export default function App() {
 
                         {squadPlayers.length > 0 && (
                           <>
-                            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:3,color:"#ffffff44",marginBottom:6}}>ANYTIME SFC SCORER</div>
+                            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:3,color:"#ffffff44",marginBottom:6}}>FIRST SFC SCORER</div>
                             <select value={resultAnytimeScorer} onChange={e => setResultAnytimeScorer(e.target.value)} style={{width:"100%",marginBottom:12}}>
                               <option value="">Select scorer (or leave blank if none)…</option>
                               {squadPlayers.map(p => <option key={p} value={p}>{p}</option>)}

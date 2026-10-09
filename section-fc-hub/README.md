@@ -92,6 +92,11 @@ the post-match report on the Matchday Squad page. `new-season.mjs` is the
 script that rolled Firestore over to Autumn 2026; it archived 2026 to
 `seasonArchive/2026` first.
 
+A report that comes in as a message rather than through the app can go in
+with `apply-report.mjs`: put the game in `MATCH`, run it once without a flag
+to check, then with `--apply`. It does what APPLY TO STATS does and refuses a
+game that's already in.
+
 ---
 
 ## 📱 Adding to phone home screen

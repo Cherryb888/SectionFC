@@ -9,6 +9,11 @@
 // Pigs and WSOPC FC, who were in Division 1 last season, aren't in it.
 
 const RESULTS = [
+  { date:"Mon 5 Oct 2026", matches:[
+    { time:"7:10 PM", home:"Youre getting 5%", away:"Karachi Athletic FC", hg:7, ag:2, pitch:"Pitch 1" },
+    { time:"7:10 PM", home:"RBCC FC", away:"SECTION FC", hg:4, ag:4, pitch:"Pitch 2" },
+    { time:"8:30 PM", home:"Drew Peacock FC", away:"Booty & Boys", hg:2, ag:5, pitch:"Pitch 2" },
+  ]},
   { date:"Mon 28 Sep 2026", matches:[
     // Kick-off times and pitches weren't on the league's results page.
     { time:"", home:"SECTION FC", away:"Drew Peacock FC", hg:6, ag:6, pitch:"" },
@@ -19,11 +24,6 @@ const RESULTS = [
 
 // The league's fixture list, in the order it published it.
 const FIXTURES = [
-  { date:"Mon 5 Oct 2026", matches:[
-    { time:"7:10 PM", home:"Youre getting 5%", away:"Karachi Athletic FC", pitch:"Pitch 1" },
-    { time:"7:10 PM", home:"RBCC FC", away:"SECTION FC", pitch:"Pitch 2" },
-    { time:"8:30 PM", home:"Drew Peacock FC", away:"Booty & Boys", pitch:"Pitch 2" },
-  ]},
   { date:"Mon 12 Oct 2026", matches:[
     { time:"7:50 PM", home:"Drew Peacock FC", away:"RBCC FC", pitch:"Pitch 2" },
     { time:"7:50 PM", home:"Booty & Boys", away:"Youre getting 5%", pitch:"Pitch 1" },
