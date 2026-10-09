@@ -280,7 +280,7 @@ const CSS = `
 // ── Shared components ─────────────────────────────────────────────────────────
 const ALL_TABS = ["home","squad","report","table","fixtures","stats","predictor","halloffame","season"];
 const matchdayScreens = ["setup","spin","pitch"];
-const TAB_LABELS = {home:"Home",squad:"⚽ Matchday Squad",report:"Report",season:`${SEASON_2026.label} Review`,stats:"Squad Stats",table:"Table",fixtures:"Results",halloffame:"🏆 Hall",predictor:"Predictor"};
+const TAB_LABELS = {home:"Home",squad:"⚽ Matchday Squad",report:"Report",season:`${SEASON_2026.label} Review`,stats:"Squad Stats",table:"Table",fixtures:"Matches",halloffame:"🏆 Hall",predictor:"Predictor"};
 
 function Header({ screen, setScreen, isAdmin, onAdminClick }) {
   const activeTab = matchdayScreens.includes(screen) ? null : screen;
@@ -1891,7 +1891,7 @@ export default function App() {
           <div style={{marginBottom:20,display:"flex",alignItems:"flex-end",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
             <div>
               <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".62rem",color:"#e8ff00",letterSpacing:4,marginBottom:5}}>◆ {view.division.toUpperCase()} · {view.label.toUpperCase()}</div>
-              <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>{live ? "FIXTURES & RESULTS" : "RESULTS"}</h1>
+              <h1 style={{fontFamily:"'Oswald',sans-serif",fontSize:"clamp(1.6rem,5vw,2.8rem)",fontWeight:700,lineHeight:1}}>MATCHES</h1>
             </div>
             <SeasonSwitch value={view.id} onChange={setViewSeason} />
           </div>
