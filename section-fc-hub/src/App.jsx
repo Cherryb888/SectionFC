@@ -2492,12 +2492,12 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Prop: Anytime scorer */}
+                {/* Prop: first SFC scorer (stored as anytimeScorer, the name it had before) */}
                 {predMatch.goalsLine != null && squadPlayers.length > 0 && (
                   <div style={{marginBottom:10,background:"#ffffff06",border:"1px solid #ffffff14",padding:"14px 14px 12px"}}>
                     <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".55rem",letterSpacing:3,color:"#e8ff0077",marginBottom:8}}>◆ PROP BET — +1 PT IF CORRECT</div>
                     <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:"clamp(.95rem,3.5vw,1.1rem)",marginBottom:12}}>
-                      <span style={{color:"#e8ff00"}}>Anytime scorer</span> for SFC?
+                      <span style={{color:"#e8ff00"}}>First scorer</span> for SFC?
                     </div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
                       {squadPlayers.map(name => {
@@ -2586,7 +2586,7 @@ export default function App() {
                     p.overUnder      && `${p.overUnder.toUpperCase()} ${predMatch.goalsLine ?? ""}`.trim(),
                     p.cleanSheet     && `CS: ${p.cleanSheet.toUpperCase()}`,
                     p.htLeader       && `HT: ${p.htLeader === "sfc" ? "SFC" : p.htLeader === "opp" ? (predMatch.opp ? predMatch.opp.split(" ")[0].toUpperCase() : "OPP") : "DRAW"}`,
-                    p.anytimeScorer  && `Scorer: ${firstWord(p.anytimeScorer)}`,
+                    p.anytimeScorer  && `1st scorer: ${firstWord(p.anytimeScorer)}`,
                     p.motmPick       && `MOTM: ${firstWord(p.motmPick)}`,
                     p.firstScorer    && `First: ${p.firstScorer.toUpperCase()}`,
                   ].filter(Boolean);
@@ -2665,7 +2665,7 @@ export default function App() {
 
                         {squadPlayers.length > 0 && (
                           <>
-                            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:3,color:"#ffffff44",marginBottom:6}}>ANYTIME SFC SCORER</div>
+                            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:".58rem",letterSpacing:3,color:"#ffffff44",marginBottom:6}}>FIRST SFC SCORER</div>
                             <select value={resultAnytimeScorer} onChange={e => setResultAnytimeScorer(e.target.value)} style={{width:"100%",marginBottom:12}}>
                               <option value="">Select scorer (or leave blank if none)…</option>
                               {squadPlayers.map(p => <option key={p} value={p}>{p}</option>)}
