@@ -24,31 +24,28 @@ const P = (name, pos, rating, extra = {}) => ({
 });
 
 const MATCH = {
-  date:        "Mon 5 Oct 2026",
-  opponent:    "RBCC FC",
-  sfcScore:    4,
+  date:        "Mon 12 Oct 2026",
+  opponent:    "Karachi Athletic FC",
+  sfcScore:    5,
   oppScore:    4,
-  publishedAt: Date.UTC(2026, 9, 5, 20, 0),
-  squadId:     1791141525777,  // the matchday squad posted for this game
-  // In the order the gaffa rated them. No MOTM was named. Positions are the
-  // posted squad's; Chiz wasn't in it, so his is blank.
+  publishedAt: Date.UTC(2026, 9, 12, 21, 0),
+  squadId:     1791753334828,  // the matchday squad posted for this game
+  // In the order the gaffa rated them. Chiz's star is Man of the Match.
+  // Positions are the posted squad's; Chiz, Josh and Mooney were on the bench.
   players: [
-    P("Ben Higgs",      "DEF", "8.5", { goals: 1, assists: 1 }),
-    P("Mooney",         "SUB", "8.5", { goals: 1, assists: 1 }),
-    P("Tom Goldsby",    "ATT", "8",   { goals: 1 }),
-    P("Chiz",           "",    "8",   { goals: 1 }),
-    P("Mo",             "DEF", "7.5"),
-    P("Jeven Dhillon",  "GK",  "7.5"),
-    P("Hayden Hunter",  "ATT", "7.5"),
-    P("George Mcnulty", "SUB", "7.5"),
+    P("Chiz",           "SUB", "9.5", { goals: 3, motm: true }),
+    P("Hayden Hunter",  "ATT", "8.5", { goals: 1, assists: 1 }),
+    P("Mooney",         "SUB", "8.5", { assists: 2 }),
+    P("Josh Allenby",   "SUB", "8.5", { goals: 1 }),
+    P("Tom Goldsby",    "ATT", "8",   { assists: 1 }),
+    P("Ben Higgs",      "DEF", "8",   { assists: 1 }),
+    P("Guy Horton",     "DEF", "8"),
+    P("Jeven Dhillon",  "GK",  "8"),
   ],
   reportText: [
-    "Déjà vu. Another 4-0 lead, another four-all draw. At this point we might just be doing it for the drama.",
-    "The first half was a joy to watch. Golds opened the scoring early, as is becoming tradition, and from there we were flying. Chiz marked his return with a goal, Higgs got on the scoresheet with a lovely half way chip and set one up, and Moon chipped in with a goal and an assist of his own. Four up at the break and everyone looking sharp.",
-    "The second half was a different story. The opposition found their way back into it, and once the first one went in the momentum swung their way. We kept going, but four goals later we were shaking hands on a draw that felt more like a loss.",
-    "If there's one thing to take from it, it's the shape when we've got the ball. With everyone pushing up at once, the man in possession was often left with nobody short to pass to, which meant forcing it forward and giving the ball away more than we'd like. A couple of players dropping in to offer an easy option could make all the difference next time. If we don't force it and keep the ball for longer maybe we'd give less opportunities for them to attack when we've got such a large lead.",
-    "Only positive is we are still unbeaten and on for doing the invincibles.",
-    "Onto the next 🫡",
+    "Chiz set the tone today. A hat-trick to open the game, and we needed every one of them as we traded blows with Karachi in a proper back-and-forth contest. There were some lovely moves in there too, with the ball zipping between Golds, Higgs and Moon to carve out chances, and Josh slotting one home with a calm finish. Hayden got in on the act as well with a goal and an assist.",
+    "We played well overall, but a few sloppy goals conceded kept Karachi in it. Too often we left them a spare man rather than staying solid, and they made us pay. When we stayed narrow we looked much safer at the back, so the lesson is simple: stay switched on, pick up a man, and don't leave a free body running onto the ball.",
+    "In the end, though, we saw it out in style, \"haram balling\" our way through the last few minutes to get the job done. A great game and a great result.",
   ].join("\n\n"),
 };
 
