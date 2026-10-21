@@ -5,9 +5,52 @@ import { createPortal } from 'react-dom';
 // mobile). On platforms without file-share support, fall back to downloading
 // the image and opening WhatsApp Web with the caption pre-filled.
 
+// Safari on iPhone only opens the share sheet as the direct result of a tap.
+// Drawing the image means fetching fonts and player photos, and by the time
+// it's ready Safari no longer counts the tap and refuses to share. When that
+// happens, show the finished image with its own Share button: tapping that is
+// a fresh tap, so the share sheet opens. Plain DOM, so every share gets it,
+// buttons and off-screen cards alike.
+function offerShare(file, text) {
+  document.getElementById('sfc-share-ready')?.remove();
+  const src = URL.createObjectURL(file);
+  const sheet = document.createElement('div');
+  sheet.id = 'sfc-share-ready';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:1000;background:rgba(6,6,8,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;';
+  const close = () => { sheet.remove(); URL.revokeObjectURL(src); };
+
+  const img = document.createElement('img');
+  img.src = src;
+  img.alt = 'Image ready to share';
+  img.style.cssText = 'max-width:100%;max-height:58vh;object-fit:contain;border:1px solid #e8ff0033;';
+
+  const go = document.createElement('button');
+  go.type = 'button';
+  go.textContent = 'SHARE';
+  go.style.cssText = "background:#e8ff00;color:#0a0a0f;border:none;cursor:pointer;padding:14px 48px;font-family:'Oswald',sans-serif;font-weight:700;font-size:1rem;letter-spacing:3px;";
+  // Stays open if the share sheet is dismissed or fails, so the picture can
+  // still be saved by pressing and holding it.
+  go.addEventListener('click', () => {
+    navigator.share({ files: [file], text, title: 'Section FC' }).then(close, () => {});
+  });
+
+  const note = document.createElement('div');
+  note.textContent = 'IMAGE READY · OR PRESS AND HOLD IT TO SAVE';
+  note.style.cssText = "font-family:'Oswald',sans-serif;font-size:.6rem;letter-spacing:2px;color:#ffffff66;text-align:center;";
+
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.textContent = 'CLOSE';
+  cancel.style.cssText = "background:transparent;border:1px solid #ffffff22;color:#ffffff88;cursor:pointer;padding:8px 18px;font-family:'Oswald',sans-serif;font-weight:700;font-size:.7rem;letter-spacing:2px;";
+  cancel.addEventListener('click', close);
+
+  sheet.append(img, go, note, cancel);
+  document.body.appendChild(sheet);
+}
+
 export async function shareNode(node, { caption = '', filename = 'section-fc.png', urlPath = '' } = {}) {
   if (!node) throw new Error('Nothing to share');
-  const { toPng } = await import('html-to-image');
+  const { toBlob } = await import('html-to-image');
 
   // Wait for any <img> inside to fully decode so the capture isn't blank.
   const imgs = [...node.querySelectorAll('img')];
@@ -24,22 +67,23 @@ export async function shareNode(node, { caption = '', filename = 'section-fc.png
   const prevVis = hideEls.map(el => el.style.visibility);
   hideEls.forEach(el => { el.style.visibility = 'hidden'; });
 
-  let dataUrl;
+  let blob;
   try {
-    dataUrl = await toPng(node, {
+    // No cacheBust: fonts and photos already on the page come from the
+    // browser's cache instead of being downloaded all over again.
+    blob = await toBlob(node, {
       pixelRatio: 2,
       backgroundColor: '#0a0a0f',
-      cacheBust: true,
       style: { transform: 'none' },
     });
   } finally {
     hideEls.forEach((el, i) => { el.style.visibility = prevVis[i] || ''; });
   }
+  if (!blob) throw new Error('the image came out empty');
 
   const url = `${window.location.origin}${urlPath || ''}`;
   const text = caption ? `${caption}\n${url}` : url;
 
-  const blob = await (await fetch(dataUrl)).blob();
   const file = new File([blob], filename, { type: 'image/png' });
 
   if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
@@ -48,16 +92,19 @@ export async function shareNode(node, { caption = '', filename = 'section-fc.png
       return { method: 'native' };
     } catch (err) {
       if (err && err.name === 'AbortError') return { method: 'cancelled' };
+      if (err && err.name === 'NotAllowedError') { offerShare(file, text); return { method: 'offered' }; }
       // Fall through to manual download.
     }
   }
 
+  const href = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = dataUrl;
+  a.href = href;
   a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 60000);
 
   const wa = `https://wa.me/?text=${encodeURIComponent(text)}`;
   window.open(wa, '_blank', 'noopener');
