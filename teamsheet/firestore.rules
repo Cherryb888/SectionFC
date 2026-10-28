@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isAdmin(teamId) {
+      return signedIn() && exists(/databases/$(database)/documents/teams/$(teamId)/admins/$(request.auth.uid));
+    }
+
+    match /teams/{teamId} {
+      // Anyone with the link can see the team: that's the point of sharing it.
+      allow read: if true;
+
+      // A new team starts unpaid and belongs to whoever made it.
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.paid == false
+        && request.resource.data.id == teamId;
+
+      // Admins edit everything except who owns it and whether it's paid.
+      // paid is set by the Stripe webhook, which uses the Admin SDK and so
+      // skips these rules.
+      allow update: if isAdmin(teamId)
+        && request.resource.data.paid == resource.data.paid
+        && request.resource.data.ownerUid == resource.data.ownerUid;
+
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+
+      match /admins/{uid} {
+        allow read: if signedIn() && request.auth.uid == uid;
+        // The owner adds themselves when making the team; anyone else needs
+        // the invite code.
+        allow create: if signedIn() && request.auth.uid == uid && (
+          get(/databases/$(database)/documents/teams/$(teamId)).data.ownerUid == uid
+          || request.resource.data.code
+             == get(/databases/$(database)/documents/teams/$(teamId)/secrets/admin).data.code
+        );
+      }
+
+      match /secrets/{name} {
+        allow read, write: if isAdmin(teamId);
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
