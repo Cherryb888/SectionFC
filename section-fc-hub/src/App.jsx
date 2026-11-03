@@ -41,6 +41,8 @@ const PLAYER_IMGS = {
   "Archie Bayliss":  null,
   // Debut in the 6-6 with Drew Peacock on the opening night of Autumn 2026.
   "Lee Trundle":     null,
+  // First game in the 4-2 win at Drew Peacock on Mon 2 Nov 2026.
+  "Max H":           null,
 };
 
 // Who runs the side. Hayden Hunter is assistant manager while Dani Griffiths
@@ -51,11 +53,18 @@ const STAFF = [
   { role:"Assistant Manager", name:"Hayden Hunter", note:"Stepping up while Dani Griffiths is out injured" },
 ];
 const INJURED = ["Dani Griffiths"];
+// Out on loan. Mooney's last game before going was the 2-3 with Youre
+// getting 5% on Mon 19 Oct 2026; take him off this list when he's back.
+const ON_LOAN = ["Mooney"];
+// " (injured)" or " (on loan)" after a name in the squad pickers.
+const unavailable = name =>
+  INJURED.includes(name) ? " (injured)" : ON_LOAN.includes(name) ? " (on loan)" : "";
 const STAFF_SHORT = { "Manager":"MANAGER", "Assistant Manager":"ASST MANAGER" };
 const playerTag = name => {
   const s = STAFF.find(x => x.name === name);
   if (s) return { label: STAFF_SHORT[s.role] || s.role.toUpperCase(), color: "#e8ff00" };
   if (INJURED.includes(name)) return { label: "INJURED", color: "#ff8866" };
+  if (ON_LOAN.includes(name)) return { label: "ON LOAN", color: "#60cfff" };
   return null;
 };
 
@@ -1465,6 +1474,17 @@ export default function App() {
                 ))}
               </div>
             )}
+            {ON_LOAN.length > 0 && (
+              <div style={{marginTop:8,paddingTop:12,borderTop:"1px solid #ffffff0c",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                <Kicker color="#60cfff" style={{letterSpacing:3}}>ON LOAN</Kicker>
+                {ON_LOAN.map(n => (
+                  <div key={n} style={{display:"flex",alignItems:"center",gap:7,padding:"3px 11px 3px 3px",background:"#60cfff0d",border:"1px solid #60cfff33",borderRadius:20}}>
+                    <Avatar name={n} size={24} border="#60cfff66" />
+                    <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".78rem"}}>{n}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* ── PREDICTION TEASER ── */}
@@ -2772,6 +2792,7 @@ export default function App() {
                 <Avatar name={p} size={26} />
                 <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:600,fontSize:".85rem"}}>{p}</span>
                 {INJURED.includes(p) && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:1.5,color:"#ff8866"}}>INJURED</span>}
+                {ON_LOAN.includes(p) && <span style={{fontFamily:"'Oswald',sans-serif",fontSize:".52rem",letterSpacing:1.5,color:"#60cfff"}}>ON LOAN</span>}
                 <button onClick={() => setSquad(s => s.filter(x => x!==p))} style={{background:"none",border:"none",color:"#ff5555",cursor:"pointer",fontSize:".75rem",padding:0}}>✕</button>
               </div>
             ))}
@@ -2816,7 +2837,7 @@ export default function App() {
                     style={{flex:1,padding:"8px 10px",background:"#0f0f14",border:"1px solid #ffffff1e",color:slot.name?"#fff":"#ffffff44",fontFamily:"'Oswald',sans-serif",fontSize:".9rem",cursor:"pointer",outline:"none"}}>
                     <option value="">— Pick player —</option>
                     {slot.name && <option value={slot.name}>{slot.name}</option>}
-                    {opts.map(p => <option key={p} value={p}>{p}{INJURED.includes(p) ? " (injured)" : ""}</option>)}
+                    {opts.map(p => <option key={p} value={p}>{p}{unavailable(p)}</option>)}
                   </select>
                 </div>
               );
@@ -2844,7 +2865,7 @@ export default function App() {
                     style={{flex:1,padding:"8px 10px",background:"#0f0f14",border:"1px solid #ffffff14",color:val?"#fff":"#ffffff33",fontFamily:"'Oswald',sans-serif",fontSize:".9rem",cursor:"pointer",outline:"none"}}>
                     <option value="">— Add substitute —</option>
                     {val && <option value={val}>{val}</option>}
-                    {opts.map(p => <option key={p} value={p}>{p}{INJURED.includes(p) ? " (injured)" : ""}</option>)}
+                    {opts.map(p => <option key={p} value={p}>{p}{unavailable(p)}</option>)}
                   </select>
                   {val && <button onClick={() => setBenchTeam(prev => prev.filter((_,j) => j!==bi))}
                     style={{background:"none",border:"none",color:"#ff555566",cursor:"pointer",fontSize:".8rem",padding:0,flexShrink:0}}>✕</button>}
