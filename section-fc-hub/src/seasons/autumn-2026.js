@@ -9,6 +9,17 @@
 // Pigs and WSOPC FC, who were in Division 1 last season, aren't in it.
 
 const RESULTS = [
+  { date:"Mon 16 Nov 2026", matches:[
+    // Only our own score has come in so far. Add the other two games of the
+    // night (RBCC v Drew Peacock, Youre getting 5% v Booty & Boys) when the
+    // league posts them, or the table will be a game short for those teams.
+    { time:"7:10 PM", home:"SECTION FC", away:"Karachi Athletic FC", hg:10, ag:3, pitch:"Pitch 2" },
+  ]},
+  { date:"Mon 9 Nov 2026", matches:[
+    // Same here: Booty & Boys v Drew Peacock and Karachi v Youre getting 5%
+    // still to add.
+    { time:"8:30 PM", home:"SECTION FC", away:"RBCC FC", hg:7, ag:1, pitch:"Pitch 1" },
+  ]},
   { date:"Mon 2 Nov 2026", matches:[
     { time:"7:10 PM", home:"Drew Peacock FC", away:"SECTION FC", hg:2, ag:4, pitch:"Pitch 1" },
     { time:"7:10 PM", home:"Youre getting 5%", away:"RBCC FC", hg:7, ag:2, pitch:"Pitch 2" },
@@ -44,16 +55,6 @@ const RESULTS = [
 
 // The league's fixture list, in the order it published it.
 const FIXTURES = [
-  { date:"Mon 9 Nov 2026", matches:[
-    { time:"7:50 PM", home:"Booty & Boys", away:"Drew Peacock FC", pitch:"Pitch 1" },
-    { time:"7:50 PM", home:"Karachi Athletic FC", away:"Youre getting 5%", pitch:"Pitch 2" },
-    { time:"8:30 PM", home:"SECTION FC", away:"RBCC FC", pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 16 Nov 2026", matches:[
-    { time:"7:10 PM", home:"RBCC FC", away:"Drew Peacock FC", pitch:"Pitch 1" },
-    { time:"7:10 PM", home:"SECTION FC", away:"Karachi Athletic FC", pitch:"Pitch 2" },
-    { time:"8:30 PM", home:"Youre getting 5%", away:"Booty & Boys", pitch:"Pitch 2" },
-  ]},
   { date:"Mon 23 Nov 2026", matches:[
     { time:"7:50 PM", home:"Booty & Boys", away:"RBCC FC", pitch:"Pitch 1" },
     { time:"7:50 PM", home:"Youre getting 5%", away:"SECTION FC", pitch:"Pitch 2" },
