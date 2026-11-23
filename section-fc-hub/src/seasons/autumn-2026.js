@@ -11,7 +11,7 @@
 const RESULTS = [
   { date:"Mon 16 Nov 2026", matches:[
     { time:"7:10 PM", home:"RBCC FC", away:"Drew Peacock FC", hg:2, ag:6, pitch:"Pitch 1" },
-    { time:"7:10 PM", home:"SECTION FC", away:"Karachi Athletic FC", hg:9, ag:3, pitch:"Pitch 2" },
+    { time:"7:10 PM", home:"SECTION FC", away:"Karachi Athletic FC", hg:10, ag:3, pitch:"Pitch 2" },
     { time:"8:30 PM", home:"Youre getting 5%", away:"Booty & Boys", hg:5, ag:0, pitch:"Pitch 2" },
   ]},
   { date:"Mon 9 Nov 2026", matches:[
