@@ -10,14 +10,13 @@
 
 const RESULTS = [
   { date:"Mon 16 Nov 2026", matches:[
-    // Only our own score has come in so far. Add the other two games of the
-    // night (RBCC v Drew Peacock, Youre getting 5% v Booty & Boys) when the
-    // league posts them, or the table will be a game short for those teams.
-    { time:"7:10 PM", home:"SECTION FC", away:"Karachi Athletic FC", hg:10, ag:3, pitch:"Pitch 2" },
+    { time:"7:10 PM", home:"RBCC FC", away:"Drew Peacock FC", hg:2, ag:6, pitch:"Pitch 1" },
+    { time:"7:10 PM", home:"SECTION FC", away:"Karachi Athletic FC", hg:9, ag:3, pitch:"Pitch 2" },
+    { time:"8:30 PM", home:"Youre getting 5%", away:"Booty & Boys", hg:5, ag:0, pitch:"Pitch 2" },
   ]},
   { date:"Mon 9 Nov 2026", matches:[
-    // Same here: Booty & Boys v Drew Peacock and Karachi v Youre getting 5%
-    // still to add.
+    { time:"7:50 PM", home:"Booty & Boys", away:"Drew Peacock FC", hg:8, ag:4, pitch:"Pitch 1" },
+    { time:"7:50 PM", home:"Karachi Athletic FC", away:"Youre getting 5%", hg:7, ag:1, pitch:"Pitch 2" },
     { time:"8:30 PM", home:"SECTION FC", away:"RBCC FC", hg:7, ag:1, pitch:"Pitch 1" },
   ]},
   { date:"Mon 2 Nov 2026", matches:[
