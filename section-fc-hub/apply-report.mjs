@@ -24,81 +24,54 @@ const P = (name, pos, rating, extra = {}) => ({
 });
 
 // Oldest first: they go in in this order, so player form and team form
-// read in date order. No matchday squad was posted for these three, so
-// there's no squadId and no positions, except Jeven in goal on 2 Nov.
+// read in date order. No matchday squad was posted for these two, so
+// there's no squadId and no positions, except Jeven in goal on 16 Nov.
 const MATCHES = [
   {
-    date:        "Mon 19 Oct 2026",
-    opponent:    "Youre getting 5%",
-    sfcScore:    2,
+    date:        "Mon 9 Nov 2026",
+    opponent:    "RBCC FC",
+    sfcScore:    7,
+    oppScore:    1,
+    publishedAt: Date.UTC(2026, 10, 9, 21, 30),
+    squadId:     null,
+    // In the order the gaffa rated them. No Man of the Match was named.
+    players: [
+      P("Chiz",           "", "9.5", { goals: 4 }),
+      P("Tom Goldsby",    "", "9",   { goals: 1, assists: 2 }),
+      P("Hayden Hunter",  "", "8.5", { assists: 2 }),
+      P("George Mcnulty", "", "8.5", { goals: 1, assists: 1 }),
+      P("Ben Higgs",      "", "8.5", { goals: 1 }),
+      P("Jeven Dhillon",  "", "8.5", { assists: 1 }),
+    ],
+    reportText: [
+      "Now that's more like it. One of our best performances in a long time.",
+      "Chiz ran the show from the start, helping himself to a first-half hat-trick and adding a fourth for good measure. Every time the ball came near him in the box, it ended up in the net.",
+      "The football was a joy to watch. Some lovely one-twos carved RBFC open again and again. Golds, Higgs and mcnults got themselves on the scoresheet too to round off a brilliant team display.",
+      "At the back we defended well for the most part, and were only a whisker away from a clean sheet. If we're being picky, we were a touch open at times and a sharper attacking side might have tested us more, but that's a minor note on a day when almost everything clicked.",
+      "A statement win and a performance to build on.",
+    ].join("\n\n"),
+  },
+  {
+    date:        "Mon 16 Nov 2026",
+    opponent:    "Karachi Athletic FC",
+    sfcScore:    10,
     oppScore:    3,
-    publishedAt: Date.UTC(2026, 9, 19, 21, 0),
+    publishedAt: Date.UTC(2026, 10, 16, 21, 0),
     squadId:     null,
-    // In the order the gaffa rated them. Mcnulty's star is Man of the Match.
-    // Moon's last game before he goes out on loan.
-    players: [
-      P("Mooney",         "", "8.5", { goals: 1, assists: 1 }),
-      P("George Mcnulty", "", "8",   { goals: 1, motm: true }),
-      P("Jeven Dhillon",  "", "8",   { assists: 1 }),
-      P("Chiz",           "", "7.5"),
-      P("Hayden Hunter",  "", "7.5"),
-      P("Josh Allenby",   "", "7.5"),
-      P("Guy Horton",     "", "7.5"),
-    ],
-    reportText: [
-      "A frustrating one, because we deserved more than we got.",
-      "It started perfectly. Mcnults put us in front, and from there we defended in true \"haram\" style, compact, disciplined and making life difficult for them. Lovely stuff to watch.",
-      "You're Getting 5% did show a bit of quality, though, and a well-worked goal brought them level just before half time. After the break they found another couple to go 3-1 up, and it looked like the game might be getting away from us.",
-      "Then Moon stepped up. On his last game before heading off on loan 😢, he let fly from distance and found the net with a cracking long shot. A fitting send-off, and a big loss for the squad while he's away. Gracias for everything, Moon 😢",
-      "We pushed hard for the equaliser but just couldn't quite get it over the line. The point would have been fully deserved, but there's plenty to be positive about from that performance.",
-      "Well done lads. Unlucky one.",
-    ].join("\n\n"),
-  },
-  {
-    date:        "Mon 26 Oct 2026",
-    opponent:    "Booty & Boys",
-    sfcScore:    4,
-    oppScore:    6,
-    publishedAt: Date.UTC(2026, 9, 26, 21, 0),
-    squadId:     null,
-    // All six on an 8. Hayden's star is Man of the Match.
-    players: [
-      P("Hayden Hunter",  "", "8", { goals: 1, assists: 1, motm: true }),
-      P("Tom Goldsby",    "", "8", { goals: 1, assists: 1 }),
-      P("Ben Higgs",      "", "8", { goals: 1 }),
-      P("George Mcnulty", "", "8", { goals: 1 }),
-      P("Jeven Dhillon",  "", "8", { assists: 1 }),
-      P("Guy Horton",     "", "8"),
-    ],
-    reportText: [
-      "A tough afternoon against the unbeaten league leaders, but plenty to be proud of.",
-      "It started brilliantly. Higgs put us 1-0 up with a lovely finish from a tight angle, and for a moment it looked like we might cause an upset. Booty and Boys had other ideas, though, rattling in three on the bounce. They kept finding a soft pass through the middle and we just couldn't clear our lines. Hayden and Golds got us back in it before the break, Hayden teeing up Golds to make it 3-2.",
-      "The second half followed a similar pattern. They hit another flurry, but we kept answering. Mcnulty curled a beauty from distance into the bottom corner, and then came the moment of the match: a flowing team move where everyone got a touch, finished off by Hayden.",
-      "Overall, 6-4 felt like a fair result. With a sub or two more we might have had the legs to push them closer, and it wasn't a bad performance at all against the best side in the league. If there's one thing to work on, it's tracking our man a bit more closely, but they were superb in tight spaces so it's nothing to lose sleep over.",
-    ].join("\n\n"),
-  },
-  {
-    date:        "Mon 2 Nov 2026",
-    opponent:    "Drew Peacock FC",
-    sfcScore:    4,
-    oppScore:    2,
-    publishedAt: Date.UTC(2026, 10, 2, 21, 0),
-    squadId:     null,
-    // Jeven's star is Man of the Match. Max H's first game for us.
+    // Jeven's star is Man of the Match, in goal.
     players: [
       P("Jeven Dhillon",  "GK", "9.5", { motm: true }),
-      P("Guy Horton",     "",   "9",   { goals: 1 }),
-      P("Ben Higgs",      "",   "9",   { goals: 1, assists: 1 }),
-      P("Tom Goldsby",    "",   "9",   { goals: 1, assists: 1 }),
-      P("George Mcnulty", "",   "9"),
-      P("Max H",          "",   "9"),
-      P("Mo",             "",   "9",   { goals: 1, assists: 1 }),
+      P("Chiz",           "",   "9",   { goals: 2, assists: 3 }),
+      P("Hayden Hunter",  "",   "9",   { goals: 1, assists: 3 }),
+      P("George Mcnulty", "",   "9",   { goals: 2 }),
+      P("Ben Higgs",      "",   "9",   { goals: 3, assists: 2 }),
+      P("Tom Goldsby",    "",   "9",   { goals: 2 }),
     ],
     reportText: [
-      "Drew Peacock FC arrived with the best name in the league, and it turned out to be the best thing about them. By full time, Section had well and truly plucked their feathers.",
-      "Mo opened the scoring, finishing a slick team move teed up by Goldsby. Goldsby then decided that assists were all well and good but he'd quite like one for himself, tucking away another fine team goal after Higgs laid it on a plate.",
-      "The moment of the night belonged to Guy. Mo sent him down the line, the angle was tight, the sensible option was a cross, and Guy is never one for the sensible option. He smashed in an absolute screamer to break his duck. Reports that he's still celebrating are unconfirmed.",
-      "Higgs topped it off with a fine finish to complete a tidy night's work. Drew Peacock nicked two of their own, but it could have been plenty more if not for Jeven, who pulled off some fine saves to take a thoroughly deserved Man of the Match. Up Section. 🟡⚫",
+      "Ten goals and a man of the match between the sticks. Not a bad day at the office.",
+      "This was a proper team performance from front to back. Higgs walked away with a hat-trick, Chiz, mcnults and Goldsby bagged a brace each. The creativity was just as impressive, with Chiz and Hayden pulling the strings for three assists apiece and the ball moving quickly and cleanly all game.",
+      "But the headline belongs to Jeve. In goal today, he pulled off a string of brilliant saves to keep them at bay whenever they did get a sight of goal, and fully earned his man of the match.",
+      "We defended well, carried more threat going forward, and never really looked troubled. Great team performance, simple as that.",
     ].join("\n\n"),
   },
 ];

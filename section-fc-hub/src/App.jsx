@@ -84,6 +84,7 @@ const buildTable = results => {
   const row = team => (rows[team] ??= { team, pl:0, w:0, d:0, l:0, gf:0, ga:0 });
   results.forEach(gw => gw.matches.forEach(m => {
     const h = row(m.home), a = row(m.away);
+    if (m.hg == null || m.ag == null) return;   // score not in yet
     h.pl++; a.pl++;
     h.gf += m.hg; h.ga += m.ag;
     a.gf += m.ag; a.ga += m.hg;
@@ -2007,8 +2008,8 @@ export default function App() {
                       <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,minWidth:0}}>
                         <div style={{flex:1,textAlign:"right",fontFamily:"'Oswald',sans-serif",fontWeight:isSFC(m.home)?700:400,fontSize:".88rem",color:isSFC(m.home)?"#e8ff00":"#ffffffaa"}}>{m.home}</div>
                         <div style={{display:"flex",gap:3,flexShrink:0}}>
-                          <div style={{width:26,height:26,background:"#1a1a22",border:"1px solid #ffffff18",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem",color:isSFC(m.home)?"#e8ff00":"#fff"}}>{m.hg}</div>
-                          <div style={{width:26,height:26,background:"#1a1a22",border:"1px solid #ffffff18",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem",color:isSFC(m.away)?"#e8ff00":"#fff"}}>{m.ag}</div>
+                          <div style={{width:26,height:26,background:"#1a1a22",border:"1px solid #ffffff18",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem",color:isSFC(m.home)?"#e8ff00":"#fff"}}>{m.hg ?? "–"}</div>
+                          <div style={{width:26,height:26,background:"#1a1a22",border:"1px solid #ffffff18",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:".85rem",color:isSFC(m.away)?"#e8ff00":"#fff"}}>{m.ag ?? "–"}</div>
                         </div>
                         <div style={{flex:1,fontFamily:"'Oswald',sans-serif",fontWeight:isSFC(m.away)?700:400,fontSize:".88rem",color:isSFC(m.away)?"#e8ff00":"#ffffffaa"}}>{m.away}</div>
                       </div>
