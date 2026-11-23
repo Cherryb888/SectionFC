@@ -4,11 +4,25 @@
 //
 // Each week: move the gameweek from FIXTURES to the top of RESULTS and add
 // the scores (hg/ag). The league table is worked out from RESULTS, so there's
-// no separate table to keep in step.
+// no separate table to keep in step. A match whose score isn't known yet can
+// go in without hg/ag: it shows a dash and doesn't count in the table.
 //
 // Pigs and WSOPC FC, who were in Division 1 last season, aren't in it.
 
 const RESULTS = [
+  { date:"Mon 16 Nov 2026", matches:[
+    // Only our score is in for this night. A match with no hg/ag shows a
+    // dash on Matches and stays out of the table until its score is added.
+    { time:"7:10 PM", home:"RBCC FC", away:"Drew Peacock FC", pitch:"Pitch 1" },
+    { time:"7:10 PM", home:"SECTION FC", away:"Karachi Athletic FC", hg:10, ag:3, pitch:"Pitch 2" },
+    { time:"8:30 PM", home:"Youre getting 5%", away:"Booty & Boys", pitch:"Pitch 2" },
+  ]},
+  { date:"Mon 9 Nov 2026", matches:[
+    // Same here: the other two scores are still to come.
+    { time:"7:50 PM", home:"Booty & Boys", away:"Drew Peacock FC", pitch:"Pitch 1" },
+    { time:"7:50 PM", home:"Karachi Athletic FC", away:"Youre getting 5%", pitch:"Pitch 2" },
+    { time:"8:30 PM", home:"SECTION FC", away:"RBCC FC", hg:7, ag:1, pitch:"Pitch 1" },
+  ]},
   { date:"Mon 2 Nov 2026", matches:[
     { time:"7:10 PM", home:"Drew Peacock FC", away:"SECTION FC", hg:2, ag:4, pitch:"Pitch 1" },
     { time:"7:10 PM", home:"Youre getting 5%", away:"RBCC FC", hg:7, ag:2, pitch:"Pitch 2" },
@@ -44,16 +58,6 @@ const RESULTS = [
 
 // The league's fixture list, in the order it published it.
 const FIXTURES = [
-  { date:"Mon 9 Nov 2026", matches:[
-    { time:"7:50 PM", home:"Booty & Boys", away:"Drew Peacock FC", pitch:"Pitch 1" },
-    { time:"7:50 PM", home:"Karachi Athletic FC", away:"Youre getting 5%", pitch:"Pitch 2" },
-    { time:"8:30 PM", home:"SECTION FC", away:"RBCC FC", pitch:"Pitch 1" },
-  ]},
-  { date:"Mon 16 Nov 2026", matches:[
-    { time:"7:10 PM", home:"RBCC FC", away:"Drew Peacock FC", pitch:"Pitch 1" },
-    { time:"7:10 PM", home:"SECTION FC", away:"Karachi Athletic FC", pitch:"Pitch 2" },
-    { time:"8:30 PM", home:"Youre getting 5%", away:"Booty & Boys", pitch:"Pitch 2" },
-  ]},
   { date:"Mon 23 Nov 2026", matches:[
     { time:"7:50 PM", home:"Booty & Boys", away:"RBCC FC", pitch:"Pitch 1" },
     { time:"7:50 PM", home:"Youre getting 5%", away:"SECTION FC", pitch:"Pitch 2" },
