@@ -34,7 +34,7 @@ const MATCHES = [
     oppScore:    1,
     publishedAt: Date.UTC(2026, 10, 9, 21, 30),
     squadId:     null,
-    // In the order the gaffa rated them. No Man of the Match was named.
+    // In the order the gaffa rated them. No Man of the Match named.
     players: [
       P("Chiz",           "", "9.5", { goals: 4 }),
       P("Tom Goldsby",    "", "9",   { goals: 1, assists: 2 }),
@@ -46,7 +46,7 @@ const MATCHES = [
     reportText: [
       "Now that's more like it. One of our best performances in a long time.",
       "Chiz ran the show from the start, helping himself to a first-half hat-trick and adding a fourth for good measure. Every time the ball came near him in the box, it ended up in the net.",
-      "The football was a joy to watch. Some lovely one-twos carved RBFC open again and again. Golds, Higgs and mcnults got themselves on the scoresheet too to round off a brilliant team display.",
+      "The football was a joy to watch. Some lovely one-twos carved RBCC open again and again. Golds, Higgs and Mcnults got themselves on the scoresheet too to round off a brilliant team display.",
       "At the back we defended well for the most part, and were only a whisker away from a clean sheet. If we're being picky, we were a touch open at times and a sharper attacking side might have tested us more, but that's a minor note on a day when almost everything clicked.",
       "A statement win and a performance to build on.",
     ].join("\n\n"),
@@ -56,7 +56,7 @@ const MATCHES = [
     opponent:    "Karachi Athletic FC",
     sfcScore:    10,
     oppScore:    3,
-    publishedAt: Date.UTC(2026, 10, 16, 21, 0),
+    publishedAt: Date.UTC(2026, 10, 16, 21, 30),
     squadId:     null,
     // Jeven's star is Man of the Match, in goal.
     players: [
@@ -69,7 +69,7 @@ const MATCHES = [
     ],
     reportText: [
       "Ten goals and a man of the match between the sticks. Not a bad day at the office.",
-      "This was a proper team performance from front to back. Higgs walked away with a hat-trick, Chiz, mcnults and Goldsby bagged a brace each. The creativity was just as impressive, with Chiz and Hayden pulling the strings for three assists apiece and the ball moving quickly and cleanly all game.",
+      "This was a proper team performance from front to back. Higgs walked away with a hat-trick, Chiz, Mcnults and Goldsby bagged a brace each. The creativity was just as impressive, with Chiz and Hayden pulling the strings for three assists apiece and the ball moving quickly and cleanly all game.",
       "But the headline belongs to Jeve. In goal today, he pulled off a string of brilliant saves to keep them at bay whenever they did get a sight of goal, and fully earned his man of the match.",
       "We defended well, carried more threat going forward, and never really looked troubled. Great team performance, simple as that.",
     ].join("\n\n"),
